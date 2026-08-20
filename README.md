@@ -97,11 +97,17 @@ npx wrangler kv namespace create BLOG
 2. GitHub 仓库 → **Settings → Secrets and variables → Actions → New repository secret**，添加：
    | 名称 | 值 | 必要 |
    | --- | --- | --- |
+   | `PAGES_PROJECT_NAME` | 你的 Pages 项目名（通常 = 子域名前缀，如 `kejiland.pages.dev` → `kejiland`） | ✅ |
    | `BLOG_KV_ID` | KV 命名空间 id | ✅ |
    | `CLOUDFLARE_API_TOKEN` | Cloudflare API Token（权限：Workers / Pages 编辑） | ✅ |
    | `CLOUDFLARE_ACCOUNT_ID` | 你的 Cloudflare 账户 id（Dashboard 右上角 URL 里） | ✅ |
    | `BLOG_ADMIN_SETUP_KEY` | 一次性管理员密码设置密钥（可选，见安全章节） | 建议 |
    | `BLOG_WRITE_TOKEN` | 旧式写入令牌（可选） | 可选 |
+
+   > 项目名怎么确认？打开你的站点控制台 → Workers & Pages 左侧列表里的项目名；
+   > 或命令行 `npx wrangler pages project list` 查看真实项目名。
+   > ⚠️ `PAGES_PROJECT_NAME` 必须与 Cloudflare 上**实际存在的项目名**完全一致，
+   > 否则部署会报 `Project not found [code: 8000007]`；API Token 也必须是**同一账户**下创建。
 3. 推送到 `main` → Actions 自动运行「Deploy to Cloudflare Pages」→ 读取 `wrangler.toml`，
    `id = "{env.BLOG_KV_ID}"` 由 Secret 内插为真实 id，部署完成。
    部署后工作流还会用 `wrangler pages secret put` 把 `BLOG_ADMIN_SETUP_KEY`、
