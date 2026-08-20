@@ -97,7 +97,7 @@ npx wrangler kv namespace create BLOG
 2. GitHub 仓库 → **Settings → Secrets and variables → Actions → New repository secret**，添加：
    | 名称 | 值 | 必要 |
    | --- | --- | --- |
-   | `PAGES_PROJECT_NAME` | （可选）自定义 worker 名；**不设置 = 默认用配置文件里的 name（azhz）** | 可选 |
+   | `PAGES_PROJECT_NAME` | （可选）自定义 worker 名；**不设置 = 默认用配置文件里的 name（kejiland）** | 可选 |
    | `BLOG_KV_ID` | KV 命名空间 id | ✅ |
    | `CLOUDFLARE_API_TOKEN` | Cloudflare API Token（权限：Workers / Pages 编辑） | ✅ |
    | `CLOUDFLARE_ACCOUNT_ID` | 你的 Cloudflare 账户 id（Dashboard 右上角 URL 里） | ✅ |
@@ -105,7 +105,7 @@ npx wrangler kv namespace create BLOG
    | `BLOG_WRITE_TOKEN` | 旧式写入令牌（可选） | 可选 |
 
    > worker 名规则：不设置 `PAGES_PROJECT_NAME` 就用 `wrangler.workers.toml` 里的
-   > `name = "azhz"`（对应子域名 azhz.workers.dev）；想改名字就在 Secret 里设置。
+   > `name = "kejiland"`（对应子域名 kejiland.azhz.workers.dev）；想改名字就在 Secret 里设置。
    > ⚠️ `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID` 必须是**同一账户**下创建，
    > 否则部署会报 `Project not found [code: 8000007]` 或权限错误。
 3. 推送到 `main` → Actions 自动运行「Deploy to Cloudflare Workers」→ 读取 `wrangler.workers.toml`，
@@ -140,7 +140,7 @@ id = "a1b2c3d4..."   # ← 换成真实 id（会随仓库提交，注意仓库�
 部署完成后，浏览器访问（把域名换成你的）：
 
 ```
-https://azhz.workers.dev/api/posts          （Workers 部署，worker 名 azhz）
+https://kejiland.azhz.workers.dev/api/posts   （Workers 部署，worker 名 kejiland）
 或 https://<你的项目>.pages.dev/api/posts   （Pages 部署，备选）
 ```
 
@@ -152,25 +152,26 @@ https://azhz.workers.dev/api/posts          （Workers 部署，worker 名 azhz�
 
 ### 方式 B：Cloudflare Workers（推荐，当前主部署）
 
-你的部署目标是 Workers 子域名 `azhz.workers.dev`（worker 名默认 `azhz`）。
+你的部署目标是 Workers 域名 `kejiland.azhz.workers.dev`
+（worker 名默认 `kejiland`，`azhz` 是账户子域）。
 仓库内置 `.github/workflows/deploy.yml`，**GitHub Actions 自动部署**：
 
 - 每次 `git push` 到 `main`：`wrangler deploy -c wrangler.workers.toml`（打包 `public/` + worker.js）。
 - **项目名（worker 名）规则**：GitHub Secrets 里设置了 `PAGES_PROJECT_NAME` 就用它
-  （`--name` 覆盖）；**没设置则默认使用 `wrangler.workers.toml` 里的 `name = "azhz"`**。
+  （`--name` 覆盖）；**没设置则默认使用 `wrangler.workers.toml` 里的 `name = "kejiland"`**。
 - KV id、设置密钥等全部从 GitHub Secrets 注入，仓库内不落明文。
 - Actions 日志：`https://github.com/<你的用户名>/blog/actions`。
 
 命令行部署（备选）：
 
 ```bash
-npx wrangler deploy -c wrangler.workers.toml   # worker 名 azhz
-node seed.js https://azhz.workers.dev --token <会话令牌>
+npx wrangler deploy -c wrangler.workers.toml   # worker 名 kejiland
+node seed.js https://kejiland.azhz.workers.dev --token <会话令牌>
 ```
 
 ### 方式 A：Cloudflare Pages（备选）
 
-> 注意：你已改走 Workers 部署（`azhz.workers.dev`），Pages 项目已删。
+> 注意：你已改走 Workers 部署（`kejiland.azhz.workers.dev`），Pages 项目已删。
 > 若将来要用 Pages，仍可用 Actions 部署到 Pages 项目（把 workflow 的
 > `command` 改回 `pages deploy` 并设置对应的 `PAGES_PROJECT_NAME`）；此处仅保留参考。
 
@@ -240,7 +241,7 @@ Cloudflare 控制台 → 你的 Pages 项目 → **Settings → Environment vari
 ```bash
 SETUP_KEY=你的BLOG_ADMIN_SETUP_KEY
 
-curl -X POST https://azhz.workers.dev/api/admin/setup \
+curl -X POST https://kejiland.azhz.workers.dev/api/admin/setup \
   -H "Content-Type: application/json" \
   -H "X-Setup-Key: $SETUP_KEY" \
   -d '{"password":"你的强密码（至少8位，建议12位以上）"}'
@@ -253,7 +254,7 @@ curl -X POST https://azhz.workers.dev/api/admin/setup \
 
 #### 第 3 步：日常使用
 
-- 打开 `https://azhz.workers.dev/admin` → 出现**「管理员登录」**框 → 输入密码 → 登录成功。
+- 打开 `https://kejiland.azhz.workers.dev/admin` → 出现**「管理员登录」**框 → 输入密码 → 登录成功。
 - 写文章页点「🚀 发布到云端」→ 保存到 KV（自动携带会话令牌）。
 - 其他浏览器/设备要用：同样只需登录一次；会话 7 天有效，或点「退出」随时失效。
 - 本地 `file://` 双击打开（无后端）：自动退回静态模式的本机密码门禁，功能不受影响。

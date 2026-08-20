@@ -1,7 +1,8 @@
 # ============================================================
 # 轻语博客 · GitHub Actions 自动部署到 Cloudflare Workers
 # ------------------------------------------------------------
-# 部署目标：Cloudflare Workers（子域名 azhz.workers.dev → 默认 worker 名 azhz）
+# 部署目标：Cloudflare Workers（域名 kejiland.azhz.workers.dev
+#   → 默认 worker 名 kejiland；Secrets 设置 PAGES_PROJECT_NAME 可覆盖）
 # 敏感数据全部存放在 GitHub Secrets，部署时注入：
 #   · PAGES_PROJECT_NAME  （可选）自定义 worker 名；不设置 = 用 wrangler.workers.toml 的 name
 #   · BLOG_KV_ID          → 部署前替换进 wrangler.workers.toml 的 [[kv_namespaces]] id
