@@ -2,7 +2,7 @@
  * GET  → 单篇    PUT → 更新    DELETE → 删除
  * 数据存储于 KV 命名空间 BLOG（见 wrangler.toml）
  */
-import { handlePostId } from '../../../_lib/api-core.js';
+import { handlePostId } from '../../_lib/api-core.js';
 
 export async function onRequestGet(context) {
   return handlePostId(context.request, context.env, context.params.id);
