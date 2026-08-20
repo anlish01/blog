@@ -822,15 +822,23 @@ async function renderPost(id) {
     html += '<div class="empty"><div class="big">⏳</div><p>加载中…</p></div>';
     html += '</div></main>' + renderFooter();
     app().innerHTML = html;
-    apiFetch('api/posts/' + encodeURIComponent(post.id)).then(function (data) {
+    // 超时保护：10 秒拿不到正文就放弃加载态，避免“一直加载中”
+    var settled = false;
+    function finish(data) {
+      if (settled) return;
+      settled = true;
       var full = (data && data.post) || null;
       if (full) {
         if (full.content !== undefined) post.content = full.content;
         if (full.enc !== undefined) post.enc = full.enc;
-        post._fullLoaded = true;
-      } else { post._fullLoaded = true; }
+      }
+      post._fullLoaded = true;
       route();
-    }).catch(function () { post._fullLoaded = true; route(); });
+    }
+    apiFetch('api/posts/' + encodeURIComponent(post.id))
+      .then(function (data) { finish(data); })
+      .catch(function () { finish(null); });
+    setTimeout(function () { finish(null); }, 10000);
     return;
   }
   var content = post.protected ? _unlocked[post.id] : post.content;
