@@ -814,7 +814,8 @@ tests.push(['云端摘要模式：列表不含正文，详情按需返回全文'
 
 tests.push(['云端详情懒加载：先占位后拉取渲染', async () => {
   const fetchStub = async (url) => {
-    if (url === 'api/posts') {
+    const u = String(url);
+    if (u.endsWith('api/posts')) {
       return { ok: true, json: async () => ({ ok: true, posts: [{ id: 'l1', title: '懒加载演示', date: '2025-01-03', tags: ['技术'], content: '' }] }) };
     }
     return { ok: true, json: async () => ({ ok: true, post: { id: 'l1', title: '懒加载演示', date: '2025-01-03', tags: ['技术'], content: '这是按需加载出来的正文' } }) };
