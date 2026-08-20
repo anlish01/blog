@@ -5,7 +5,7 @@
 # 敏感数据全部存放在 GitHub Secrets，部署时注入：
 #   · PAGES_PROJECT_NAME  （可选）自定义 worker 名；不设置 = 用 wrangler.workers.toml 的 name
 #   · BLOG_KV_ID          → 部署前替换进 wrangler.workers.toml 的 [[kv_namespaces]] id
-#                          （wrangler 对 kv id 不支持 {env.} 内插，用 sed 显式替换）
+#                          （wrangler 对 kv id 不支持 {env.} 内插，用 python3 显式替换）
 #   · BLOG_ADMIN_SETUP_KEY→ 首次设置管理员密码的一次性密钥（部署后写入 secret）
 #   · BLOG_WRITE_TOKEN    →（可选）旧式写入令牌
 #   · CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID → wrangler 部署凭证
@@ -60,7 +60,7 @@ jobs:
           npx --yes wrangler@3.90.0 whoami 2>&1 | head -20 || true
 
       # 生成带真实 KV id 的部署配置（wrangler 对 kv 的 id 不支持 {env.} 内插，
-      # 必须显式替换占位符；生成在 /tmp，不落仓库）
+      # 必须显式替换占位符；文件放在仓库根目录，保证 worker.js/public 的相对路径正确）
       - name: Prepare deploy config with real KV id
         env:
           BLOG_KV_ID: ${{ secrets.BLOG_KV_ID }}
@@ -73,7 +73,7 @@ jobs:
               raise SystemExit(1)
           src = open('wrangler.workers.toml', encoding='utf-8').read()
           dst = src.replace('{env.BLOG_KV_ID}', kv_id)
-          open('/tmp/wrangler.workers.ci.toml', 'w', encoding='utf-8').write(dst)
+          open('wrangler.workers.ci.toml', 'w', encoding='utf-8').write(dst)
           print('✅ 部署配置已生成（含真实 KV id，不会打印）')
           PY
 
@@ -84,13 +84,14 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: >-
             deploy
-            --config /tmp/wrangler.workers.ci.toml
+            --config wrangler.workers.ci.toml
             ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
-          # 部署后写入运行时 secret（wrangler secret put 对 Worker 有效）
+          # 部署后写入运行时 secret（wrangler secret put 对 Worker 有效），并删除临时配置
           postCommands: |
             if [ -n "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" ]; then
-              echo "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" | wrangler secret put BLOG_ADMIN_SETUP_KEY --config /tmp/wrangler.workers.ci.toml ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
+              echo "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" | wrangler secret put BLOG_ADMIN_SETUP_KEY --config wrangler.workers.ci.toml ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
             fi
             if [ -n "${{ secrets.BLOG_WRITE_TOKEN }}" ]; then
-              echo "${{ secrets.BLOG_WRITE_TOKEN }}" | wrangler secret put BLOG_WRITE_TOKEN --config /tmp/wrangler.workers.ci.toml ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
+              echo "${{ secrets.BLOG_WRITE_TOKEN }}" | wrangler secret put BLOG_WRITE_TOKEN --config wrangler.workers.ci.toml ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
             fi
+            rm -f wrangler.workers.ci.toml

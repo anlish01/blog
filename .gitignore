@@ -16,5 +16,8 @@ Thumbs.db
 # 敏感占位（wrangler.toml 已用占位符；此处防止误提交真实凭据）
 .dev.vars
 
+# CI 生成的真实 KV id 部署配置（Actions 部署时临时生成，用完即删）
+wrangler.workers.ci.toml
+
 # 本地备份/草稿
 *.bak*
