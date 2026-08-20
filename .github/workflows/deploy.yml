@@ -1,0 +1,53 @@
+# ============================================================
+# 轻语博客 · GitHub Actions 自动部署到 Cloudflare Pages
+# ------------------------------------------------------------
+# 为什么用 Actions：原生 Pages「Git 连接」无法读取 GitHub Secrets。
+# 本仓库的敏感数据（KV 命名空间 id、设置密钥、写入令牌等）
+# 全部存放在 GitHub Secrets，部署时由本工作流注入：
+#   · BLOG_KV_ID          → wrangler.toml 中 [[kv_namespaces]] 的 id（{env.} 内插）
+#   · BLOG_ADMIN_SETUP_KEY→ 首次设置管理员密码的一次性密钥（运行时/环境变量）
+#   · BLOG_WRITE_TOKEN    →（可选）旧式写入令牌
+#   · CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID → wrangler 部署凭证
+# 触发：push 到 main / 手动运行。
+# ============================================================
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:      # 支持手动触发
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Deploy Pages (with secrets injected)
+        uses: cloudflare/wrangler-action@v3
+        env:
+          # 从 GitHub Secrets 注入（内插 wrangler.toml 的 {env.} 变量、
+          # 以及下方 --var/--binding 的参数）
+          BLOG_KV_ID: ${{ secrets.BLOG_KV_ID }}
+          BLOG_ADMIN_SETUP_KEY: ${{ secrets.BLOG_ADMIN_SETUP_KEY }}
+          BLOG_WRITE_TOKEN: ${{ secrets.BLOG_WRITE_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # 显式上传 public/（目录作为参数），分支 main=生产环境，
+          # 项目名固定 qingyu-blog（与现有 Pages 项目一致，自动复用自定义域名）。
+          command: >-
+            pages deploy public --project-name=qingyu-blog --branch=main
+            ${{ secrets.BLOG_ADMIN_SETUP_KEY != '' && '--var BLOG_ADMIN_SETUP_KEY:$BLOG_ADMIN_SETUP_KEY' || '' }}
+            ${{ secrets.BLOG_WRITE_TOKEN != '' && '--var BLOG_WRITE_TOKEN:$BLOG_WRITE_TOKEN' || '' }}

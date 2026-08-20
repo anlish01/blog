@@ -81,31 +81,47 @@ npx wrangler kv namespace create BLOG
 > 💡 名称随意，但**必须记住它是谁**：本博客代码里写死了变量名 `BLOG`，
 > 下面绑定时的「变量名」也要填 `BLOG`。
 
-### 第 0.5 步：给 Pages 项目绑定 KV（关键）
+### 第 0.5 步：绑定 KV（第二步）
 
-**方式 A：控制台绑定（推荐，Git 连接部署用这个）**
+> ⚠️ **重要变化**：你的 Pages 项目已启用「wrangler.toml 管理模式」（绑定页显示
+> *“Bindings are managed via wrangler.toml”*），因此**控制台 Bindings 手动添加已不可用**，
+> 必须走下方任一种声明方式。推荐 **方式 C（GitHub Secrets + Actions）**：KV id 既不出现在
+> 仓库明文，也不用在控制台输入。
 
-1. 控制台 → **Workers & Pages** → 点你的 Pages 项目（如 `qingyu-blog`）。
-2. 打开 **Settings（设置）→ Bindings（绑定）** 页。
-3. 点 **Add（添加）** → 类型选 **KV namespace（KV 命名空间）**。
-4. **Variable name（变量名）** 填：**`BLOG`**
-5. **KV namespace** 一栏选择：你刚创建的 **BLOG** 命名空间（下拉列表里按名称选）。
-6. 点 **Save（保存）**。
-7. **最重要：重新部署一次**（Deployments 页 → Retry deployment，或改一行代码触发 Git 自动构建），
-   绑定才会生效。
+**方式 C：GitHub Secrets + Actions 自动部署（推荐，敏感数据不进仓库）**
 
-**方式 B：wrangler.toml 声明（仅 `wrangler pages` CLI 部署时读取）**
+本方案把 KV 命名空间 id（以及可选的设置密钥/写入令牌）放进 **GitHub Secrets**，
+由 `.github/workflows/deploy.yml` 在每次 push 时自动部署并注入：
 
-编辑仓库根目录 `wrangler.toml`，把注释打开并填真实 id：
+1. **创建 KV 命名空间**（见「第 0 步」），记下 32 位十六进制 **id**。
+2. GitHub 仓库 → **Settings → Secrets and variables → Actions → New repository secret**，添加：
+   | 名称 | 值 | 必要 |
+   | --- | --- | --- |
+   | `BLOG_KV_ID` | KV 命名空间 id | ✅ |
+   | `CLOUDFLARE_API_TOKEN` | Cloudflare API Token（权限：Workers / Pages 编辑） | ✅ |
+   | `CLOUDFLARE_ACCOUNT_ID` | 你的 Cloudflare 账户 id（Dashboard 右上角 URL 里） | ✅ |
+   | `BLOG_ADMIN_SETUP_KEY` | 一次性管理员密码设置密钥（可选，见安全章节） | 建议 |
+   | `BLOG_WRITE_TOKEN` | 旧式写入令牌（可选） | 可选 |
+3. 推送到 `main` → Actions 自动运行「Deploy to Cloudflare Pages」→ 读取 `wrangler.toml`，
+   `id = "{env.BLOG_KV_ID}"` 由 Secret 内插为真实 id，部署完成。
+4. 验证见下方「验证绑定成功」。
+
+> 原理：`wrangler.toml` 里 KV id 写 `{env.BLOG_KV_ID}`（部署时由环境变量替换），
+> 工作流把 GitHub Secrets 注入为该环境变量。仓库与渲染文件里**都不会出现真实 id**。
+
+**方式 B：wrangler.toml 直接填真实 id（简单，但 id 会进仓库）**
+
+编辑仓库根目录 `wrangler.toml`，把真实 id 填入 `[[kv_namespaces]]`：
 
 ```toml
 [[kv_namespaces]]
 binding = "BLOG"
-id = "a1b2c3d4..."   # ← 换成上一步记下的真实 id
+id = "a1b2c3d4..."   # ← 换成真实 id（会随仓库提交，注意仓库保密性）
 ```
 
-> ⚠️ Git 连接部署时，Cloudflare 以**控制台绑定**为准（方式 A），
-> `wrangler.toml` 里的 KV 段主要用于方式和本地 `wrangler pages dev`。
+适合：仓库私有、或不需要把 id 藏起来。提交推送后重新部署即生效。
+
+> ~~方式 A（控制台 Bindings）~~：本项目的绑定由 wrangler.toml 管理，控制台已禁用手动添加。
 
 ### 验证绑定成功
 
@@ -123,15 +139,24 @@ https://<你的项目>.pages.dev/api/posts
 
 ### 方式 A：Cloudflare Pages（推荐）
 
-**Git 连接（推荐，支持自动部署与 Functions）：**
+**GitHub Actions 自动部署（推荐，支持 GitHub Secrets）：**
+
+仓库已内置 `.github/workflows/deploy.yml`。完成「第 0.5 步·方式 C」添加 Secrets 后，
+每次 `git push` 到 `main` 会自动：读 `wrangler.toml` → 内插 KV id → 打包 `public/` → 部署到 Pages。
+
+- 不需要在 Pages 控制台做任何手动构建配置（`wrangler.toml` 已声明 `pages_build_output_dir = "public"`）。
+- 敏感数据（KV id、设置密钥）全部在 GitHub Secrets，仓库内不落明文。
+- Actions 页可看到每次部署日志：`https://github.com/<你的用户名>/blog/actions`。
+
+**Git 连接（备选，控制台绑定，注意无法读 GitHub Secrets）：**
 控制台 → Workers & Pages → 创建 → Pages → 连接到 Git → 选 `kejiland/blog`。
 构建配置：**构建输出目录（Build output directory）= `public`**，构建命令留空（零依赖）。
 
 > 仓库根目录的 `wrangler.toml` 已与 Pages 兼容（BETA 读取），`main`/`[assets]`
 > 等 Workers 专属配置已拆到 `wrangler.workers.toml`，避免 Pages 构建报错
 > （`ASSETS` 是 Pages 保留名）。
-> 若未创建真实 KV 命名空间，请保持 `wrangler.toml` 中 `[[kv_namespaces]]` 整段注释；
-> 云端写文章功能随后在控制台 Bindings 添加 KV（变量名 `BLOG`）即可开启。
+> ⚠️ Git 连接方式**读取不到 GitHub Secrets**：若需要把 KV id/密钥藏起来，
+> 请用上方的 Actions 方式（或直接编辑 `wrangler.toml` 填真实 id，见「第 0.5 步·方式 B」）。
 
 **命令行方式（备选）：**
 
@@ -185,9 +210,22 @@ node seed.js https://<你的子域>.workers.dev
   │  ──────────────────────────►  校验会话有效 → 写入 KV
 ```
 
-#### 第 1 步：设置一次性环境变量（防抢注）
+#### 第 1 步：设置一次性密钥（防抢注，二选一）
 
-在 Cloudflare 控制台 → 你的 Pages 项目 → **Settings → Environment variables** 添加：
+**方式 ①：GitHub Secrets（推荐，与 Actions 部署配套）**
+
+在 GitHub 仓库 → Settings → Secrets and variables → Actions → New repository secret 添加：
+
+| 名称 | 值 | 说明 |
+| --- | --- | --- |
+| `BLOG_ADMIN_SETUP_KEY` | 一段随机长字符串（如 `openssl rand -hex 32` 的输出） | 仅首次设置密码时使用，**设完密码后即可从 Secrets 删除** |
+
+`.github/workflows/deploy.yml` 会在每次部署时把该 Secret 注入运行环境，勾选 `[vars]` 后
+成为 Pages Functions 的运行环境变量，无需在 Cloudflare 控制台重复输入。
+
+**方式 ②：Cloudflare 控制台环境变量（不用 Actions 时）**
+
+Cloudflare 控制台 → 你的 Pages 项目 → **Settings → Environment variables** 添加：
 
 | 变量名 | 值 | 说明 |
 | --- | --- | --- |

@@ -17,12 +17,17 @@ compatibility_date = "2025-02-01"
 pages_build_output_dir = "public"
 
 # KV 命名空间（云端数据：文章/评论/统计 + 管理员密码哈希）
-# 绑定方式（详见 README「第 0 步 / 第 0.5 步」）：
-#   a) 【推荐·Pages 控制台】Settings → Bindings → Add → KV namespace →
-#      变量名填 BLOG，选择已创建的命名空间，保存后重新部署一次。
-#   b) 【wrangler pages CLI】把下方占位符换成真实 id
-#      （npx wrangler kv namespace create BLOG 的输出）。
-# 注意：占位符 id 会让 Pages 构建失败，未创建真实命名空间前请保持整段注释。
-# [[kv_namespaces]]
-# binding = "BLOG"
-# id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+# 【注意·GitHub Actions 部署】仓库内不存放任何敏感值：
+#   · id 用 {env.BLOG_KV_ID} 内插 → 由 GitHub Secrets 提供（见 .github/workflows/deploy.yml）
+#   · 设置密钥等敏感值由 Actions env 注入（下方 [vars] 可选）
+# 原生 Pages「Git 连接」读不到 GitHub Secrets，若要用 Secrets 请改用 Actions 部署。
+# 若坚持原生 Git 连接：请自行创建命名空间后，把真实 id 直接填到下方（会进仓库，注意保密）。
+[[kv_namespaces]]
+binding = "BLOG"
+# id 由 GitHub Actions 的 secrets.BLOG_KV_ID 内插（部署时不落仓库）
+id = "{env.BLOG_KV_ID}"
+
+# 运行环境变量（可选）：由 Actions env 注入；不配置则不生效。
+# [vars]
+# BLOG_ADMIN_SETUP_KEY = "{env.BLOG_ADMIN_SETUP_KEY}"
+# BLOG_WRITE_TOKEN = "{env.BLOG_WRITE_TOKEN}"
