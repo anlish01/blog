@@ -427,7 +427,16 @@ function isUnlocked(id) { return !!_unlocked[id]; }
 function getUnlocked(id) { return _unlocked[id] || ''; }
 async function tryUnlock(id, password) {
   var post = (getStaticPosts() || []).find(function (p) { return p.id === id; });
-  if (!post || !post.enc) return false;
+  if (!post) return false;
+  // 云端模式：列表接口 /api/posts 不返回 enc（密文），锁屏时须先从详情接口取回
+  if (!post.enc && _cloudOn()) {
+    try {
+      var data = await apiFetch('api/posts/' + encodeURIComponent(id));
+      var full = (data && data.post) || null;
+      if (full && full.enc) post.enc = full.enc;
+    } catch (e) { /* 拉取失败则按无密文处理 */ }
+  }
+  if (!post.enc) return false;
   var plain = await decryptText(post.enc, password);
   if (plain !== null) {
     _unlocked[id] = plain;

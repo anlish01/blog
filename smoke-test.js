@@ -1056,6 +1056,49 @@ tests.push(['后端：加密文章 content 恒空、enc 仅详情返回（含时
   assert.ok(single.enc && single.enc.data, '详情保留 enc');
 }]);
 
+/* 端到端：发布加密文章 → 列表无 enc → 锁屏解锁（前端从详情拉 enc 再解密）成功 */
+tests.push(['端到端：云端加密文章锁屏解锁成功（列表无 enc → 详情拉 enc → 解密）', async () => {
+  const core = await import('./functions/_lib/api-core.js');
+  const { env, token } = await authEnv();
+  // 用前端同款算法加密（Node WebCrypto）
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encTxt = new TextEncoder();
+  const km = await crypto.subtle.importKey('raw', encTxt.encode('secret-pass-1'), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  const data = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encTxt.encode('这是加密正文'));
+  const b64 = (buf) => Buffer.from(new Uint8Array(buf)).toString('base64');
+  const enc = { salt: b64(salt.buffer), iv: b64(iv.buffer), data: b64(data) };
+  // 发布加密文章
+  const r = await core.handlePosts(new Request('http://t/api/posts', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify({ id: 'lock1', title: '锁屏文', date: '2025-09-01 10:00', tags: [], pinned: false, protected: true, enc, content: '' })
+  }), env);
+  assert.strictEqual(r.status, 201, '加密文章发布成功');
+  // 列表（前端拿到的是这个）：必须无 enc → 复现"锁屏时 enc 缺失"场景
+  const list = (await (await core.handlePosts(new Request('http://t/api/posts'), env)).json()).posts;
+  assert.ok(!('enc' in list[0]) && list[0].protected, '列表无 enc 且 protected');
+  // 前端 tryUnlock 逻辑：post 无 enc → 从详情拉 enc → 解密
+  let post = list[0];
+  const full = (await (await core.handlePostId(new Request('http://t/api/posts/lock1'), env, 'lock1')).json()).post;
+  if (full && full.enc) post.enc = full.enc;   // 等价于前端 tryUnlock 内拉详情
+  assert.ok(post.enc, '详情补回 enc');
+  // 用正确密码解密
+  const salt2 = new Uint8Array(Buffer.from(post.enc.salt, 'base64'));
+  const iv2 = new Uint8Array(Buffer.from(post.enc.iv, 'base64'));
+  const data2 = new Uint8Array(Buffer.from(post.enc.data, 'base64'));
+  const km2 = await crypto.subtle.importKey('raw', encTxt.encode('secret-pass-1'), 'PBKDF2', false, ['deriveKey']);
+  const key2 = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: salt2, iterations: 100000, hash: 'SHA-256' }, km2, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv2 }, key2, data2));
+  assert.strictEqual(plain, '这是加密正文', '正确密码可解密');
+  // 错误密码必须失败
+  const kmBad = await crypto.subtle.importKey('raw', encTxt.encode('wrong-pass'), 'PBKDF2', false, ['deriveKey']);
+  const keyBad = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: salt2, iterations: 100000, hash: 'SHA-256' }, kmBad, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  let badFailed = false;
+  try { await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv2 }, keyBad, data2); } catch (e) { badFailed = true; }
+  assert.ok(badFailed, '错误密码解密失败（AES-GCM 认证失败）');
+}]);
+
 /* ---------- 运行 ---------- */
 (async () => {
   let passed = 0, failed = 0;
