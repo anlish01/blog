@@ -104,10 +104,13 @@ npx wrangler kv namespace create BLOG
    | `BLOG_WRITE_TOKEN` | 旧式写入令牌（可选） | 可选 |
 3. 推送到 `main` → Actions 自动运行「Deploy to Cloudflare Pages」→ 读取 `wrangler.toml`，
    `id = "{env.BLOG_KV_ID}"` 由 Secret 内插为真实 id，部署完成。
+   部署后工作流还会用 `wrangler pages secret put` 把 `BLOG_ADMIN_SETUP_KEY`、
+   `BLOG_WRITE_TOKEN`（若有）持久化为 Pages 项目运行时变量。
 4. 验证见下方「验证绑定成功」。
 
 > 原理：`wrangler.toml` 里 KV id 写 `{env.BLOG_KV_ID}`（部署时由环境变量替换），
-> 工作流把 GitHub Secrets 注入为该环境变量。仓库与渲染文件里**都不会出现真实 id**。
+> 工作流把 GitHub Secrets 注入为该环境变量。仓库与渲染文件里**都不会出现真实 id**；
+> 运行时变量走 `pages secret put`，同样不进仓库。
 
 **方式 B：wrangler.toml 直接填真实 id（简单，但 id 会进仓库）**
 
@@ -220,8 +223,8 @@ node seed.js https://<你的子域>.workers.dev
 | --- | --- | --- |
 | `BLOG_ADMIN_SETUP_KEY` | 一段随机长字符串（如 `openssl rand -hex 32` 的输出） | 仅首次设置密码时使用，**设完密码后即可从 Secrets 删除** |
 
-`.github/workflows/deploy.yml` 会在每次部署时把该 Secret 注入运行环境，勾选 `[vars]` 后
-成为 Pages Functions 的运行环境变量，无需在 Cloudflare 控制台重复输入。
+`.github/workflows/deploy.yml` 会在每次部署后用 `wrangler pages secret put`
+把该 Secret 持久化为 Pages 项目的运行时变量（secret 存储，不入仓库），无需在 Cloudflare 控制台重复输入。
 
 **方式 ②：Cloudflare 控制台环境变量（不用 Actions 时）**
 

@@ -19,15 +19,11 @@ pages_build_output_dir = "public"
 # KV 命名空间（云端数据：文章/评论/统计 + 管理员密码哈希）
 # 【注意·GitHub Actions 部署】仓库内不存放任何敏感值：
 #   · id 用 {env.BLOG_KV_ID} 内插 → 由 GitHub Secrets 提供（见 .github/workflows/deploy.yml）
-#   · 设置密钥等敏感值由 Actions env 注入（下方 [vars] 可选）
+#   · 设置密钥 / 写入令牌等运行时变量 → 由 Actions 的
+#     `wrangler pages secret put` 持久化到 Pages 项目（同样不进仓库）
 # 原生 Pages「Git 连接」读不到 GitHub Secrets，若要用 Secrets 请改用 Actions 部署。
 # 若坚持原生 Git 连接：请自行创建命名空间后，把真实 id 直接填到下方（会进仓库，注意保密）。
 [[kv_namespaces]]
 binding = "BLOG"
 # id 由 GitHub Actions 的 secrets.BLOG_KV_ID 内插（部署时不落仓库）
 id = "{env.BLOG_KV_ID}"
-
-# 运行环境变量（可选）：由 Actions env 注入；不配置则不生效。
-# [vars]
-# BLOG_ADMIN_SETUP_KEY = "{env.BLOG_ADMIN_SETUP_KEY}"
-# BLOG_WRITE_TOKEN = "{env.BLOG_WRITE_TOKEN}"
