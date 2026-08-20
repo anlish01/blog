@@ -86,12 +86,21 @@ jobs:
             deploy
             --config wrangler.workers.ci.toml
             ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
-          # 部署后写入运行时 secret（wrangler secret put 对 Worker 有效），并删除临时配置
-          postCommands: |
-            if [ -n "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" ]; then
-              echo "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" | wrangler secret put BLOG_ADMIN_SETUP_KEY --config wrangler.workers.ci.toml ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
-            fi
-            if [ -n "${{ secrets.BLOG_WRITE_TOKEN }}" ]; then
-              echo "${{ secrets.BLOG_WRITE_TOKEN }}" | wrangler secret put BLOG_WRITE_TOKEN --config wrangler.workers.ci.toml ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
-            fi
-            rm -f wrangler.workers.ci.toml
+
+      # 部署后写入运行时 secret（独立 step：secret 经 env 传入，shell 内用 $VAR 引用，
+      # 不直接把 secret 值拼进脚本，避免值里含换行/特殊字符时破坏语法）
+      - name: Write runtime secrets to Worker
+        env:
+          BLOG_ADMIN_SETUP_KEY: ${{ secrets.BLOG_ADMIN_SETUP_KEY }}
+          BLOG_WRITE_TOKEN: ${{ secrets.BLOG_WRITE_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NAME_ARG: ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
+        run: |
+          if [ -n "$BLOG_ADMIN_SETUP_KEY" ]; then
+            echo "$BLOG_ADMIN_SETUP_KEY" | npx --yes wrangler@3.90.0 secret put BLOG_ADMIN_SETUP_KEY --config wrangler.workers.ci.toml $NAME_ARG
+          fi
+          if [ -n "$BLOG_WRITE_TOKEN" ]; then
+            echo "$BLOG_WRITE_TOKEN" | npx --yes wrangler@3.90.0 secret put BLOG_WRITE_TOKEN --config wrangler.workers.ci.toml $NAME_ARG
+          fi
+          rm -f wrangler.workers.ci.toml
