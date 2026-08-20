@@ -60,23 +60,25 @@ jobs:
 
       - name: Deploy Worker (with secrets injected)
         uses: cloudflare/wrangler-action@v3
-        env:
-          # KV id 内插由 wrangler 读取（进程环境变量）
-          BLOG_KV_ID: ${{ secrets.BLOG_KV_ID }}
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # Workers 部署：-c 指定配置文件；PAGES_PROJECT_NAME 设置了就用 --name 覆盖，
-          # 否则 wrangler 使用 wrangler.workers.toml 里的 name（azhz）。
+          # 先复制配置并替换 {env.BLOG_KV_ID} 占位符为真实 Secret（wrangler 对
+          # [[kv_namespaces]].id 不支持 {env.} 内插，必须显式替换），再部署。
+          preCommands: |
+            sed -e "s/{env.BLOG_KV_ID}/${{ secrets.BLOG_KV_ID }}/g" \
+                wrangler.workers.toml > /tmp/wrangler.workers.ci.toml
+            echo "✅ 已生成带真实 KV id 的部署配置（值不会打印）"
           command: >-
             deploy
-            --config wrangler.workers.toml
+            --config /tmp/wrangler.workers.ci.toml
             ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
-          # 部署后写入运行时 secret（Pages/Workers 通用：wrangler secret put 对 Worker 有效）
+          # 部署后写入运行时 secret（wrangler secret put 对 Worker 有效）
           postCommands: |
             if [ -n "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" ]; then
-              echo "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" | wrangler secret put BLOG_ADMIN_SETUP_KEY --config wrangler.workers.toml ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
+              echo "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" | wrangler secret put BLOG_ADMIN_SETUP_KEY --config /tmp/wrangler.workers.ci.toml ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
             fi
             if [ -n "${{ secrets.BLOG_WRITE_TOKEN }}" ]; then
-              echo "${{ secrets.BLOG_WRITE_TOKEN }}" | wrangler secret put BLOG_WRITE_TOKEN --config wrangler.workers.toml ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
+              echo "${{ secrets.BLOG_WRITE_TOKEN }}" | wrangler secret put BLOG_WRITE_TOKEN --config /tmp/wrangler.workers.ci.toml ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
             fi
+            rm -f /tmp/wrangler.workers.ci.toml
