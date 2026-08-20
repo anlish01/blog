@@ -1,10 +1,12 @@
 # ============================================================
 # 轻语博客 · Cloudflare Workers 配置
 # ------------------------------------------------------------
-# 部署方式 B（Workers）：npx wrangler deploy -c wrangler.workers.toml
-# 与 Pages 共用的 KV 绑定也在此声明（Pages 侧用 wrangler.toml 或控制台）。
+# 部署：npx wrangler deploy -c wrangler.workers.toml
+#   （Workers 部署，子域名 azhz.workers.dev → 下面 name 默认 azhz；
+#    如 GitHub Secrets 里设置了 PAGES_PROJECT_NAME 则用它覆盖 --name）
+# 与 Pages 共用的 KV 绑定也在此声明。
 # ------------------------------------------------------------
-name = "qingyu-blog"
+name = "azhz"
 compatibility_date = "2025-02-01"
 
 # Workers 入口与静态资源
@@ -13,10 +15,10 @@ main = "worker.js"
 directory = "./public"
 binding = "ASSETS"
 
-# KV 命名空间（文章数据存储）
-# 部署前请先创建：npx wrangler kv namespace create BLOG
-# 并把输出的 id 填到下方（preview_id 可先用同一 id 做本地调试）。
+# KV 命名空间（文章数据存储 + 管理员密码哈希）
+# id 用 {env.BLOG_KV_ID} 内插 → 由 GitHub Secrets 的 BLOG_KV_ID 提供（见 .github/workflows/deploy.yml）
+# 本地调试：export BLOG_KV_ID=<真实id> 后 npx wrangler dev -c wrangler.workers.toml
 [[kv_namespaces]]
 binding = "BLOG"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
-preview_id = "REPLACE_WITH_YOUR_KV_PREVIEW_ID"
+id = "{env.BLOG_KV_ID}"
+preview_id = "{env.BLOG_KV_ID}"

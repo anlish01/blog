@@ -97,18 +97,18 @@ npx wrangler kv namespace create BLOG
 2. GitHub 仓库 → **Settings → Secrets and variables → Actions → New repository secret**，添加：
    | 名称 | 值 | 必要 |
    | --- | --- | --- |
-   | `PAGES_PROJECT_NAME` | 你的 Pages 项目名（通常 = 子域名前缀，如 `kejiland.pages.dev` → `kejiland`） | ✅ |
+   | `PAGES_PROJECT_NAME` | （可选）自定义 worker 名；**不设置 = 默认用配置文件里的 name（azhz）** | 可选 |
    | `BLOG_KV_ID` | KV 命名空间 id | ✅ |
    | `CLOUDFLARE_API_TOKEN` | Cloudflare API Token（权限：Workers / Pages 编辑） | ✅ |
    | `CLOUDFLARE_ACCOUNT_ID` | 你的 Cloudflare 账户 id（Dashboard 右上角 URL 里） | ✅ |
    | `BLOG_ADMIN_SETUP_KEY` | 一次性管理员密码设置密钥（可选，见安全章节） | 建议 |
    | `BLOG_WRITE_TOKEN` | 旧式写入令牌（可选） | 可选 |
 
-   > 项目名怎么确认？打开你的站点控制台 → Workers & Pages 左侧列表里的项目名；
-   > 或命令行 `npx wrangler pages project list` 查看真实项目名。
-   > ⚠️ `PAGES_PROJECT_NAME` 必须与 Cloudflare 上**实际存在的项目名**完全一致，
-   > 否则部署会报 `Project not found [code: 8000007]`；API Token 也必须是**同一账户**下创建。
-3. 推送到 `main` → Actions 自动运行「Deploy to Cloudflare Pages」→ 读取 `wrangler.toml`，
+   > worker 名规则：不设置 `PAGES_PROJECT_NAME` 就用 `wrangler.workers.toml` 里的
+   > `name = "azhz"`（对应子域名 azhz.workers.dev）；想改名字就在 Secret 里设置。
+   > ⚠️ `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID` 必须是**同一账户**下创建，
+   > 否则部署会报 `Project not found [code: 8000007]` 或权限错误。
+3. 推送到 `main` → Actions 自动运行「Deploy to Cloudflare Workers」→ 读取 `wrangler.workers.toml`，
    `id = "{env.BLOG_KV_ID}"` 由 Secret 内插为真实 id，部署完成。
    工作流先做 **Secrets 完整性检查**（缺一即明确报错并提示补哪个），
    再部署，最后用 `wrangler pages secret put` 把 `BLOG_ADMIN_SETUP_KEY`、
@@ -140,7 +140,8 @@ id = "a1b2c3d4..."   # ← 换成真实 id（会随仓库提交，注意仓库�
 部署完成后，浏览器访问（把域名换成你的）：
 
 ```
-https://<你的项目>.pages.dev/api/posts
+https://azhz.workers.dev/api/posts        （Workers 部署，worker 名 azhz）
+或 https://<你的项目>.pages.dev/api/posts （Pages 部署）
 ```
 
 - 返回 `{"ok":true,"posts":[...]}` → ✅ 绑定成功，可以继续设置管理员密码。
@@ -149,52 +150,39 @@ https://<你的项目>.pages.dev/api/posts
 
 > ⚠️ KV 绑定是「管理员密码存 Cloudflare」的前提：**没有绑定 BLOG，`/api/admin/setup` 与登录都无法工作**。
 
-### 方式 A：Cloudflare Pages（推荐）
+### 方式 B：Cloudflare Workers（推荐，当前主部署）
 
-**GitHub Actions 自动部署（推荐，支持 GitHub Secrets）：**
+你的部署目标是 Workers 子域名 `azhz.workers.dev`（worker 名默认 `azhz`）。
+仓库内置 `.github/workflows/deploy.yml`，**GitHub Actions 自动部署**：
 
-仓库已内置 `.github/workflows/deploy.yml`。完成「第 0.5 步·方式 C」添加 Secrets 后，
-每次 `git push` 到 `main` 会自动：读 `wrangler.toml` → 内插 KV id → 打包 `public/` → 部署到 Pages。
+- 每次 `git push` 到 `main`：`wrangler deploy -c wrangler.workers.toml`（打包 `public/` + worker.js）。
+- **项目名（worker 名）规则**：GitHub Secrets 里设置了 `PAGES_PROJECT_NAME` 就用它
+  （`--name` 覆盖）；**没设置则默认使用 `wrangler.workers.toml` 里的 `name = "azhz"`**。
+- KV id、设置密钥等全部从 GitHub Secrets 注入，仓库内不落明文。
+- Actions 日志：`https://github.com/<你的用户名>/blog/actions`。
 
-- 不需要在 Pages 控制台做任何手动构建配置（`wrangler.toml` 已声明 `pages_build_output_dir = "public"`）。
-- 敏感数据（KV id、设置密钥）全部在 GitHub Secrets，仓库内不落明文。
-- Actions 页可看到每次部署日志：`https://github.com/<你的用户名>/blog/actions`。
+命令行部署（备选）：
 
-**Git 连接（备选，控制台绑定，注意无法读 GitHub Secrets）：**
-控制台 → Workers & Pages → 创建 → Pages → 连接到 Git → 选 `kejiland/blog`。
-构建配置：**构建输出目录（Build output directory）= `public`**，构建命令留空（零依赖）。
+```bash
+npx wrangler deploy -c wrangler.workers.toml   # worker 名 azhz
+node seed.js https://azhz.workers.dev --token <会话令牌>
+```
 
-> 仓库根目录的 `wrangler.toml` 已与 Pages 兼容（BETA 读取），`main`/`[assets]`
-> 等 Workers 专属配置已拆到 `wrangler.workers.toml`，避免 Pages 构建报错
-> （`ASSETS` 是 Pages 保留名）。
-> ⚠️ Git 连接方式**读取不到 GitHub Secrets**：若需要把 KV id/密钥藏起来，
-> 请用上方的 Actions 方式（或直接编辑 `wrangler.toml` 填真实 id，见「第 0.5 步·方式 B」）。
+### 方式 A：Cloudflare Pages（备选）
 
-**命令行方式（备选）：**
+> 注意：你已改走 Workers 部署（`azhz.workers.dev`），Pages 项目已删。
+> 若将来要用 Pages，仍可用 Actions 部署到 Pages 项目（把 workflow 的
+> `command` 改回 `pages deploy` 并设置对应的 `PAGES_PROJECT_NAME`）；此处仅保留参考。
+
+**GitHub Actions 自动部署（支持 GitHub Secrets）：**
+每次 `git push` 到 `main` 自动部署。敏感数据（KV id、设置密钥）全部在 GitHub Secrets。
+仓库根目录的 `wrangler.toml` 与 Pages 兼容（BETA 读取），`main`/`[assets]` 等 Workers
+专属配置在 `wrangler.workers.toml`，避免 Pages 报 `ASSETS` 保留名错误。
+
+命令行方式（备选）：
 
 ```bash
 npx wrangler pages deploy        # 静态资源 public/，functions/ 自动打包
-```
-
-首次运行按提示创建项目并确认。完成后：
-
-```bash
-node seed.js https://<你的项目名>.pages.dev --token <登录后浏览器里的 qingyu.token>
-# 或：BLOG_TOKEN=<token> node seed.js https://<你的项目名>.pages.dev
-# （可选）导入示例文章；若后端已开启写鉴权需携带凭证
-```
-
-打开站点 → 首页能正常浏览即部署成功。**接下来按「管理员密码存 Cloudflare KV」章节完成
-密码设置与登录**：先加 `BLOG_ADMIN_SETUP_KEY` 环境变量 → `curl` 调 `/api/admin/setup` 设密码
-→ 删除环境变量 → 打开 `/admin` 登录 → 写作页点「🚀 发布到云端」即可存数据。
-
-> `wrangler pages deploy` 也会读取 `wrangler.toml`（已兼容），不会再报 `ASSETS` 保留名错误。
-
-### 方式 B：Cloudflare Workers
-
-```bash
-npx wrangler deploy -c wrangler.workers.toml   # 部署 worker.js + 静态资源绑定
-node seed.js https://<你的子域>.workers.dev
 ```
 
 ### 说明
@@ -232,8 +220,8 @@ node seed.js https://<你的子域>.workers.dev
 | --- | --- | --- |
 | `BLOG_ADMIN_SETUP_KEY` | 一段随机长字符串（如 `openssl rand -hex 32` 的输出） | 仅首次设置密码时使用，**设完密码后即可从 Secrets 删除** |
 
-`.github/workflows/deploy.yml` 会在每次部署后用 `wrangler pages secret put`
-把该 Secret 持久化为 Pages 项目的运行时变量（secret 存储，不入仓库），无需在 Cloudflare 控制台重复输入。
+`.github/workflows/deploy.yml` 会在每次部署后用 `wrangler secret put`
+把该 Secret 持久化为 Worker 的运行时 secret（secret 存储，不入仓库），无需在 Cloudflare 控制台重复输入。
 
 **方式 ②：Cloudflare 控制台环境变量（不用 Actions 时）**
 

@@ -1,16 +1,16 @@
 # ============================================================
-# 轻语博客 · GitHub Actions 自动部署到 Cloudflare Pages
+# 轻语博客 · GitHub Actions 自动部署到 Cloudflare Workers
 # ------------------------------------------------------------
-# 为什么用 Actions：原生 Pages「Git 连接」无法读取 GitHub Secrets。
-# 本仓库的敏感数据（KV 命名空间 id、设置密钥、写入令牌等）
-# 全部存放在 GitHub Secrets，部署时由本工作流注入：
-#   · BLOG_KV_ID          → wrangler.toml 中 [[kv_namespaces]] 的 id（{env.} 内插）
-#   · BLOG_ADMIN_SETUP_KEY→ 首次设置管理员密码的一次性密钥（运行时/环境变量）
+# 部署目标：Cloudflare Workers（子域名 azhz.workers.dev → 默认 worker 名 azhz）
+# 敏感数据全部存放在 GitHub Secrets，部署时注入：
+#   · PAGES_PROJECT_NAME  （可选）自定义 worker 名；不设置 = 用 wrangler.workers.toml 的 name
+#   · BLOG_KV_ID          → wrangler.workers.toml 中 [[kv_namespaces]] 的 id（{env.} 内插）
+#   · BLOG_ADMIN_SETUP_KEY→ 首次设置管理员密码的一次性密钥（部署后写入 secret）
 #   · BLOG_WRITE_TOKEN    →（可选）旧式写入令牌
 #   · CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID → wrangler 部署凭证
 # 触发：push 到 main / 手动运行。
 # ============================================================
-name: Deploy to Cloudflare Pages
+name: Deploy to Cloudflare Workers
 
 on:
   push:
@@ -34,13 +34,12 @@ jobs:
 
       - name: Check required secrets
         env:
-          PAGES_PROJECT_NAME: ${{ secrets.PAGES_PROJECT_NAME }}
           BLOG_KV_ID: ${{ secrets.BLOG_KV_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           MISSING=""
-          for v in PAGES_PROJECT_NAME BLOG_KV_ID CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+          for v in BLOG_KV_ID CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
             if [ -z "${!v}" ]; then MISSING="$MISSING $v"; fi
           done
           if [ -n "$MISSING" ]; then
@@ -50,37 +49,34 @@ jobs:
           fi
           echo "✅ 必要 Secrets 齐全（值不会打印）"
 
-      # 诊断：列出该账户下真实存在的 Pages 项目名，用于对照 PAGES_PROJECT_NAME。
-      # 若这里列出的名字与你填的不一致 → 说明项目名填错 或 CLOUDFLARE_ACCOUNT_ID 不是项目所在账户。
-      - name: List Pages projects (diagnose 8000007)
+      # 诊断：验证凭证账户与 Worker 是否存在，便于定位 8000007 类错误
+      - name: Diagnose account & worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          echo "=== 账户 $CLOUDFLARE_ACCOUNT_ID 下真实存在的 Pages 项目 ==="
-          npx --yes wrangler@3.90.0 pages project list 2>&1 || echo "（列表获取失败：检查 TOKEN/ACCOUNT_ID 是否属于同一账户）"
+          echo "=== 账户 $CLOUDFLARE_ACCOUNT_ID ==="
+          npx --yes wrangler@3.90.0 whoami 2>&1 | head -20 || true
 
-      - name: Deploy Pages (with secrets injected)
+      - name: Deploy Worker (with secrets injected)
         uses: cloudflare/wrangler-action@v3
         env:
-          # 从 GitHub Secrets 注入：wrangler.toml 的 {env.BLOG_KV_ID} 由 wrangler 内插（读进程环境变量）
+          # KV id 内插由 wrangler 读取（进程环境变量）
           BLOG_KV_ID: ${{ secrets.BLOG_KV_ID }}
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # 显式上传 public/（目录作为参数），分支 main=生产环境。
-          # ⚠️ 项目名必须用 GitHub 表达式 ${{ }} 在 YAML 层内联展开——
-          #    wrangler-action 执行 command 时不经过 shell，$VAR 不会被展开（会原样传给 wrangler）。
+          # Workers 部署：-c 指定配置文件；PAGES_PROJECT_NAME 设置了就用 --name 覆盖，
+          # 否则 wrangler 使用 wrangler.workers.toml 里的 name（azhz）。
           command: >-
-            pages deploy public
-            --project-name=${{ secrets.PAGES_PROJECT_NAME }}
-            --branch=main
-          # 部署后再把运行时敏感变量写入 Pages 项目（secrets 持久化、不入仓库）。
-          # postCommands 里同样用 ${{ }} 展开项目名；GitHub Secrets 为空的条目自动跳过。
+            deploy
+            --config wrangler.workers.toml
+            ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
+          # 部署后写入运行时 secret（Pages/Workers 通用：wrangler secret put 对 Worker 有效）
           postCommands: |
             if [ -n "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" ]; then
-              echo "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" | wrangler pages secret put BLOG_ADMIN_SETUP_KEY --project-name=${{ secrets.PAGES_PROJECT_NAME }}
+              echo "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" | wrangler secret put BLOG_ADMIN_SETUP_KEY --config wrangler.workers.toml ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
             fi
             if [ -n "${{ secrets.BLOG_WRITE_TOKEN }}" ]; then
-              echo "${{ secrets.BLOG_WRITE_TOKEN }}" | wrangler pages secret put BLOG_WRITE_TOKEN --project-name=${{ secrets.PAGES_PROJECT_NAME }}
+              echo "${{ secrets.BLOG_WRITE_TOKEN }}" | wrangler secret put BLOG_WRITE_TOKEN --config wrangler.workers.toml ${{ secrets.PAGES_PROJECT_NAME != '' && format('--name {0}', secrets.PAGES_PROJECT_NAME) || '' }}
             fi
