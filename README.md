@@ -53,21 +53,73 @@
 
 ### 第 0 步：创建 KV 命名空间（云端数据 + 管理员密码存储）
 
-本博客的云端数据（文章/评论/统计）**和管理员密码哈希**都存这一个 KV。创建：
+本博客的云端数据（文章/评论/统计）**和管理员密码哈希**都存这一个 KV。创建方式二选一：
+
+**方式 1：控制台创建（不需要命令行）**
+
+1. 打开 [dash.cloudflare.com](https://dash.cloudflare.com) 登录 → 左侧选 **Workers & Pages**。
+2. 点右上角 **Create application**（创建应用程序）→ 切到 **KV** 标签页
+   （旧控制台叫 *Storage & Databases → KV → Create namespace*）。
+3. **Namespace name** 填 **`BLOG`** → 点 **Create**（创建）。
+4. 记下列表里的 **namespace ID**（形如 `a1b2c3d4...` 一串 32 位十六进制），
+   下一步绑定要用到。
+
+**方式 2：命令行 wrangler 创建（需要已登录 Cloudflare）**
 
 ```bash
 npx wrangler kv namespace create BLOG
 ```
 
-把输出的 `id` 填进 `wrangler.workers.toml` 的 `[[kv_namespaces]]`（Workers 部署用）。
-Pages 部署时绑定到控制台（二选一）：
+输出类似：
 
-- **Pages 控制台**：Workers & Pages → 你的项目 → **Settings → Bindings → Add → KV namespace**
-  → 变量名（Variable name）填 **`BLOG`**，选择刚创建的命名空间 → **Save**。
-- 或直接编辑 `wrangler.toml` 取消 `[[kv_namespaces]]` 注释并填真实 id（仅 `wrangler pages` CLI 部署时读取；Git 连接部署以控制台绑定为准）。
+```text
+{ binding = "BLOG", id = "a1b2c3d4..." }
+```
+
+把输出的 `id` 记下来。
+
+> 💡 名称随意，但**必须记住它是谁**：本博客代码里写死了变量名 `BLOG`，
+> 下面绑定时的「变量名」也要填 `BLOG`。
+
+### 第 0.5 步：给 Pages 项目绑定 KV（关键）
+
+**方式 A：控制台绑定（推荐，Git 连接部署用这个）**
+
+1. 控制台 → **Workers & Pages** → 点你的 Pages 项目（如 `qingyu-blog`）。
+2. 打开 **Settings（设置）→ Bindings（绑定）** 页。
+3. 点 **Add（添加）** → 类型选 **KV namespace（KV 命名空间）**。
+4. **Variable name（变量名）** 填：**`BLOG`**
+5. **KV namespace** 一栏选择：你刚创建的 **BLOG** 命名空间（下拉列表里按名称选）。
+6. 点 **Save（保存）**。
+7. **最重要：重新部署一次**（Deployments 页 → Retry deployment，或改一行代码触发 Git 自动构建），
+   绑定才会生效。
+
+**方式 B：wrangler.toml 声明（仅 `wrangler pages` CLI 部署时读取）**
+
+编辑仓库根目录 `wrangler.toml`，把注释打开并填真实 id：
+
+```toml
+[[kv_namespaces]]
+binding = "BLOG"
+id = "a1b2c3d4..."   # ← 换成上一步记下的真实 id
+```
+
+> ⚠️ Git 连接部署时，Cloudflare 以**控制台绑定**为准（方式 A），
+> `wrangler.toml` 里的 KV 段主要用于方式和本地 `wrangler pages dev`。
+
+### 验证绑定成功
+
+部署完成后，浏览器访问（把域名换成你的）：
+
+```
+https://<你的项目>.pages.dev/api/posts
+```
+
+- 返回 `{"ok":true,"posts":[...]}` → ✅ 绑定成功，可以继续设置管理员密码。
+- 返回 `{"error":"KV 未配置：请创建并绑定名为 BLOG 的 KV 命名空间"}` → ❌
+  绑定没生效，请重新检查第 0.5 步并确认已重新部署。
 
 > ⚠️ KV 绑定是「管理员密码存 Cloudflare」的前提：**没有绑定 BLOG，`/api/admin/setup` 与登录都无法工作**。
-> 部署完成后可访问 `https://<你的项目>.pages.dev/api/posts` 验证——返回 JSON 即绑定成功。
 
 ### 方式 A：Cloudflare Pages（推荐）
 

@@ -16,10 +16,12 @@ compatibility_date = "2025-02-01"
 # Cloudflare Pages：静态资源目录（也是构建输出目录）
 pages_build_output_dir = "public"
 
-# KV 命名空间（云端写文章存储；可选）
-# 两种绑定方式任选其一：
-#   a) 在 Pages 控制台 → Settings → Bindings 添加 KV 命名空间（变量名 BLOG）
-#   b) 把下方占位符换成真实 id（npx wrangler kv namespace create BLOG 的输出）
+# KV 命名空间（云端数据：文章/评论/统计 + 管理员密码哈希）
+# 绑定方式（详见 README「第 0 步 / 第 0.5 步」）：
+#   a) 【推荐·Pages 控制台】Settings → Bindings → Add → KV namespace →
+#      变量名填 BLOG，选择已创建的命名空间，保存后重新部署一次。
+#   b) 【wrangler pages CLI】把下方占位符换成真实 id
+#      （npx wrangler kv namespace create BLOG 的输出）。
 # 注意：占位符 id 会让 Pages 构建失败，未创建真实命名空间前请保持整段注释。
 # [[kv_namespaces]]
 # binding = "BLOG"
