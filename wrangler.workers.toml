@@ -1,0 +1,22 @@
+# ============================================================
+# 轻语博客 · Cloudflare Workers 配置
+# ------------------------------------------------------------
+# 部署方式 B（Workers）：npx wrangler deploy -c wrangler.workers.toml
+# 与 Pages 共用的 KV 绑定也在此声明（Pages 侧用 wrangler.toml 或控制台）。
+# ------------------------------------------------------------
+name = "qingyu-blog"
+compatibility_date = "2025-02-01"
+
+# Workers 入口与静态资源
+main = "worker.js"
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# KV 命名空间（文章数据存储）
+# 部署前请先创建：npx wrangler kv namespace create BLOG
+# 并把输出的 id 填到下方（preview_id 可先用同一 id 做本地调试）。
+[[kv_namespaces]]
+binding = "BLOG"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_YOUR_KV_PREVIEW_ID"

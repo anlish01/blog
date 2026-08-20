@@ -50,15 +50,29 @@
 
 > 需要 Node.js 18+ 与 wrangler：`npm i -g wrangler` 或 `npx wrangler`。
 
-### 第 0 步：创建 KV 命名空间（两种部署共用）
+### 第 0 步：创建 KV 命名空间（云端写文章存储）
 
 ```bash
 npx wrangler kv namespace create BLOG
 ```
 
-把输出的 `id` 填进 `wrangler.toml` 的 `[[kv_namespaces]]`（`preview_id` 先用同一个 id）。
+把输出的 `id` 填进 `wrangler.workers.toml` 的 `[[kv_namespaces]]`（Workers 部署用）；
+Pages 部署时可在控制台 Settings → Bindings 添加同名 KV（变量名 `BLOG`），
+或用下面第 62 行的方式绑定。
 
 ### 方式 A：Cloudflare Pages（推荐）
+
+**Git 连接（推荐，支持自动部署与 Functions）：**
+控制台 → Workers & Pages → 创建 → Pages → 连接到 Git → 选 `kejiland/blog`。
+构建配置：**构建输出目录（Build output directory）= `public`**，构建命令留空（零依赖）。
+
+> 仓库根目录的 `wrangler.toml` 已与 Pages 兼容（BETA 读取），`main`/`[assets]`
+> 等 Workers 专属配置已拆到 `wrangler.workers.toml`，避免 Pages 构建报错
+> （`ASSETS` 是 Pages 保留名）。
+> 若未创建真实 KV 命名空间，请保持 `wrangler.toml` 中 `[[kv_namespaces]]` 整段注释；
+> 云端写文章功能随后在控制台 Bindings 添加 KV（变量名 `BLOG`）即可开启。
+
+**命令行方式（备选）：**
 
 ```bash
 npx wrangler pages deploy        # 静态资源 public/，functions/ 自动打包
@@ -72,15 +86,12 @@ node seed.js https://<你的项目名>.pages.dev   # （可选）导入示例文
 
 打开站点 → 右上角页脚出现「📡 在线」即云端模式成功。写文章页点「🚀 发布到云端」即可存数据。
 
-> ⚠️ **必须让站点根目录直接服务 `public/` 的内容**，否则 URL 会带 `/public` 前缀。
-> 用 wrangler 部署时它已默认以 `public/` 为输出目录，无需处理；
-> 若用控制台「直接上传」：请把 `public/` **里面的文件**（index.html / app.js / style.css / config.js / posts.js / feed.xml / sitemap.xml / `_redirects`）作为项目根上传，**不要把整个仓库目录上传**。
-> 之后站点根 URL 即为首页，例如 `https://<你的项目名>.pages.dev/`。
+> `wrangler pages deploy` 也会读取 `wrangler.toml`（已兼容），不会再报 `ASSETS` 保留名错误。
 
 ### 方式 B：Cloudflare Workers
 
 ```bash
-npx wrangler deploy              # 部署 worker.js + 静态资源绑定
+npx wrangler deploy -c wrangler.workers.toml   # 部署 worker.js + 静态资源绑定
 node seed.js https://<你的子域>.workers.dev
 ```
 
