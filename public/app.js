@@ -1203,14 +1203,14 @@ function useHashMode() {
   // 本地 file:// 直开 index.html 时走 hash 路由（无服务器回退干净路径）
   return typeof location !== 'undefined' && location.protocol === 'file:';
 }
-/** 解析当前路由：history 模式读 pathname，hash 模式读 location.hash */
+/** 解析当前路由：history 模式读 pathname+search，hash 模式读 location.hash */
 function currentRoute() {
   var raw = '';
   if (useHashMode()) {
     var h = String(location.hash || '#/').replace(/^#/, '');
     raw = h || '/';
   } else {
-    raw = (location.pathname || '/').slice((appRoot() || '').length) || '/';
+    raw = ((location.pathname || '/') + (location.search || '')).slice((appRoot() || '').length) || '/';
   }
   var parts = String(raw).split('?');
   var path = parts[0] || '/';

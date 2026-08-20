@@ -174,6 +174,23 @@ tests.push(['干净路径：无 #/ 残留，导航用真实路径', async () => 
   assert.ok(ctx.postUrl('abc中') === '/posts/' + encodeURIComponent('abc中') + '/', 'postUrl 带尾斜杠');
 }]);
 
+tests.push(['标签筛选：首页 /?tag=随笔 只渲染该标签文章（history 模式 query）', async () => {
+  // 直接访问 /?tag=随笔（刷新/直达）：只显示含「随笔」标签的文章
+  const t = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } }, '/?tag=' + encodeURIComponent('随笔'));
+  assert.ok(t.html.includes('/posts/hello-qingyu/'), '含「随笔」的 hello-qingyu 在列表中');
+  assert.ok(!t.html.includes('/posts/markdown-cheatsheet/'), '不含「随笔」的 markdown-cheatsheet 不在列表中');
+  assert.ok(t.html.includes('随笔'), '页面显示当前标签');
+  assert.ok(t.ctx.location.search.indexOf('tag=') >= 0, 'URL 带 query');
+  // 模拟点击跳转到该标签：navigate 后 currentRoute 能读到 query
+  const b = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } }, '/');
+  b.ctx.location.pathname = '/';
+  b.ctx.location.search = '?tag=' + encodeURIComponent('教程');
+  b.ctx.route();
+  const filtered = b.ctx.document.querySelector('#app').innerHTML;
+  assert.ok(filtered.includes('/posts/markdown-cheatsheet/'), '点击「教程」标签后显示教程文章');
+  assert.ok(!filtered.includes('/posts/hello-qingyu/'), '「教程」标签下不显示 hello-qingyu');
+}]);
+
 tests.push(['详情页 / 关于页 / 404 兜底渲染', async () => {
   const d = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } }, '/posts/hello-qingyu/');
   assert.ok(d.html.includes('你好，轻语博客'), '详情正文渲染');
