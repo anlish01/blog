@@ -140,8 +140,8 @@ id = "a1b2c3d4..."   # ← 换成真实 id（会随仓库提交，注意仓库�
 部署完成后，浏览器访问（把域名换成你的）：
 
 ```
-https://azhz.workers.dev/api/posts        （Workers 部署，worker 名 azhz）
-或 https://<你的项目>.pages.dev/api/posts （Pages 部署）
+https://azhz.workers.dev/api/posts          （Workers 部署，worker 名 azhz）
+或 https://<你的项目>.pages.dev/api/posts   （Pages 部署，备选）
 ```
 
 - 返回 `{"ok":true,"posts":[...]}` → ✅ 绑定成功，可以继续设置管理员密码。
@@ -240,7 +240,7 @@ Cloudflare 控制台 → 你的 Pages 项目 → **Settings → Environment vari
 ```bash
 SETUP_KEY=你的BLOG_ADMIN_SETUP_KEY
 
-curl -X POST https://<你的项目>.pages.dev/api/admin/setup \
+curl -X POST https://azhz.workers.dev/api/admin/setup \
   -H "Content-Type: application/json" \
   -H "X-Setup-Key: $SETUP_KEY" \
   -d '{"password":"你的强密码（至少8位，建议12位以上）"}'
@@ -253,7 +253,7 @@ curl -X POST https://<你的项目>.pages.dev/api/admin/setup \
 
 #### 第 3 步：日常使用
 
-- 打开 `https://<你的项目>.pages.dev/admin` → 出现**「管理员登录」**框 → 输入密码 → 登录成功。
+- 打开 `https://azhz.workers.dev/admin` → 出现**「管理员登录」**框 → 输入密码 → 登录成功。
 - 写文章页点「🚀 发布到云端」→ 保存到 KV（自动携带会话令牌）。
 - 其他浏览器/设备要用：同样只需登录一次；会话 7 天有效，或点「退出」随时失效。
 - 本地 `file://` 双击打开（无后端）：自动退回静态模式的本机密码门禁，功能不受影响。

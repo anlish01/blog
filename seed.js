@@ -2,8 +2,8 @@
  * 轻语博客 · 导入示例数据到云端 API
  * ------------------------------------------------------------
  * 用法：
- *   node seed.js https://your-blog.pages.dev [--token <会话或写入令牌>]
- *   node seed.js https://your-blog.workers.dev
+ *   node seed.js https://azhz.workers.dev [--token <会话或写入令牌>]
+ *   node seed.js https://your-blog.example.com [--token ...]
  * 说明：
  *   · 会把 public/posts.js 里的示例文章逐篇 POST 到 /api/posts，
  *     已存在的 id 自动跳过（幂等，可重复执行）。
@@ -24,7 +24,7 @@ async function main() {
   const ti = args.indexOf('--token');
   const token = (ti >= 0 && args[ti + 1]) || process.env.BLOG_TOKEN || '';
   if (!base) {
-    console.error('用法：node seed.js <站点地址> [--token <token>]\n示例：node seed.js https://qingyu-blog.pages.dev');
+    console.error('用法：node seed.js <站点地址> [--token <token>]\n示例：node seed.js https://azhz.workers.dev');
     process.exit(1);
   }
 
