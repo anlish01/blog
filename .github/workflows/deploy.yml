@@ -41,15 +41,15 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           # 显式上传 public/（目录作为参数），分支 main=生产环境，
-          # 项目名固定 qingyu-blog（与现有 Pages 项目一致，自动复用自定义域名）。
-          command: pages deploy public --project-name=qingyu-blog --branch=main
+          # 项目名 = Pages 子域名前缀（你的站点是 kejiland.pages.dev → kejiland）。
+          command: pages deploy public --project-name=kejiland --branch=main
           # 部署后再把运行时敏感变量写入 Pages 项目（secrets 持久化、不入仓库）。
           # 用 stdin 传值；GitHub Secrets 为空的条目自动跳过。
           # 注意：BLOG_ADMIN_SETUP_KEY 设完密码后可手动从 GitHub 删除并重跑一次即可去掉。
           postCommands: |
             if [ -n "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" ]; then
-              echo "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" | wrangler pages secret put BLOG_ADMIN_SETUP_KEY --project-name=qingyu-blog
+              echo "${{ secrets.BLOG_ADMIN_SETUP_KEY }}" | wrangler pages secret put BLOG_ADMIN_SETUP_KEY --project-name=kejiland
             fi
             if [ -n "${{ secrets.BLOG_WRITE_TOKEN }}" ]; then
-              echo "${{ secrets.BLOG_WRITE_TOKEN }}" | wrangler pages secret put BLOG_WRITE_TOKEN --project-name=qingyu-blog
+              echo "${{ secrets.BLOG_WRITE_TOKEN }}" | wrangler pages secret put BLOG_WRITE_TOKEN --project-name=kejiland
             fi
