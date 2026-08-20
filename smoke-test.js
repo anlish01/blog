@@ -1012,6 +1012,50 @@ function parsePostsJs(src) {
   return JSON.parse(src.slice(idx + marker.length).replace(/;\s*$/, ''));
 }
 
+/* 编辑器新功能：日期时间转换 */
+tests.push(['编辑日期 datetime-local 转换', async () => {
+  const src = fs.readFileSync(path.join(PUB, 'app.js'), 'utf8');
+  const m = src.match(/function toDateTimeLocal[\s\S]*?\n\}/);
+  assert.ok(m, '找到 toDateTimeLocal');
+  const fn = new Function('return ' + m[0].replace(/function toDateTimeLocal/, 'function'))();
+  assert.strictEqual(fn('2025-08-20'), '2025-08-20T00:00', '纯日期补 00:00');
+  assert.strictEqual(fn('2025-08-20 14:30'), '2025-08-20T14:30', '带时间转换');
+  assert.strictEqual(fn('2025-08-20T09:05'), '2025-08-20T09:05', '已 datetime-local 原样');
+}]);
+
+/* rfc822 支持时间 */
+tests.push(['rfc822 支持 HH:mm 时间', async () => {
+  const core = await import('./functions/_lib/api-core.js');
+  // 通过 buildFeedXml 验证 pubDate 带时间
+  const feed = core.buildFeedXml([{ id: 't1', title: 'T', date: '2025-08-20 14:30', content: 'x' }], 'https://x', {});
+  const m = feed.match(/<pubDate>([^<]+)<\/pubDate>/);
+  assert.ok(m && m[1].includes('2025'), 'pubDate 生成');
+  const s = m[1];
+  const d = new Date(s);
+  assert.ok(!isNaN(d.getTime()), 'pubDate 可解析');
+}]);
+
+/* 后端：加密文章存/取往返（列表不泄漏 content/enc，详情保留 enc） */
+tests.push(['后端：加密文章 content 恒空、enc 仅详情返回（含时间日期）', async () => {
+  const core = await import('./functions/_lib/api-core.js');
+  const kv = new Map();
+  const env = { BLOG: { get: async (k) => kv.get(k) ?? null, put: async (k, v) => kv.set(k, v) } };
+  const setEnv = Object.assign(env, { BLOG_ADMIN_SETUP_KEY: 'sk1' });
+  await core.handleAdminSetup(new Request('http://t/api/admin/setup', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Setup-Key': 'sk1' }, body: JSON.stringify({ password: 'Passw0rd!@' }) }), setEnv);
+  const lo = await (await core.handleAdminLogin(new Request('http://t/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'Passw0rd!@' }) }), env)).json();
+  const enc = { salt: 'c2FsdA==', iv: 'aXY=', data: 'ZGF0YQ==' };
+  const p = { id: 'secdt', title: '加密+时间', date: '2025-08-20 14:30', tags: ['s'], pinned: false, protected: true, enc, content: '' };
+  const r = await core.handlePosts(new Request('http://t/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + lo.token }, body: JSON.stringify(p) }), env);
+  assert.strictEqual(r.status, 201, '加密文章可发布');
+  const list = (await (await core.handlePosts(new Request('http://t/api/posts'), env)).json()).posts;
+  assert.ok(!('content' in list[0]), '列表不含 content');
+  assert.ok(!('enc' in list[0]), '列表不含 enc');
+  assert.strictEqual(list[0].date, '2025-08-20 14:30', '日期带时间');
+  const single = (await (await core.handlePostId(new Request('http://t/api/posts/secdt'), env, 'secdt')).json()).post;
+  assert.strictEqual(single.content, '', '详情 content 恒空');
+  assert.ok(single.enc && single.enc.data, '详情保留 enc');
+}]);
+
 /* ---------- 运行 ---------- */
 (async () => {
   let passed = 0, failed = 0;

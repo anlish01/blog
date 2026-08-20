@@ -633,7 +633,11 @@ function buildFeedXmlClient(posts, maxItems) {
 }
 function rfc822(dateStr) {
   try {
-    var d = new Date(String(dateStr).slice(0, 10) + 'T00:00:00Z');
+    var s = String(dateStr || '').trim();
+    // 兼容 "YYYY-MM-DD" 与 "YYYY-MM-DD HH:mm"（按本地时区解析为 UTC 输出）
+    var iso = s.slice(0, 10) + 'T' + (s.slice(11, 16) || '00:00') + ':00';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) d = new Date(s);
     return isNaN(d.getTime()) ? new Date().toUTCString() : d.toUTCString();
   } catch (e) { return new Date().toUTCString(); }
 }
@@ -1039,9 +1043,9 @@ function renderWrite() {
   }
   var _editId = currentEditId();
   var _editPost = _editId ? getStaticPosts().find(function (p) { return p.id === _editId; }) : null;
-  html += '<div class="card editor-meta"><div id="writeTitleHint" class="pane-title">' + (_editPost ? esc('正在编辑：' + (_editPost.title || '')) : '') + '</div><div class="editor-grid"><div class="field"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div><div class="field"><label>日期</label><input type="date" id="dateInput"></div><div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div><div class="field"><label>摘要（可选）</label><input type="text" id="excerptInput" placeholder="不填则自动截取"></div><div class="field check-label"><label><input type="checkbox" id="pinnedInput"> 置顶</label></div></div></div>';
+  html += '<div class="card editor-meta"><div id="writeTitleHint" class="pane-title">' + (_editPost ? esc('正在编辑：' + (_editPost.title || '')) : '') + '</div><div class="editor-grid"><div class="field"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div><div class="field"><label>日期（可精确到时间）</label><input type="datetime-local" id="dateInput"></div><div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div><div class="field"><label>摘要（可选）</label><input type="text" id="excerptInput" placeholder="不填则自动截取"></div><div class="field check-label"><label><input type="checkbox" id="pinnedInput"> 置顶</label></div><div class="field check-label" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> 🔒 加密</label><input type="password" id="protectPwdInput" placeholder="文章访问密码（勾选加密后设置）" style="display:none;width:220px;margin-left:8px"></div></div></div>';
   html += '<div class="editor-wrap"><div class="editor-area"><div class="pane-title">编辑</div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" rows="18" placeholder="用 Markdown 写作…"></textarea></div><div class="preview-pane"><div class="pane-title">预览</div><div class="write-preview article" id="previewPane"></div></div></div>';
-  html += '<div class="editor-actions">' + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">🚀 发布到云端</button>' : '') + '<button class="btn btn-primary" id="btnSave">📥 保存文章</button><button class="btn" id="btnExport">导出 posts.js</button><button class="btn" id="btnSaveDraft">💾 存草稿</button><button class="btn" id="btnImport">导入 .md</button><input type="file" id="mdFileInput" accept=".md,.markdown" hidden><button class="btn" id="btnRss">📡 RSS</button><button class="btn" id="btnSitemap">🗺 Sitemap</button><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span></div>';
+  html += '<div class="editor-actions">' + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">🚀 发布到云端</button>' : '') + '<button class="btn btn-primary" id="btnSave">📥 保存文章</button><button class="btn" id="btnOpenMdEditor">📝 官方编辑器</button><button class="btn" id="btnExport">导出 posts.js</button><button class="btn" id="btnSaveDraft">💾 存草稿</button><button class="btn" id="btnImport">导入 .md</button><input type="file" id="mdFileInput" accept=".md,.markdown" hidden><button class="btn" id="btnRss">📡 RSS</button><button class="btn" id="btnSitemap">🗺 Sitemap</button><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span></div>';
   html += '<p class="keys-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> 存草稿 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 保存文章</p>';
   html += '<h3 class="draft-hint"><b>一键导出：</b>保存文章 / RSS / Sitemap 会打开系统保存对话框，选中原文件即可原地覆盖发布。</h3>';
   html += '</main>' + renderFooter();
@@ -1052,11 +1056,23 @@ function renderWrite() {
     var post = getStaticPosts().find(function (p) { return p.id === editId; });
     if (post) {
       var title = document.querySelector('#titleInput'); if (title) title.value = post.title || '';
-      var date = document.querySelector('#dateInput'); if (date) date.value = post.date || '';
+      var date = document.querySelector('#dateInput'); if (date) date.value = toDateTimeLocal(post.date || '');
       var tags = document.querySelector('#tagInput'); if (tags) tags.value = (post.tags || []).join(', ');
       var excerpt = document.querySelector('#excerptInput'); if (excerpt) excerpt.value = post.excerpt || '';
       var pin = document.querySelector('#pinnedInput'); if (pin) pin.checked = !!post.pinned;
-      var md = document.querySelector('#mdInput'); if (md) md.value = post.content || '';
+      var protect = document.querySelector('#protectInput'); if (protect) protect.checked = !!post.protected;
+      var pwdBox = document.querySelector('#protectPwdInput');
+      if (pwdBox) pwdBox.style.display = post.protected ? 'inline-block' : 'none';
+      var md = document.querySelector('#mdInput');
+      if (md) {
+        // 已加密文章：有解锁明文则填明文（保存时重新加密需原密码）；无则只显示空（需先解锁）
+        if (post.protected) {
+          md.value = _unlocked[post.id] || '';
+          if (!_unlocked[post.id]) md.placeholder = '这是一篇加密文章，请先在详情页解锁后编辑';
+        } else {
+          md.value = post.content || '';
+        }
+      }
       var st = document.querySelector('#saveStatus'); if (st) st.textContent = '正在编辑：' + (post.title || '');
       // also update page title for tests
       var hTitle = document.querySelector('#writeTitleHint'); if (hTitle) hTitle.textContent = '正在编辑：' + (post.title || '');
@@ -1069,10 +1085,13 @@ function renderWrite() {
     var latest = drafts.length ? drafts[drafts.length - 1] : null;
     if (latest && latest.id) {
       var title2 = document.querySelector('#titleInput'); if (title2) title2.value = latest.title || '';
-      var date2 = document.querySelector('#dateInput'); if (date2) date2.value = latest.date || '';
+      var date2 = document.querySelector('#dateInput'); if (date2) date2.value = toDateTimeLocal(latest.date || '');
       var tags2 = document.querySelector('#tagInput'); if (tags2) tags2.value = (latest.tags || []).join(', ');
       var excerpt2 = document.querySelector('#excerptInput'); if (excerpt2) excerpt2.value = latest.excerpt || '';
       var pin2 = document.querySelector('#pinnedInput'); if (pin2) pin2.checked = !!latest.pinned;
+      var protect2 = document.querySelector('#protectInput'); if (protect2) protect2.checked = !!latest.protected;
+      var pwdBox2 = document.querySelector('#protectPwdInput');
+      if (pwdBox2) pwdBox2.style.display = latest.protected ? 'inline-block' : 'none';
       var md2 = document.querySelector('#mdInput'); if (md2) md2.value = latest.content || '';
     }
   }
@@ -1116,6 +1135,24 @@ function bindWriteEvents() {
     if (st) st.textContent = '未保存';
   });
 
+  // 加密开关 → 密码框显隐
+  var protect = document.querySelector('#protectInput');
+  if (protect) protect.addEventListener('change', function () {
+    var box = document.querySelector('#protectPwdInput');
+    if (box) box.style.display = protect.checked ? 'inline-block' : 'none';
+  });
+  // “用官方编辑器”辅助按钮：新标签打开 markdown.com.cn 编辑器（跨域无法内嵌同步）
+  var btnMd = document.querySelector('#btnOpenMdEditor');
+  if (btnMd) btnMd.addEventListener('click', function () {
+    try {
+      var mdInput = document.querySelector('#mdInput');
+      var u = 'https://markdown.com.cn/editor/';
+      var q = encodeURIComponent((mdInput && mdInput.value) || '');
+      if (q) u += '?md=' + q;
+      window.open(u, '_blank');
+    } catch (e) {}
+  });
+
   document.querySelectorAll('#toolbar [data-cmd]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var cmd = btn.getAttribute('data-cmd');
@@ -1156,8 +1193,14 @@ function bindWriteEvents() {
 
   var btnCloud = document.querySelector('#btnCloud');
   if (btnCloud) btnCloud.addEventListener('click', async function () {
-    var d = collectEditor();
+    var d = await applyEncryption(collectEditor());
     if (!d) return;
+    if (d._encErr) {
+      var st = document.querySelector('#saveStatus');
+      if (st) st.textContent = '发布失败：' + d._encErr;
+      delete d._encErr;
+      return;
+    }
     var editId = currentEditId();
     var id = editId || (d.title ? slugify(d.title) : 'draft');
     d.id = id;
@@ -1223,6 +1266,14 @@ function bindWriteEvents() {
   });
 }
 
+/** 把库内日期（YYYY-MM-DD 或 YYYY-MM-DD HH:mm）转为 datetime-local 值（YYYY-MM-DDTHH:mm） */
+function toDateTimeLocal(v) {
+  var s = String(v || '').trim();
+  var m = s.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{1,2}):(\d{2}))?$/);
+  if (m) return m[1] + 'T' + (m[2] ? (m[2].length === 1 ? '0' + m[2] : m[2]) + ':' + m[3] : '00:00');
+  return s;
+}
+
 function collectEditor() {
   var title = document.querySelector('#titleInput'); if (!title) return null;
   var date = document.querySelector('#dateInput');
@@ -1230,19 +1281,50 @@ function collectEditor() {
   var excerpt = document.querySelector('#excerptInput');
   var pin = document.querySelector('#pinnedInput');
   var md = document.querySelector('#mdInput');
+  var protect = document.querySelector('#protectInput');
+  var protectPwd = document.querySelector('#protectPwdInput');
+  // 日期：datetime-local 值形如 "2025-01-01T08:30"；存库统一 "YYYY-MM-DD HH:mm"
+  var dv = String((date && date.value) || '').replace('T', ' ');
+  if (!dv) dv = new Date().toISOString().slice(0, 16).replace('T', ' ');
   return {
     title: title.value || '未命名',
-    date: (date && date.value) || new Date().toISOString().slice(0, 10),
+    date: dv,
     tags: String((tags && tags.value) || '').split(/[,，]/).map(function (t) { return t.trim(); }).filter(Boolean),
     excerpt: (excerpt && excerpt.value) || '',
     pinned: !!(pin && pin.checked),
-    content: md ? md.value : ''
+    content: md ? md.value : '',
+    // 加密意图：_wantProtect 勾选、_protectPwd 密码（异步加密在保存/发布时执行）
+    _wantProtect: !!(protect && protect.checked),
+    _protectPwd: String((protectPwd && protectPwd.value) || '').trim()
   };
+}
+
+/** 异步应用加密：勾选加密 + 有密码 → content 加密进 enc；否则原样返回（保留已加密状态） */
+async function applyEncryption(d) {
+  if (!d) return d;
+  if (d._wantProtect) {
+    if (d._protectPwd && d.content) {
+      d.protected = true;
+      d.enc = await encryptText(d.content, d._protectPwd);   // enc 是对象（含 salt/iv/data base64）
+      d.content = '';
+    } else if (!d.protected) {
+      d._encErr = '勾选了加密但未填写文章访问密码';
+    }
+  } else {
+    // 取消加密：解除自身加密状态（明文已在 d.content）
+    d.protected = false;
+    d.enc = null;
+  }
+  delete d._wantProtect;
+  delete d._protectPwd;
+  return d;
 }
 
 function saveDraft() {
   var d = collectEditor();
   if (!d) return;
+  // 草稿不加密（本地明文方便找回）；仅记录加密意图开关，发布/保存时再加密
+  delete d._wantProtect; delete d._protectPwd; delete d._encErr;
   var editId = currentEditId();
   var id = editId || (d.title ? slugify(d.title) : 'draft');
   saveDraftToStore(id, d);
@@ -1250,15 +1332,21 @@ function saveDraft() {
   if (st) st.textContent = '已保存草稿';
 }
 
-function saveStaticArticle() {
-  var d = collectEditor();
+async function saveStaticArticle() {
+  var d = await applyEncryption(collectEditor());
   if (!d) return;
+  if (d._encErr) {
+    var st = document.querySelector('#saveStatus');
+    if (st) st.textContent = '保存失败：' + d._encErr;
+    delete d._encErr;
+    return;
+  }
   var editId = currentEditId();
   var id = editId || (d.title ? slugify(d.title) : 'draft');
   d.id = id;
   saveDraftToStore('__new', d);
-  var st = document.querySelector('#saveStatus');
-  if (st) st.textContent = '已保存，点击「导出 posts.js」发布';
+  var st2 = document.querySelector('#saveStatus');
+  if (st2) st2.textContent = '已保存，点击「导出 posts.js」发布';
 }
 
 function buildSitemapClient() {

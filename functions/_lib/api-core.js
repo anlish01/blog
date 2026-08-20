@@ -75,10 +75,12 @@ function xmlEscape(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
-/** RFC 822 日期（YYYY-MM-DD → Wed, 06 Jan 2025 00:00:00 GMT） */
+/** RFC 822 日期（兼容 "YYYY-MM-DD" 与 "YYYY-MM-DD HH:mm"） */
 function rfc822(dateStr) {
   try {
-    const d = new Date(String(dateStr).slice(0, 10) + 'T00:00:00Z');
+    const s = String(dateStr || '').trim();
+    const iso = s.slice(0, 10) + 'T' + (s.slice(11, 16) || '00:00') + ':00';
+    const d = new Date(iso);
     return isNaN(d.getTime()) ? new Date().toUTCString() : d.toUTCString();
   } catch (e) { return new Date().toUTCString(); }
 }
