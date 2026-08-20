@@ -110,8 +110,11 @@ npx wrangler kv namespace create BLOG
    > 否则部署会报 `Project not found [code: 8000007]`；API Token 也必须是**同一账户**下创建。
 3. 推送到 `main` → Actions 自动运行「Deploy to Cloudflare Pages」→ 读取 `wrangler.toml`，
    `id = "{env.BLOG_KV_ID}"` 由 Secret 内插为真实 id，部署完成。
-   部署后工作流还会用 `wrangler pages secret put` 把 `BLOG_ADMIN_SETUP_KEY`、
+   工作流先做 **Secrets 完整性检查**（缺一即明确报错并提示补哪个），
+   再部署，最后用 `wrangler pages secret put` 把 `BLOG_ADMIN_SETUP_KEY`、
    `BLOG_WRITE_TOKEN`（若有）持久化为 Pages 项目运行时变量。
+   项目名通过 GitHub 表达式 `${{ secrets.PAGES_PROJECT_NAME }}` 在 YAML 层内联展开
+   （wrangler 执行命令时不经过 shell，不能用 `$VAR` 语法）。
 4. 验证见下方「验证绑定成功」。
 
 > 原理：`wrangler.toml` 里 KV id 写 `{env.BLOG_KV_ID}`（部署时由环境变量替换），
