@@ -460,7 +460,12 @@ export async function handleAdminSetup(request, env) {
 
   if (await getAdminAuth(env)) return json({ error: '管理员密码已设置；如需重置，请先删除 KV 键 admin:auth 或联系部署者' }, 409);
 
-  const body = await request.json().catch(() => null);
+  let body = null;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: '请求体不是有效 JSON（检查是否含 BOM/引号被转义）' }, 400);
+  }
   const password = String((body && body.password) || '');
   if (password.length < 8) return json({ error: '密码至少 8 位' }, 400);
 
