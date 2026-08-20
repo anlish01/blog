@@ -620,13 +620,13 @@ function renderNav(active) {
   var links = navs.map(function (n) {
     var raw = n.url || '/';
     var pathKey = n.path || (/^#\//.test(raw) ? raw.slice(1) : (/^\//.test(raw) ? raw : null));
-    var url = (/^#\//.test(raw)) ? href(raw.slice(1)) : raw;
+    var url = (/^#\//.test(raw)) ? href(raw.slice(1)) : (/^\//.test(raw) ? href(raw) : raw);
     var cls = (pathKey && pathKey === active) ? 'nav-link active' : 'nav-link';
     var isChildPath = n.children && n.children.length;
     if (isChildPath) {
       var kids = n.children.map(function (c) {
         var cRaw = c.url || '/';
-        var cUrl = (/^#\//.test(cRaw)) ? href(cRaw.slice(1)) : cRaw;
+        var cUrl = (/^#\//.test(cRaw)) ? href(cRaw.slice(1)) : (/^\//.test(cRaw) ? href(cRaw) : cRaw);
         var tgt = cUrl && /^https?:|^\/\//.test(cUrl) ? ' target="_blank" rel="noopener"' : '';
         return '<a href="' + esc(cUrl) + '" class="nav-link"' + tgt + '>' + esc(c.text || '') + '</a>';
       }).join('');
@@ -656,6 +656,7 @@ function renderFooter() {
   function l(x) {
     var u = x.url || '/';
     if (/^#\//.test(u)) u = href(u.slice(1));
+    else if (/^\//.test(u)) u = href(u);
     return '<a href="' + esc(u) + '">' + esc(x.text || '') + '</a>';
   }
   var commonHtml = common.map(l).join('<span class="footer-dot">·</span>');

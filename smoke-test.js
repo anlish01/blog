@@ -806,6 +806,54 @@ tests.push(['导航栏搜索：图标点击展开，实时命中并带摘要', a
   assert.strictEqual(ctx.globalSearch('', 8).length, 0, '空关键词无结果');
 }]);
 
+tests.push(['file:// 本地预览：顶部导航与页脚链接均为 hash 且点击可跳转', async () => {
+  // 构造 file:// 环境（本地双击 index.html 直开）
+  let appEl = { innerHTML: '' };
+  const stubEl2 = () => ({ innerHTML: '', querySelectorAll: () => [], addEventListener() {}, value: '', getAttribute: () => null, textContent: '' });
+  const doc2 = { title: '', documentElement: { setAttribute() {} }, querySelector: (s) => s === '#app' ? appEl : stubEl2(), querySelectorAll: () => [], createElement: () => stubEl2(), body: { appendChild() {} }, addEventListener() {} };
+  const winListeners = {};
+  const win2 = { BLOG_POSTS: [], addEventListener: (ev, fn) => { winListeners[ev] = fn; }, matchMedia: () => ({ matches: false }), scrollTo() {}, crypto };
+  let hash = '';
+  const loc2 = {
+    protocol: 'file:', origin: 'null', host: '', pathname: 'C:/demo/public/index.html', search: '', href: 'file:///C:/demo/public/index.html',
+    get hash() { return hash; },
+    set hash(v) { hash = v; if (winListeners.hashchange) winListeners.hashchange(); },
+  };
+  const ctx2 = {
+    window: win2, document: doc2, location: loc2,
+    history: { pushState() {} },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+    confirm: () => true, setTimeout, clearTimeout, URLSearchParams, Blob: function () {},
+    URL: { createObjectURL: () => 'blob:stub', revokeObjectURL() {} },
+    console, Date, JSON, Math, String, Array, Object, RegExp, Map, Set, Uint8Array,
+    TextEncoder, TextDecoder, btoa, atob, encodeURIComponent, decodeURIComponent,
+  };
+  win2.BLOG_CONFIG = { mode: 'static' };
+  vm.createContext(ctx2);
+  vm.runInContext(fs.readFileSync(path.join(PUB, 'posts.js'), 'utf8'), ctx2, { filename: 'posts.js' });
+  vm.runInContext(fs.readFileSync(path.join(PUB, 'app.js'), 'utf8'), ctx2, { filename: 'app.js' });
+  await win2.__bootPromise;
+  const html = appEl.innerHTML;
+  // 顶部导航：默认项为 hash 形式
+  assert.ok(html.includes('href="#/"'), '品牌/首页链接为 #/');
+  assert.ok(html.includes('href="#/archive"'), '归档链接为 #/archive');
+  assert.ok(html.includes('href="#/about"'), '关于链接为 #/about');
+  // 页脚链接为 hash 形式（不允许裸 /path）
+  assert.ok(!/href="\/archive"/.test(html), '页脚无裸 /archive 绝对路径');
+  assert.ok(/href="#\/tags"/.test(html), '页脚标签链接为 #/tags');
+  // 模拟点击：bindNavClicks 对 # 链接不 preventDefault，浏览器默认改 hash → hashchange → route
+  // 直接走浏览器默认行为：设置 hash（setter 触发 hashchange 回调）
+  hash = ''; // 从首页开始
+  await ctx2.route(); // 当前在首页
+  loc2.hash = '#/archive';
+  const title = (appEl.innerHTML.match(/<h2 class="page-title">([^<]*)<\/h2>/) || [])[1];
+  assert.strictEqual(title, '归档', '点击归档后渲染归档页');
+  assert.ok(appEl.innerHTML.includes('href="#/archive"'), '归档页导航仍是 hash 链接');
+  // 再点关于：连续跳转正常
+  loc2.hash = '#/about';
+  assert.ok(appEl.innerHTML.includes('关于'), '点击关于后渲染关于页');
+}]);
+
 tests.push(['标签页：标签云 + 计数 + 点击进入筛选', async () => {
   const t = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } }, '/tags');
   assert.ok(t.html.includes('🏷 标签'), '标签页标题');
