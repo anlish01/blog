@@ -10,6 +10,22 @@ import { handlePosts, handlePostId, handleFeed, handleComments, handleCommentId,
 
 export default {
   async fetch(request, env) {
+    try {
+      return await this.handle(request, env);
+    } catch (e) {
+      // 全局兜底：任何未捕获异常都返回 JSON 错误（含消息），便于远程定位
+      console.error('[worker] unhandled error:', e && e.message, e && e.stack);
+      return new Response(JSON.stringify({
+        ok: false,
+        error: '服务端内部错误: ' + (e && e.message ? e.message : String(e))
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+      });
+    }
+  },
+
+  async handle(request, env) {
     const url = new URL(request.url);
 
     // API 路由
