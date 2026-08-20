@@ -274,7 +274,7 @@ function mockEnv() {
 }
 
 tests.push(['API：POST / GET / 重复 id 409 / 缺字段 400', async () => {
-  const core = await import('./shared/api-core.js');
+  const core = await import('./functions/_lib/api-core.js');
   const env = mockEnv();
   const post = (body, method = 'POST') => core.handlePosts(new Request('http://t/api/posts', {
     method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
@@ -298,7 +298,7 @@ tests.push(['API：POST / GET / 重复 id 409 / 缺字段 400', async () => {
 }]);
 
 tests.push(['API：PUT 更新 / PUT 未知 id 新建 / DELETE / 404 / 无 KV 500', async () => {
-  const core = await import('./shared/api-core.js');
+  const core = await import('./functions/_lib/api-core.js');
   const env = mockEnv();
   await core.handlePosts(new Request('http://t/api/posts', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -331,7 +331,7 @@ tests.push(['API：PUT 更新 / PUT 未知 id 新建 / DELETE / 404 / 无 KV 500
 }]);
 
 tests.push(['API：写入令牌鉴权（未配置不校验 / 配置后 401 / 正确令牌 201）', async () => {
-  const core = await import('./shared/api-core.js');
+  const core = await import('./functions/_lib/api-core.js');
   const env = mockEnv();
   env.BLOG_WRITE_TOKEN = 'secret-123';
 
@@ -452,7 +452,7 @@ tests.push(['广告位：默认关闭不输出；配置后出现在首页与详�
 }]);
 
 tests.push(['API：评论 POST / GET / 校验 / 删除（需令牌）', async () => {
-  const core = await import('./shared/api-core.js');
+  const core = await import('./functions/_lib/api-core.js');
   const env = mockEnv();
   // 公开发表
   let r = await core.handleComments(new Request('http://t/api/posts/p1/comments', {
@@ -543,7 +543,7 @@ tests.push(['加密文章：详情页锁屏 + 解锁阅读', async () => {
 }]);
 
 tests.push(['API：Sitemap /api/sitemap.xml 与 Feed 排除加密', async () => {
-  const core = await import('./shared/api-core.js');
+  const core = await import('./functions/_lib/api-core.js');
   const env = mockEnv();
   await core.handlePosts(new Request('http://t/api/posts', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -563,7 +563,7 @@ tests.push(['API：Sitemap /api/sitemap.xml 与 Feed 排除加密', async () => 
 }]);
 
 tests.push(['API：加密文章 content 恒为空（密文只在 enc）', async () => {
-  const core = await import('./shared/api-core.js');
+  const core = await import('./functions/_lib/api-core.js');
   const env = mockEnv();
   await core.handlePosts(new Request('http://t/api/posts', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -606,7 +606,7 @@ tests.push(['目录 TOC：由渲染 HTML 提取，锚点与正文对应', async 
 }]);
 
 tests.push(['统计：API 阅读数/点赞 累计与校验', async () => {
-  const core = await import('./shared/api-core.js');
+  const core = await import('./functions/_lib/api-core.js');
   const env = mockEnv();
   let r = await core.handleStats(new Request('http://t/api/posts/p1/stats'), env, 'p1');
   let j = await r.json();
@@ -699,7 +699,7 @@ tests.push(['上一篇/下一篇：按日期相邻导航', async () => {
 }]);
 
 tests.push(['云端摘要模式：列表不含正文，详情按需返回全文', async () => {
-  const core = await import('./shared/api-core.js');
+  const core = await import('./functions/_lib/api-core.js');
   const env = mockEnv();
   const post = { id: 'f1', title: '全文文', date: '2025-01-02', tags: ['a'], content: '这是完整正文内容', pinned: true };
   await core.handlePosts(new Request('http://t/api/posts', {
@@ -804,7 +804,7 @@ tests.push(['标签页：标签云 + 计数 + 点击进入筛选', async () => {
 }]);
 
 tests.push(['API：RSS /api/feed.xml 生成与 XML 转义', async () => {
-  const core = await import('./shared/api-core.js');
+  const core = await import('./functions/_lib/api-core.js');
   const env = mockEnv();
   await core.handlePosts(new Request('http://t/api/posts', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

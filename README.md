@@ -28,10 +28,11 @@
 │   ├── posts/[id]/comments/[cid].js  # DELETE 评论（需写入令牌）
 │   ├── posts/[id]/stats.js           # GET / POST 阅读数·点赞（公开）
 │   ├── feed.xml.js          # RSS 订阅源（自动生成）
-│   └── sitemap.xml.js       # 站点地图（自动生成）
-├── shared/api-core.js       # API 核心逻辑（KV 存储 + 写入令牌 + 评论 + RSS/Sitemap，Pages 与 Workers 共用）
+│   ├── sitemap.xml.js       # 站点地图（自动生成）
+│   └── _lib/api-core.js     # API 核心逻辑（KV 存储 + 写入令牌 + 评论 + RSS/Sitemap；下划线目录不被当作路由，Pages 与 Workers 共用）
 ├── worker.js                # Cloudflare Workers 入口（API + 静态资源）
-├── wrangler.toml            # Cloudflare 配置（KV 绑定等）
+├── wrangler.toml            # Cloudflare Pages 配置（pages_build_output_dir 等）
+├── wrangler.workers.toml    # Cloudflare Workers 配置（部署用 -c 指定）
 ├── seed.js                  # 把示例文章导入云端（node seed.js <站点地址>）
 ├── smoke-test.js            # 冒烟测试（node smoke-test.js，44 项）
 ├── index.html               # 本地入口（自动跳转到 public/index.html）
@@ -97,7 +98,7 @@ node seed.js https://<你的子域>.workers.dev
 
 ### 说明
 
-- 数据存在 KV 的单个 key（`posts:v1`）里，个人博客量级足够；若需多人并发写，可升级为逐篇 key 或 Durable Objects（见 `shared/api-core.js` 注释）。
+- 数据存在 KV 的单个 key（`posts:v1`）里，个人博客量级足够；若需多人并发写，可升级为逐篇 key 或 Durable Objects（见 `functions/_lib/api-core.js` 注释）。
 - 想强制某种模式？改 `public/config.js`：`mode: 'static' | 'api' | 'auto'`；跨域部署可填 `apiBase`。
 - 云端模式里点「⬇️ 备份 posts.js」可把云端数据导出为带日期的本地备份文件。
 

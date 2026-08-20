@@ -6,7 +6,7 @@
  *   · 其余请求 → 静态资源（由 wrangler.toml [assets] 绑定提供）
  * 部署：npx wrangler deploy
  * ============================================================ */
-import { handlePosts, handlePostId, handleFeed, handleComments, handleCommentId, handleSitemap, handleStats } from './shared/api-core.js';
+import { handlePosts, handlePostId, handleFeed, handleComments, handleCommentId, handleSitemap, handleStats } from './functions/_lib/api-core.js';
 
 export default {
   async fetch(request, env) {
