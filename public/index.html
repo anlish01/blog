@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="轻语 · 零依赖轻量博客，双击即开；支持 Cloudflare Pages / Workers 云端存储。">
   <title>轻语 · 轻量博客</title>
+  <base id="dynBase">
+  <script>
+    // 动态 base：http/https 部署下，相对资源（style.css / config.js / app.js 等）
+    // 一律以「站点根」为基准解析——否则在 /posts/<别名>/ 这类子路径页面刷新时
+    // 会被解析成 /posts/<别名>/style.css 而 404（app.js 加载失败 → 页面卡加载中）。
+    // file:// 本地双击直开时保持相对当前目录（= 站点目录），不影响本地预览。
+    (function () {
+      var proto = (location.protocol || '').toLowerCase();
+      var base = document.getElementById('dynBase');
+      if (base && proto === 'http:' || proto === 'https:') {
+        base.href = location.origin + '/';
+      }
+    })();
+  </script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23c25e3a'/></svg>">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
