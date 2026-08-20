@@ -358,7 +358,9 @@ const ADMIN_FAIL_PREFIX = 'admin:fail:';             // <ip> -> { n, until }
 const ADMIN_SESSION_TTL = 7 * 24 * 3600;             // 会话 7 天
 const ADMIN_MAX_FAILS = 5;                           // 连续失败次数上限
 const ADMIN_LOCK_MS = 15 * 60 * 1000;                // 锁定 15 分钟
-const PBKDF2_ITER = 120000;                          // PBKDF2 迭代次数（≥10 万）
+const PBKDF2_ITER = 100000;                           // PBKDF2 迭代次数
+                                                       // ⚠️ Cloudflare Workers WebCrypto 硬限制：PBKDF2 迭代数 ≤ 100000
+                                                       //（曾设 120000 导致 "Pbkdf2 failed: iteration counts above 100000"）
 
 /* ---------- 加密工具（WebCrypto，Worker/Node 均可用） ---------- */
 

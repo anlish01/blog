@@ -261,7 +261,8 @@ curl -X POST https://kejiland.azhz.workers.dev/api/admin/setup \
 
 #### 内置安全措施
 
-- **密码不明文存储**：PBKDF2-SHA256，120,000 次迭代 + 每用户随机盐；即使 KV 泄露，暴力破解成本极高。
+- **密码不明文存储**：PBKDF2-SHA256，100,000 次迭代 + 每用户随机盐；即使 KV 泄露，暴力破解成本极高。
+  （100,000 为 Cloudflare Workers WebCrypto 的 PBKDF2 迭代上限。）
 - **会话最小化**：前端只持有 32 字节随机 token（7 天 TTL，服务端可单独吊销）；密码永不进 localStorage、永不返回前端。
 - **防暴力破解**：同一 IP 连续失败 5 次锁定 15 分钟（基于 KV 计数）。
 - **防抢注**：首次设置密码需要一次性 `BLOG_ADMIN_SETUP_KEY`。
