@@ -338,7 +338,13 @@ function apiBase() {
 async function apiFetch(url, opts) {
   var cfg = getConfig();
   var base = apiBase();
-  var full = (base ? base + '/' : '') + String(url).replace(/^\//, '');
+  // 统一拼绝对地址：避免在子路径页面（如 /posts/<别名>/）下，
+  // 相对路径 api/... 被浏览器解析成 /posts/<别名>/api/... 而打错。
+  var path = String(url).replace(/^\/+/, '');
+  var originOk = typeof location !== 'undefined' && /^https?:$/.test(String(location.protocol || ''));
+  var full = /^https?:/i.test(path)
+    ? path
+    : (base ? base.replace(/\/+$/, '') + '/' : (originOk ? location.origin + '/' : '')) + path;
   var headers = (opts && opts.headers) || {};
   // 云端会话 token（登录后由 /api/admin/login 签发并存入 localStorage）
   var session = _sessionToken();
