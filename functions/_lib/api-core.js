@@ -466,8 +466,19 @@ export async function handleAdminSetup(request, env) {
 
   const salt = randomToken(16);
   const iter = PBKDF2_ITER;
-  const hash = await deriveKey(password, salt, iter);
-  await setAdminAuth(env, { salt, hash, iter });
+  let hash;
+  try {
+    hash = await deriveKey(password, salt, iter);
+  } catch (e) {
+    console.error('[admin:setup] deriveKey failed:', e && e.message, e);
+    return json({ error: '密码哈希计算失败（服务端）: ' + (e && e.message) }, 500);
+  }
+  try {
+    await setAdminAuth(env, { salt, hash, iter });
+  } catch (e) {
+    console.error('[admin:setup] KV write failed:', e && e.message, e);
+    return json({ error: 'KV 写入失败（服务端）: ' + (e && e.message) }, 500);
+  }
   return json({ ok: true, message: '管理员密码已设置' }, 201);
 }
 
