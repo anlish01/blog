@@ -1,0 +1,28 @@
+# ============================================================
+# 轻语博客 · Cloudflare 配置（同时服务 Pages 与 Workers）
+# ------------------------------------------------------------
+# 0) 创建 KV 命名空间并回填 id：
+#      npx wrangler kv namespace create BLOG
+#    输出的 id 填到下方 [[kv_namespaces]] 的 id；
+#    preview_id 用于本地调试（wrangler pages dev），可先用同一 id。
+# ------------------------------------------------------------
+# · Pages  部署：npx wrangler pages deploy        （静态资源 public/，functions/ 自动打包）
+# · Workers 部署：npx wrangler deploy             （worker.js + [assets] 静态资源）
+# ============================================================
+name = "qingyu-blog"
+compatibility_date = "2025-02-01"
+
+# Cloudflare Pages：静态资源目录
+pages_build_output_dir = "public"
+
+# Cloudflare Workers：入口与静态资源
+main = "worker.js"
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# KV 命名空间（文章数据存储；前端写入需要在控制台/函数侧自行校验，轻量博客从简）
+[[kv_namespaces]]
+binding = "BLOG"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_YOUR_KV_PREVIEW_ID"

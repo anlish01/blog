@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>轻语博客</title>
+    <link>https://your-domain.example</link>
+    <description>一个零依赖的轻量博客</description>
+    <language>zh-CN</language>
+    <lastBuildDate>Tue, 18 Aug 2026 02:48:23 GMT</lastBuildDate>
+    <item><title>你好，轻语博客</title><link>https://your-domain.example/#/post/hello-qingyu</link><guid isPermaLink="false">hello-qingyu</guid><pubDate>Mon, 06 Jan 2025 00:00:00 GMT</pubDate><description><![CDATA[欢迎来到**轻语博客**——一个真正的「轻量版」博客。
+
+它没有框架、没有服务器、没有数据库，甚至不需要 `npm install`。整个博客只有这几个文件：
+
+- `index.html` — 页面骨架
+- `style.css` — 样式（含深色模式）
+- `app.js` — 全部逻辑（列表 / 详情 / 搜索 / 标签 / 写作）
+- `posts.js` — 文章数据（Markdown）
+
+## 怎么开始
+
+1. 双击打开 `index.html`，即可浏览博客。
+2. 点右上角「写文章」，用 Markdown 写一篇新文章。
+3. 点「导出 posts.js」，把下载到的文件放回博客目录、覆盖旧的 `posts.js`，刷新页面——新文章就发布啦。
+
+> 全程离线可用，一键发布，删掉它也不会留下任何残留。
+
+## 这就是全部
+
+没有登录、没有评论、没有烦人的弹窗。写、导出、发布，三步走完。
+
+祝你写作愉快 ✍️]]></description></item>
+    <item><title>写一篇自己的文章</title><link>https://your-domain.example/#/post/write-your-first-post</link><guid isPermaLink="false">write-your-first-post</guid><pubDate>Fri, 10 Jan 2025 00:00:00 GMT</pubDate><description><![CDATA[这篇讲讲如何用博客自带的「写文章」功能，把想法变成一篇正式发布的文章。
+
+## 第一步：进入编辑器
+
+点右上角的**「写文章」**按钮。如果是从文章详情页进来的，也可以点正文下方的「编辑这篇文章」。
+
+## 第二步：填写信息
+
+- **标题**：必填，文章的名字。
+- **日期**：默认今天，可手动改。
+- **标签**：用逗号分隔，例如 `日记, 技术`，方便后续分类筛选。
+- **摘要**：可选，不填则自动从正文开头截取。
+
+然后在编辑器里用 Markdown 写正文，右侧（手机上为下方）会**实时预览**效果。
+
+## 第三步：草稿自动保存
+
+每输入停顿一会，草稿就会自动存入浏览器本地存储。中途关掉页面也没关系，下次点开「写文章」可以继续。
+
+## 第四步：发布
+
+点**「导出 posts.js」**，浏览器会下载一份包含所有文章（含你新写的）的最新数据文件。把它放回博客目录、**覆盖旧的 `posts.js`**，再刷新 `index.html`，文章就上线了。
+
+```text
+写作 → 草稿自动保存 → 导出 posts.js → 覆盖文件 → 刷新页面 → 发布完成
+```
+
+> 小贴士：也可以点「导入 .md」直接导入现成的 Markdown 文件；支持文章开头带 `---` 的 frontmatter 元信息（title / date / tags / password）。
+
+现在，去写下你的第一篇文章吧。]]></description></item>
+    <item><title>Markdown 语法速览</title><link>https://your-domain.example/#/post/markdown-cheatsheet</link><guid isPermaLink="false">markdown-cheatsheet</guid><pubDate>Wed, 08 Jan 2025 00:00:00 GMT</pubDate><description><![CDATA[写文章直接用 **Markdown**，下面是支持的语法一览。
+
+## 标题与强调
+
+`#` 到 `######` 对应一级到六级标题；**加粗**、*斜体*、~~删除线~~、`行内代码` 都没问题。
+
+## 列表
+
+- 无序列表项一
+- 无序列表项二
+  - 嵌套项
+
+1. 有序列表项一
+2. 有序列表项二
+
+## 引用
+
+> 把日子过成诗，把代码写成注释。
+
+## 表格
+
+| 功能 | 是否支持 | 说明 |
+| --- | --- | --- |
+| 标题 | ✅ | 1-6 级 |
+| 列表 | ✅ | 有序 / 无序 |
+| 表格 | ✅ | 对齐可用 `:` |
+| 代码块 | ✅ | 支持语言标注 |
+
+## 代码块
+
+```js
+function greet(name) {
+  return `你好，${name}！`;
+}
+```
+
+## 链接与图片
+
+- 链接：[开源社区](https://github.com)
+- 图片：`![描述](图片地址)`
+
+## 分割线
+
+---
+
+以上就是全部常用语法，开始创作吧。]]></description></item>
+  </channel>
+</rss>
