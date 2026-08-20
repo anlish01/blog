@@ -290,11 +290,31 @@ function mockEnv() {
   };
 }
 
-tests.push(['API：POST / GET / 重复 id 409 / 缺字段 400', async () => {
+/** 建一个已配置管理员密码、且已登录拿到会话 token 的环境（写操作测试用） */
+async function authEnv(password) {
   const core = await import('./functions/_lib/api-core.js');
   const env = mockEnv();
+  env.BLOG_ADMIN_SETUP_KEY = 'setup-key-123';
+  const setup = await core.handleAdminSetup(new Request('http://t/api/admin/setup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Setup-Key': 'setup-key-123' },
+    body: JSON.stringify({ password: password || 'strong-pass-123' })
+  }), env);
+  if (setup.status !== 201) throw new Error('setup failed: ' + setup.status);
+  const login = await core.handleAdminLogin(new Request('http://t/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: password || 'strong-pass-123' })
+  }), env);
+  const data = await login.json();
+  if (!data.token) throw new Error('login failed: ' + login.status);
+  return { env, token: data.token, core };
+}
+
+tests.push(['API：POST / GET / 重复 id 409 / 缺字段 400', async () => {
+  const { env, token, core } = await authEnv();
   const post = (body, method = 'POST') => core.handlePosts(new Request('http://t/api/posts', {
-    method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    method, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify(body)
   }), env);
 
   let r = await post({ id: 'a1', title: '第一篇', date: '2025-01-02', tags: '技术, 随笔', content: '**内容**' });
@@ -315,15 +335,15 @@ tests.push(['API：POST / GET / 重复 id 409 / 缺字段 400', async () => {
 }]);
 
 tests.push(['API：PUT 更新 / PUT 未知 id 新建 / DELETE / 404 / 无 KV 500', async () => {
-  const core = await import('./functions/_lib/api-core.js');
-  const env = mockEnv();
+  const { env, token, core } = await authEnv();
+  const authJson = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
   await core.handlePosts(new Request('http://t/api/posts', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: authJson,
     body: JSON.stringify({ id: 'b1', title: '原标题', date: '2025-01-01', content: 'x' })
   }), env);
 
   let r = await core.handlePostId(new Request('http://t/api/posts/b1', {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    method: 'PUT', headers: authJson,
     body: JSON.stringify({ title: '改过的标题', content: 'y' })
   }), env, 'b1');
   assert.strictEqual(r.status, 200);
@@ -331,14 +351,14 @@ tests.push(['API：PUT 更新 / PUT 未知 id 新建 / DELETE / 404 / 无 KV 500
   assert.strictEqual(got.post.title, '改过的标题');
 
   r = await core.handlePostId(new Request('http://t/api/posts/b2', {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    method: 'PUT', headers: authJson,
     body: JSON.stringify({ title: '自动新建', content: 'z' })
   }), env, 'b2');
   assert.strictEqual(r.status, 200, 'PUT 未知 id 新建');
 
-  r = await core.handlePostId(new Request('http://t/api/posts/b1', { method: 'DELETE' }), env, 'b1');
+  r = await core.handlePostId(new Request('http://t/api/posts/b1', { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } }), env, 'b1');
   assert.strictEqual(r.status, 200);
-  r = await core.handlePostId(new Request('http://t/api/posts/b1', { method: 'DELETE' }), env, 'b1');
+  r = await core.handlePostId(new Request('http://t/api/posts/b1', { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } }), env, 'b1');
   assert.strictEqual(r.status, 404, '删除不存在的返回 404');
 
   r = await core.handlePosts(new Request('http://t/api/posts'), {});
@@ -347,45 +367,108 @@ tests.push(['API：PUT 更新 / PUT 未知 id 新建 / DELETE / 404 / 无 KV 500
   assert.ok(err.error.includes('BLOG'), '错误信息提示 KV 绑定');
 }]);
 
-tests.push(['API：写入令牌鉴权（未配置不校验 / 配置后 401 / 正确令牌 201）', async () => {
+tests.push(['管理员认证：无凭证 401 / 会话 token 201 / 错误密码 401 / 限流 429', async () => {
   const core = await import('./functions/_lib/api-core.js');
   const env = mockEnv();
-  env.BLOG_WRITE_TOKEN = 'secret-123';
+  env.BLOG_ADMIN_SETUP_KEY = 'setup-key-123';
 
-  // 未带令牌 → 401
-  let r = await core.handlePosts(new Request('http://t/api/posts', {
+  // 未设置密码前：setup 无密钥 → 403；设置成功 → 201；重复设置 → 409
+  let r = await core.handleAdminSetup(new Request('http://t/api/admin/setup', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: 'strong-pass-123' })
+  }), env);
+  assert.strictEqual(r.status, 403, '无设置密钥 403');
+  // 短密码拒绝
+  r = await core.handleAdminSetup(new Request('http://t/api/admin/setup', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Setup-Key': 'setup-key-123' },
+    body: JSON.stringify({ password: 'short' })
+  }), env);
+  assert.strictEqual(r.status, 400, '短密码 400');
+  r = await core.handleAdminSetup(new Request('http://t/api/admin/setup', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Setup-Key': 'setup-key-123' },
+    body: JSON.stringify({ password: 'strong-pass-123' })
+  }), env);
+  assert.strictEqual(r.status, 201, '设置密码成功');
+
+  // 未带凭证写操作 → 401（安全默认，不再默认开放）
+  r = await core.handlePosts(new Request('http://t/api/posts', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id: 't1', title: 'x' })
   }), env);
   assert.strictEqual(r.status, 401, '无令牌写操作返回 401');
-  const errBody = await r.json();
-  assert.ok(errBody.error.includes('Bearer'), '错误信息提示令牌');
 
   // 读操作不受影响
   r = await core.handlePosts(new Request('http://t/api/posts'), env);
   assert.strictEqual(r.status, 200, 'GET 不需要令牌');
 
-  // 正确令牌 → 201
+  // 错误密码 → 401
+  r = await core.handleAdminLogin(new Request('http://t/api/admin/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: 'wrong-pass' })
+  }), env);
+  assert.strictEqual(r.status, 401, '错误密码 401');
+
+  // 登录成功 → token
+  const login = await core.handleAdminLogin(new Request('http://t/api/admin/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: 'strong-pass-123' })
+  }), env);
+  assert.strictEqual(login.status, 200);
+  const { token } = await login.json();
+  assert.ok(token && token.length >= 32, '返回会话 token');
+
+  // token 写操作 → 201
   r = await core.handlePosts(new Request('http://t/api/posts', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer secret-123' },
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
     body: JSON.stringify({ id: 't1', title: 'x' })
   }), env);
-  assert.strictEqual(r.status, 201, '携带正确令牌返回 201');
+  assert.strictEqual(r.status, 201, '会话 token 写操作 201');
 
-  // PUT / DELETE 同样受保护
+  // PUT 未带 token → 401
   r = await core.handlePostId(new Request('http://t/api/posts/t1', {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title: 'y' })
   }), env, 't1');
-  assert.strictEqual(r.status, 401, 'PUT 无令牌 401');
+  assert.strictEqual(r.status, 401, 'PUT 无 token 401');
 
-  // 未配置令牌的环境不校验（原行为）
-  const open = mockEnv();
+  // 旧式 BLOG_WRITE_TOKEN 仍兼容
+  const legacy = mockEnv();
+  legacy.BLOG_WRITE_TOKEN = 'secret-123';
   r = await core.handlePosts(new Request('http://t/api/posts', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer secret-123' },
     body: JSON.stringify({ id: 't2', title: 'z' })
-  }), open);
-  assert.strictEqual(r.status, 201, '未配置令牌时保持开放');
+  }), legacy);
+  assert.strictEqual(r.status, 201, '兼容 BLOG_WRITE_TOKEN');
+
+  // 限流：连续 5 次错误密码后锁定（429）
+  const locked = mockEnv();
+  locked.BLOG_ADMIN_SETUP_KEY = 'setup-key-123';
+  await core.handleAdminSetup(new Request('http://t/api/admin/setup', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Setup-Key': 'setup-key-123' },
+    body: JSON.stringify({ password: 'strong-pass-123' })
+  }), locked);
+  for (let i = 0; i < 5; i++) {
+    r = await core.handleAdminLogin(new Request('http://t/api/admin/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'bad' })
+    }), locked);
+  }
+  r = await core.handleAdminLogin(new Request('http://t/api/admin/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: 'strong-pass-123' })
+  }), locked);
+  assert.strictEqual(r.status, 429, '连续失败后锁定（即使密码正确也 429）');
+
+  // logout 撤销 token
+  r = await core.handleAdminLogout(new Request('http://t/api/admin/logout', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + token }
+  }), env);
+  assert.strictEqual(r.status, 200, 'logout 成功');
+  r = await core.handlePosts(new Request('http://t/api/posts', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify({ id: 't3', title: 'y' })
+  }), env);
+  assert.strictEqual(r.status, 401, '登出后 token 失效');
 }]);
 
 tests.push(['写作页：字数统计 / 保存状态 / 快捷键提示齐全', async () => {
@@ -560,14 +643,14 @@ tests.push(['加密文章：详情页锁屏 + 解锁阅读', async () => {
 }]);
 
 tests.push(['API：Sitemap /api/sitemap.xml 与 Feed 排除加密', async () => {
-  const core = await import('./functions/_lib/api-core.js');
-  const env = mockEnv();
+  const { env, token, core } = await authEnv();
+  const auth = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
   await core.handlePosts(new Request('http://t/api/posts', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: auth,
     body: JSON.stringify({ id: 's1', title: '公开文', date: '2025-01-02', content: 'x' })
   }), env);
   await core.handlePosts(new Request('http://t/api/posts', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: auth,
     body: JSON.stringify({ id: 's2', title: '密文', date: '2025-01-03', protected: true, enc: { salt: 'a', iv: 'b', data: 'c' } })
   }), env);
   const sm = await core.handleSitemap(new Request('http://t/api/sitemap.xml'), env);
@@ -580,10 +663,10 @@ tests.push(['API：Sitemap /api/sitemap.xml 与 Feed 排除加密', async () => 
 }]);
 
 tests.push(['API：加密文章 content 恒为空（密文只在 enc）', async () => {
-  const core = await import('./functions/_lib/api-core.js');
-  const env = mockEnv();
+  const { env, token, core } = await authEnv();
+  const auth = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
   await core.handlePosts(new Request('http://t/api/posts', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: auth,
     body: JSON.stringify({ id: 'z1', title: '密文', content: '不应存储的明文', protected: true, enc: { salt: 'a', iv: 'b', data: 'c' } })
   }), env);
   const single = await (await core.handlePostId(new Request('http://t/api/posts/z1'), env, 'z1')).json();
@@ -716,11 +799,10 @@ tests.push(['上一篇/下一篇：按日期相邻导航', async () => {
 }]);
 
 tests.push(['云端摘要模式：列表不含正文，详情按需返回全文', async () => {
-  const core = await import('./functions/_lib/api-core.js');
-  const env = mockEnv();
+  const { env, token, core } = await authEnv();
   const post = { id: 'f1', title: '全文文', date: '2025-01-02', tags: ['a'], content: '这是完整正文内容', pinned: true };
   await core.handlePosts(new Request('http://t/api/posts', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(post)
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify(post)
   }), env);
   const list = await (await core.handlePosts(new Request('http://t/api/posts'), env)).json();
   assert.ok(!('content' in list.posts[0]), '列表不含正文键');
@@ -743,6 +825,44 @@ tests.push(['云端详情懒加载：先占位后拉取渲染', async () => {
   const fresh = b.ctx.document.querySelector('#app').innerHTML;
   assert.ok(fresh.includes('这是按需加载出来的正文'), '正文按需渲染');
   assert.ok(!fresh.includes('加载中'), '占位消失');
+}]);
+
+tests.push(['云端登录：/api/admin/login 换取 token、写操作携带 Authorization、退出清除', async () => {
+  const calls = [];
+  const fetchStub = async (url, opts) => {
+    calls.push({ url: String(url), opts: opts || {} });
+    const body = JSON.parse((opts && opts.body) || '{}');
+    if (String(url).includes('api/admin/login')) {
+      return { ok: body.password === 'admin-pass-1' ? true : false, status: body.password === 'admin-pass-1' ? 200 : 401, json: async () => body.password === 'admin-pass-1' ? { ok: true, token: 'SES-TOKEN-123' } : { error: '密码错误' } };
+    }
+    if (String(url).includes('api/admin/logout')) return { ok: true, status: 200, json: async () => ({ ok: true }) };
+    // /api/posts POST（云端发布）
+    if (String(url).includes('api/posts') && opts && opts.method === 'POST') {
+      return { ok: true, status: 201, json: async () => ({ ok: true, post: body }) };
+    }
+    return { ok: true, status: 200, json: async () => ({ ok: true, posts: [] }) };
+  };
+  const b = await boot({ 'window.BLOG_CONFIG': { mode: 'api', adminPwd: '' }, fetch: fetchStub });
+  // 云模式：无 token 时写作页显示「管理员登录」而非本地设密码
+  const w = await boot({ 'window.BLOG_CONFIG': { mode: 'api', adminPwd: '' }, fetch: fetchStub }, '/write');
+  assert.ok(w.html.includes('管理员登录') && w.html.includes('密码存储于 Cloudflare KV'), '云端写作页为登录框');
+  // 登录:正确密码
+  const r = await b.ctx.cloudLogin('admin-pass-1');
+  assert.strictEqual(r.ok, true, '登录成功');
+  assert.strictEqual(b.ctx._sessionToken(), 'SES-TOKEN-123', 'token 存入 localStorage');
+  assert.strictEqual(b.ctx.adminOk(), true, '有 token 视为已登录');
+  // 错误密码
+  const bad = await b.ctx.cloudLogin('wrong');
+  assert.strictEqual(bad.ok, false, '错误密码登录失败');
+  // 写操作携带 Authorization
+  await b.ctx.apiFetch('api/posts', { method: 'POST', body: JSON.stringify({ id: 'x1', title: 'T' }) });
+  const cloudCall = calls.find((c) => String(c.url).includes('api/posts') && c.opts && c.opts.method === 'POST');
+  assert.ok(cloudCall && cloudCall.opts.headers && cloudCall.opts.headers.Authorization === 'Bearer SES-TOKEN-123', '写操作带会话 token');
+  // 退出：清除 token 且调用 logout
+  await b.ctx.cloudLogout();
+  assert.strictEqual(b.ctx._sessionToken(), '', '退出后 token 清除');
+  assert.ok(calls.some((c) => String(c.url).includes('api/admin/logout')), '退出调用 logout API');
+  assert.strictEqual(b.ctx.adminOk(), false, '退出后未登录');
 }]);
 
 tests.push(['保存文件：系统对话框原地覆盖，不支持时回退下载', async () => {
@@ -869,10 +989,9 @@ tests.push(['标签页：标签云 + 计数 + 点击进入筛选', async () => {
 }]);
 
 tests.push(['API：RSS /api/feed.xml 生成与 XML 转义', async () => {
-  const core = await import('./functions/_lib/api-core.js');
-  const env = mockEnv();
+  const { env, token, core } = await authEnv();
   await core.handlePosts(new Request('http://t/api/posts', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
     body: JSON.stringify({ id: 'r1', title: 'RSS <测试> & 内容', date: '2025-01-01', content: '**正文**' })
   }), env);
   const r = await core.handleFeed(new Request('http://t/api/feed.xml'), env);

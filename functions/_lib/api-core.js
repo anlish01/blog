@@ -14,7 +14,7 @@ const KV_KEY = 'posts:v1';
 export const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type'
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Setup-Key'
 };
 
 export function json(data, status = 200) {
@@ -128,22 +128,16 @@ export async function handleFeed(request, env) {
   });
 }
 
-/** 写入鉴权：配置了 BLOG_WRITE_TOKEN 时，写操作需携带 Authorization: Bearer <token> */
-function isWriteAuthed(request, env) {
-  const token = env.BLOG_WRITE_TOKEN;
-  if (!token) return true;   // 未配置令牌 = 不启用鉴权（本地/私有部署）
-  const auth = (request.headers.get('Authorization') || '').trim();
-  return auth === 'Bearer ' + token;
-}
+/** 写入鉴权：见下方「管理员认证」模块的 isWriteAuthed（会话 token / BLOG_WRITE_TOKEN） */
 function unauthorized() {
-  return json({ error: '未授权：需要有效的写入令牌（Bearer token，通过 BLOG_WRITE_TOKEN 配置）' }, 401);
+  return json({ error: '未授权：需要有效的写入凭证（登录后使用会话 token，或配置 BLOG_WRITE_TOKEN）' }, 401);
 }
 
 /** GET /api/posts（列表） · POST /api/posts（新建） */
 export async function handlePosts(request, env) {
   if (!env || !env.BLOG) return json({ error: 'KV 未配置：请创建并绑定名为 BLOG 的 KV 命名空间' }, 500);
   if (request.method === 'OPTIONS') return corsPreflight();
-  if (request.method === 'POST' && !isWriteAuthed(request, env)) return unauthorized();
+  if (request.method === 'POST' && !(await isWriteAuthed(request, env))) return unauthorized();
 
   if (request.method === 'GET') {
     // 列表只返回摘要（不含 content/enc），正文按需通过 /api/posts/:id 加载，
@@ -174,7 +168,7 @@ export async function handlePosts(request, env) {
 export async function handlePostId(request, env, id) {
   if (!env || !env.BLOG) return json({ error: 'KV 未配置：请创建并绑定名为 BLOG 的 KV 命名空间' }, 500);
   if (request.method === 'OPTIONS') return corsPreflight();
-  if ((request.method === 'PUT' || request.method === 'DELETE') && !isWriteAuthed(request, env)) return unauthorized();
+  if ((request.method === 'PUT' || request.method === 'DELETE') && !(await isWriteAuthed(request, env))) return unauthorized();
 
   const posts = await readPosts(env);
   const idx = posts.findIndex((x) => x.id === id);
@@ -258,7 +252,7 @@ export async function handleCommentId(request, env, postId, cid) {
   if (!env || !env.BLOG) return json({ error: 'KV 未配置：请创建并绑定名为 BLOG 的 KV 命名空间' }, 500);
   if (request.method === 'OPTIONS') return corsPreflight();
   if (request.method !== 'DELETE') return json({ error: 'Method not allowed' }, 405);
-  if (!isWriteAuthed(request, env)) return unauthorized();
+  if (!(await isWriteAuthed(request, env))) return unauthorized();
 
   const list = await readComments(env, postId);
   const next = list.filter((c) => c.id !== cid);
@@ -344,4 +338,191 @@ export async function handleStats(request, env, postId) {
   }
 
   return json({ error: 'Method not allowed' }, 405);
+}
+
+/* ============================================================
+ * 管理员认证（安全版：密码只存 Cloudflare KV，前端不持有明文）
+ * ------------------------------------------------------------
+ * 密码：PBKDF2-SHA256 加盐哈希后存 KV（admin:auth），绝不明文。
+ * 登录：POST /api/admin/login { password } → 服务端校验哈希 →
+ *       签发随机会话 token（KV admin:session:<token>，7 天 TTL）。
+ * 鉴权：写操作请求头 Authorization: Bearer <session-token>，
+ *       isWriteAuthed() 校验会话；旧的 BLOG_WRITE_TOKEN 仍兼容。
+ * 限流：同一 IP 连续失败 5 次锁 15 分钟（KV admin:fail:<ip>）。
+ * 防抢注：首次设置密码需 X-Setup-Key 匹配环境变量 BLOG_ADMIN_SETUP_KEY。
+ * ============================================================ */
+
+const ADMIN_AUTH_KEY = 'admin:auth';                 // { salt, hash, iter }
+const ADMIN_SESSION_PREFIX = 'admin:session:';       // <token> -> { exp }
+const ADMIN_FAIL_PREFIX = 'admin:fail:';             // <ip> -> { n, until }
+const ADMIN_SESSION_TTL = 7 * 24 * 3600;             // 会话 7 天
+const ADMIN_MAX_FAILS = 5;                           // 连续失败次数上限
+const ADMIN_LOCK_MS = 15 * 60 * 1000;                // 锁定 15 分钟
+const PBKDF2_ITER = 120000;                          // PBKDF2 迭代次数（≥10 万）
+
+/* ---------- 加密工具（WebCrypto，Worker/Node 均可用） ---------- */
+
+function bytesToHex(bytes) {
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+function hexToBytes(hex) {
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return out;
+}
+function randomToken(bytes = 32) {
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  return bytesToHex(buf);
+}
+/** PBKDF2-SHA256 派生密钥（返回 hex）；salt 为 hex 字符串 */
+async function deriveKey(password, saltHex, iter) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(String(password || '')), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: hexToBytes(saltHex), iterations: iter },
+    keyMaterial, 256
+  );
+  return bytesToHex(new Uint8Array(bits));
+}
+/** 恒定时间字符串比较（防时序侧信道） */
+function safeEqual(a, b) {
+  const ba = new Uint8Array(String(a || '').split('').map((c) => c.charCodeAt(0)));
+  const bb = new Uint8Array(String(b || '').split('').map((c) => c.charCodeAt(0)));
+  if (ba.length !== bb.length) {
+    // 仍走一遍循环，避免长度差异泄露
+    for (let i = 0; i < bb.length; i++) { if (bb[i] !== 0) return false; }
+    return false;
+  }
+  let diff = 0;
+  for (let i = 0; i < ba.length; i++) diff |= ba[i] ^ bb[i];
+  return diff === 0;
+}
+function clientIp(request) {
+  return request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+}
+function nowMs() { return Date.now(); }
+
+/* ---------- 认证状态 ---------- */
+
+async function getAdminAuth(env) {
+  try {
+    const raw = await env.BLOG.get(ADMIN_AUTH_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+async function setAdminAuth(env, auth) {
+  await env.BLOG.put(ADMIN_AUTH_KEY, JSON.stringify(auth));
+}
+/** 校验会话 token 是否有效（存在且未过期） */
+async function validSession(env, token) {
+  if (!token) return false;
+  try {
+    const raw = await env.BLOG.get(ADMIN_SESSION_PREFIX + token);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    return s && s.exp && s.exp > nowMs();
+  } catch (e) { return false; }
+}
+
+/* ---------- 鉴权入口（写操作复用） ---------- */
+
+/**
+ * 写鉴权：优先会话 token（Authorization: Bearer <token>），
+ * 兼容旧的 BLOG_WRITE_TOKEN 环境变量（静态长令牌）。
+ * 未配置任何认证（无 auth、无 token）→ 拒绝（安全默认）。
+ */
+export async function isWriteAuthed(request, env) {
+  if (!env || !env.BLOG) return false;
+  const auth = String(request.headers.get('Authorization') || '').trim();
+  const m = /^Bearer\s+(.+)$/i.exec(auth);
+  const token = m ? m[1].trim() : '';
+  if (token && await validSession(env, token)) return true;
+  // 兼容旧配置：BLOG_WRITE_TOKEN 环境变量
+  const legacy = env.BLOG_WRITE_TOKEN;
+  if (legacy && safeEqual(auth, 'Bearer ' + legacy)) return true;
+  return false;
+}
+
+/* ---------- 接口实现 ---------- */
+
+/** POST /api/admin/setup — 首次设置管理员密码（需 X-Setup-Key 匹配 BLOG_ADMIN_SETUP_KEY） */
+export async function handleAdminSetup(request, env) {
+  if (!env || !env.BLOG) return json({ error: 'KV 未配置：请创建并绑定名为 BLOG 的 KV 命名空间' }, 500);
+  if (request.method === 'OPTIONS') return corsPreflight();
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+
+  // 防抢注：必须提供设置密钥（环境变量 BLOG_ADMIN_SETUP_KEY）
+  const setupKey = env.BLOG_ADMIN_SETUP_KEY;
+  if (!setupKey) return json({ error: '未配置 BLOG_ADMIN_SETUP_KEY 环境变量，无法设置管理员密码' }, 500);
+  const given = String(request.headers.get('X-Setup-Key') || '').trim();
+  if (!safeEqual(given, setupKey)) return json({ error: '设置密钥无效' }, 403);
+
+  if (await getAdminAuth(env)) return json({ error: '管理员密码已设置；如需重置，请先删除 KV 键 admin:auth 或联系部署者' }, 409);
+
+  const body = await request.json().catch(() => null);
+  const password = String((body && body.password) || '');
+  if (password.length < 8) return json({ error: '密码至少 8 位' }, 400);
+
+  const salt = randomToken(16);
+  const iter = PBKDF2_ITER;
+  const hash = await deriveKey(password, salt, iter);
+  await setAdminAuth(env, { salt, hash, iter });
+  return json({ ok: true, message: '管理员密码已设置' }, 201);
+}
+
+/** POST /api/admin/login — 密码登录，成功返回会话 token */
+export async function handleAdminLogin(request, env) {
+  if (!env || !env.BLOG) return json({ error: 'KV 未配置：请创建并绑定名为 BLOG 的 KV 命名空间' }, 500);
+  if (request.method === 'OPTIONS') return corsPreflight();
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+
+  const ip = clientIp(request);
+  // 限流：检查是否被锁定
+  try {
+    const failRaw = await env.BLOG.get(ADMIN_FAIL_PREFIX + ip);
+    const fail = failRaw ? JSON.parse(failRaw) : null;
+    if (fail && fail.until && fail.until > nowMs()) {
+      const mins = Math.ceil((fail.until - nowMs()) / 60000);
+      return json({ error: '尝试次数过多，请 ' + mins + ' 分钟后再试' }, 429);
+    }
+  } catch (e) { /* 忽略读取失败 */ }
+
+  const body = await request.json().catch(() => null);
+  const password = String((body && body.password) || '');
+  const auth = await getAdminAuth(env);
+  if (!auth || !auth.hash || !auth.salt) {
+    return json({ error: '尚未设置管理员密码（请先调用 /api/admin/setup）' }, 401);
+  }
+
+  const hash = await deriveKey(password, auth.salt, auth.iter || PBKDF2_ITER);
+  if (!safeEqual(hash, auth.hash)) {
+    // 记录失败并可能锁定
+    let n = 1;
+    try {
+      const failRaw = await env.BLOG.get(ADMIN_FAIL_PREFIX + ip);
+      const fail = failRaw ? JSON.parse(failRaw) : null;
+      n = (fail && fail.n ? fail.n : 0) + 1;
+    } catch (e) { /* ignore */ }
+    const lock = n >= ADMIN_MAX_FAILS ? { n, until: nowMs() + ADMIN_LOCK_MS } : { n };
+    await env.BLOG.put(ADMIN_FAIL_PREFIX + ip, JSON.stringify(lock), { expirationTtl: ADMIN_MAX_FAILS * 60 * 60 });
+    return json({ error: '密码错误' }, 401);
+  }
+
+  // 成功：清除失败计数，签发会话 token
+  try { await env.BLOG.delete(ADMIN_FAIL_PREFIX + ip); } catch (e) { /* ignore */ }
+  const token = randomToken(32);
+  await env.BLOG.put(ADMIN_SESSION_PREFIX + token, JSON.stringify({ exp: nowMs() + ADMIN_SESSION_TTL * 1000 }), { expirationTtl: ADMIN_SESSION_TTL });
+  return json({ ok: true, token, expiresIn: ADMIN_SESSION_TTL });
+}
+
+/** POST /api/admin/logout — 撤销当前会话 token */
+export async function handleAdminLogout(request, env) {
+  if (!env || !env.BLOG) return json({ error: 'KV 未配置：请创建并绑定名为 BLOG 的 KV 命名空间' }, 500);
+  if (request.method === 'OPTIONS') return corsPreflight();
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+  const auth = String(request.headers.get('Authorization') || '').trim();
+  const m = /^Bearer\s+(.+)$/i.exec(auth);
+  if (m) { try { await env.BLOG.delete(ADMIN_SESSION_PREFIX + m[1].trim()); } catch (e) { /* ignore */ } }
+  return json({ ok: true });
 }

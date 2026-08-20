@@ -340,7 +340,10 @@ async function apiFetch(url, opts) {
   var base = apiBase();
   var full = (base ? base + '/' : '') + String(url).replace(/^\//, '');
   var headers = (opts && opts.headers) || {};
-  if (cfg.writeToken) headers['Authorization'] = 'Bearer ' + cfg.writeToken;
+  // 云端会话 token（登录后由 /api/admin/login 签发并存入 localStorage）
+  var session = _sessionToken();
+  if (session) headers['Authorization'] = 'Bearer ' + session;
+  else if (cfg.writeToken) headers['Authorization'] = 'Bearer ' + cfg.writeToken;
   headers['Content-Type'] = headers['Content-Type'] || 'application/json';
   var res = await fetch(full, Object.assign({}, opts, { headers: headers }));
   if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -499,17 +502,37 @@ async function likePost(postId) {
   return s;
 }
 
-/* ---------- 管理员门禁 ---------- */
+/* ---------- 管理员门禁 ----------
+ * 云端模式（API 可用）：密码存 Cloudflare KV，前端只持有会话 token。
+ *   登录 POST /api/admin/login → token 存 localStorage('qingyu.token')。
+ * 静态模式（file:// 或纯静态托管）：保留本地密码门禁（防君子）。
+ */
 function _cfgPwd() { return getConfig().adminPwd; }
 function _localPwd() { try { return localStorage.getItem('qingyu.admin.pwd') || ''; } catch (e) { return ''; } }
 function _setLocalPwd(v) { try { localStorage.setItem('qingyu.admin.pwd', String(v)); } catch (e) {} }
 function _adminSession() { try { return localStorage.getItem('qingyu.admin.ok') === '1'; } catch (e) { return false; } }
 function _setAdminSession(v) { try { localStorage.setItem('qingyu.admin.ok', v ? '1' : '0'); } catch (e) {} }
+/* 云端会话 token */
+function _sessionToken() { try { return localStorage.getItem('qingyu.token') || ''; } catch (e) { return ''; } }
+function _setSessionToken(t) {
+  try { if (t) localStorage.setItem('qingyu.token', t); else localStorage.removeItem('qingyu.token'); } catch (e) {}
+}
+/* 云模式判定：配置为 api，或 boot 已成功拉到云端文章 */
+function _cloudOn() {
+  var cfg = getConfig();
+  return cfg.mode === 'api' || (cfg.mode === 'auto' && _cloudDetected);
+}
+
+var _cloudDetected = false;   // boot 时置位：/api/posts 拉取成功 = 云端在线
 
 function needAdminSetup() {
   return !_cfgPwd() && !_localPwd();
 }
-function adminOk() { return _adminSession(); }
+function adminOk() {
+  // 云端：有会话 token 即视为已登录（有效性由服务端鉴权兜底）
+  if (_cloudOn()) return !!_sessionToken();
+  return _adminSession();
+}
 function setupAdmin(pwd) {
   pwd = String(pwd || '');
   if (pwd.length < 4) return false;
@@ -523,7 +546,31 @@ function tryAdmin(pwd) {
   if (String(pwd || '') === target) { _setAdminSession(true); return true; }
   return false;
 }
-function adminLogout() { _setAdminSession(false); }
+/** 云端登录：POST /api/admin/login，成功存 token；返回 { ok, message } */
+async function cloudLogin(pwd) {
+  try {
+    var data = await apiFetch('api/admin/login', { method: 'POST', body: JSON.stringify({ password: String(pwd || '') }) });
+    if (!data || !data.token) return { ok: false, message: (data && data.error) || '登录失败' };
+    _setSessionToken(data.token);
+    _setAdminSession(true);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: '登录失败（HTTP ' + (e && e.message ? e.message.replace('HTTP ', '') : '') + '）' };
+  }
+}
+/** 云端登出：调用 /api/admin/logout 并清除本地 token */
+async function cloudLogout() {
+  var t = _sessionToken();
+  _setSessionToken('');
+  _setAdminSession(false);
+  if (_cloudOn() && t) {
+    try { await apiFetch('api/admin/logout', { method: 'POST', body: '{}' }); } catch (e) {}
+  }
+}
+function adminLogout() {
+  if (_cloudOn()) { cloudLogout(); }
+  else { _setAdminSession(false); }
+}
 
 /* ---------- 导出 ---------- */
 function buildPostsJs() {
@@ -943,7 +990,10 @@ function renderWrite() {
   var html = renderNav(currentRoute().path);
   html += '<main class="container page-fade">';
   if (!adminOk()) {
-    if (needAdminSetup()) {
+    if (_cloudOn()) {
+      // 云端模式：密码在 Cloudflare KV，此页只做登录（token 已存则直接进入编辑）
+      html += '<div class="card gate-card"><div class="big">🔒</div><h3>管理员登录</h3><p>请输入管理员密码以继续写作（密码存储于 Cloudflare KV，仅校验、不回传）</p><div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码"><button class="btn btn-primary" id="btnGate">登录</button></div><div class="gate-msg" id="gateMsg"></div><p class="gate-back"><a href="' + esc(href('/')) + '">返回首页</a></p><p class="gate-hint">提示：首次部署请先按 README 用 /api/admin/setup 设置密码。</p></div>';
+    } else if (needAdminSetup()) {
       html += '<div class="card gate-card"><div class="big">🔐</div><h3>设置管理密码</h3><p>首次使用请设置一个至少 4 位的管理密码</p><div class="gate-form"><input type="password" id="setupPwd" placeholder="管理密码"><button class="btn btn-primary" id="btnSetup">设置</button></div><div class="gate-msg" id="gateMsg"></div></div>';
     } else {
       html += '<div class="card gate-card"><div class="big">🔒</div><h3>管理员验证</h3><p>请输入管理密码以继续写作</p><div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码"><button class="btn btn-primary" id="btnGate">进入</button></div><div class="gate-msg" id="gateMsg"></div><p class="gate-back"><a href="' + esc(href('/')) + '">返回首页</a></p><p class="gate-hint">提示：可在 public/config.js 配置 adminPwd，或点击「退出」清除本地密码。<br>验证通过后会有一段时间保持登录状态，可随时退出。</p></div>';
@@ -963,7 +1013,12 @@ function renderWrite() {
       var inp = document.querySelector('#gatePwd');
       var msg = document.querySelector('#gateMsg');
       if (!inp) return;
-      if (tryAdmin(inp.value)) { route(); }
+      if (_cloudOn()) {
+        cloudLogin(inp.value).then(function (r) {
+          if (r.ok) { route(); }
+          else if (msg) msg.textContent = r.message || '密码错误';
+        });
+      } else if (tryAdmin(inp.value)) { route(); }
       else if (msg) msg.textContent = '密码错误';
     });
     return;
@@ -972,7 +1027,7 @@ function renderWrite() {
   var _editPost = _editId ? getStaticPosts().find(function (p) { return p.id === _editId; }) : null;
   html += '<div class="card editor-meta"><div id="writeTitleHint" class="pane-title">' + (_editPost ? esc('正在编辑：' + (_editPost.title || '')) : '') + '</div><div class="editor-grid"><div class="field"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div><div class="field"><label>日期</label><input type="date" id="dateInput"></div><div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div><div class="field"><label>摘要（可选）</label><input type="text" id="excerptInput" placeholder="不填则自动截取"></div><div class="field check-label"><label><input type="checkbox" id="pinnedInput"> 置顶</label></div></div></div>';
   html += '<div class="editor-wrap"><div class="editor-area"><div class="pane-title">编辑</div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" rows="18" placeholder="用 Markdown 写作…"></textarea></div><div class="preview-pane"><div class="pane-title">预览</div><div class="write-preview article" id="previewPane"></div></div></div>';
-  html += '<div class="editor-actions"><button class="btn btn-primary" id="btnSave">📥 保存文章</button><button class="btn" id="btnExport">导出 posts.js</button><button class="btn" id="btnSaveDraft">💾 存草稿</button><button class="btn" id="btnImport">导入 .md</button><input type="file" id="mdFileInput" accept=".md,.markdown" hidden><button class="btn" id="btnRss">📡 RSS</button><button class="btn" id="btnSitemap">🗺 Sitemap</button><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span></div>';
+  html += '<div class="editor-actions">' + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">🚀 发布到云端</button>' : '') + '<button class="btn btn-primary" id="btnSave">📥 保存文章</button><button class="btn" id="btnExport">导出 posts.js</button><button class="btn" id="btnSaveDraft">💾 存草稿</button><button class="btn" id="btnImport">导入 .md</button><input type="file" id="mdFileInput" accept=".md,.markdown" hidden><button class="btn" id="btnRss">📡 RSS</button><button class="btn" id="btnSitemap">🗺 Sitemap</button><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span></div>';
   html += '<p class="keys-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> 存草稿 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 保存文章</p>';
   html += '<h3 class="draft-hint"><b>一键导出：</b>保存文章 / RSS / Sitemap 会打开系统保存对话框，选中原文件即可原地覆盖发布。</h3>';
   html += '</main>' + renderFooter();
@@ -1084,6 +1139,30 @@ function bindWriteEvents() {
 
   var btnSave = document.querySelector('#btnSave');
   if (btnSave) btnSave.addEventListener('click', function () { saveStaticArticle(); });
+
+  var btnCloud = document.querySelector('#btnCloud');
+  if (btnCloud) btnCloud.addEventListener('click', async function () {
+    var d = collectEditor();
+    if (!d) return;
+    var editId = currentEditId();
+    var id = editId || (d.title ? slugify(d.title) : 'draft');
+    d.id = id;
+    var st = document.querySelector('#saveStatus');
+    if (st) st.textContent = '发布中…';
+    try {
+      // 新建用 POST，编辑用 PUT（幂等）
+      var method = editId ? 'PUT' : 'POST';
+      await apiFetch('api/posts' + (editId ? '/' + encodeURIComponent(editId) : ''), {
+        method: method,
+        body: JSON.stringify(d)
+      });
+      // 发布成功后回填文章（编辑态已在窗口内显示）
+      saveDraftToStore('__new', d);
+      if (st) st.textContent = '✅ 已发布到云端';
+    } catch (e) {
+      if (st) st.textContent = '发布失败：' + ((e && e.message) || '未知错误');
+    }
+  });
 
   var btnExport = document.querySelector('#btnExport');
   if (btnExport) btnExport.addEventListener('click', function () {
@@ -1389,16 +1468,19 @@ function bindHomeSearch() {
 /* ---------- 启动引导 ---------- */
 window.__bootPromise = (async function () {
   var cfg = getConfig();
-  if (cfg.mode === 'api') {
+  if (cfg.mode === 'api' || cfg.mode === 'auto') {
     try {
       var resp = await apiFetch('api/posts');
       var data = resp || {};
-      if (data && Array.isArray(data.posts) && data.posts.length) {
-        var existing = (Array.isArray(window.BLOG_POSTS) ? window.BLOG_POSTS : []);
-        var byId = {};
-        existing.forEach(function (p) { byId[p.id] = p; });
-        data.posts.forEach(function (p) { byId[p.id] = p; });
-        window.BLOG_POSTS = Object.keys(byId).map(function (k) { return byId[k]; });
+      if (data && Array.isArray(data.posts)) {
+        _cloudDetected = true;   // 云端在线：后续登录用 /api/admin/*
+        if (data.posts.length) {
+          var existing = (Array.isArray(window.BLOG_POSTS) ? window.BLOG_POSTS : []);
+          var byId = {};
+          existing.forEach(function (p) { byId[p.id] = p; });
+          data.posts.forEach(function (p) { byId[p.id] = p; });
+          window.BLOG_POSTS = Object.keys(byId).map(function (k) { return byId[k]; });
+        }
       }
     } catch (e) { /* fall back to static */ }
   }

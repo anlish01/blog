@@ -51,15 +51,23 @@
 
 > 需要 Node.js 18+ 与 wrangler：`npm i -g wrangler` 或 `npx wrangler`。
 
-### 第 0 步：创建 KV 命名空间（云端写文章存储）
+### 第 0 步：创建 KV 命名空间（云端数据 + 管理员密码存储）
+
+本博客的云端数据（文章/评论/统计）**和管理员密码哈希**都存这一个 KV。创建：
 
 ```bash
 npx wrangler kv namespace create BLOG
 ```
 
-把输出的 `id` 填进 `wrangler.workers.toml` 的 `[[kv_namespaces]]`（Workers 部署用）；
-Pages 部署时可在控制台 Settings → Bindings 添加同名 KV（变量名 `BLOG`），
-或用下面第 62 行的方式绑定。
+把输出的 `id` 填进 `wrangler.workers.toml` 的 `[[kv_namespaces]]`（Workers 部署用）。
+Pages 部署时绑定到控制台（二选一）：
+
+- **Pages 控制台**：Workers & Pages → 你的项目 → **Settings → Bindings → Add → KV namespace**
+  → 变量名（Variable name）填 **`BLOG`**，选择刚创建的命名空间 → **Save**。
+- 或直接编辑 `wrangler.toml` 取消 `[[kv_namespaces]]` 注释并填真实 id（仅 `wrangler pages` CLI 部署时读取；Git 连接部署以控制台绑定为准）。
+
+> ⚠️ KV 绑定是「管理员密码存 Cloudflare」的前提：**没有绑定 BLOG，`/api/admin/setup` 与登录都无法工作**。
+> 部署完成后可访问 `https://<你的项目>.pages.dev/api/posts` 验证——返回 JSON 即绑定成功。
 
 ### 方式 A：Cloudflare Pages（推荐）
 
@@ -82,10 +90,14 @@ npx wrangler pages deploy        # 静态资源 public/，functions/ 自动打�
 首次运行按提示创建项目并确认。完成后：
 
 ```bash
-node seed.js https://<你的项目名>.pages.dev   # （可选）导入示例文章
+node seed.js https://<你的项目名>.pages.dev --token <登录后浏览器里的 qingyu.token>
+# 或：BLOG_TOKEN=<token> node seed.js https://<你的项目名>.pages.dev
+# （可选）导入示例文章；若后端已开启写鉴权需携带凭证
 ```
 
-打开站点 → 右上角页脚出现「📡 在线」即云端模式成功。写文章页点「🚀 发布到云端」即可存数据。
+打开站点 → 首页能正常浏览即部署成功。**接下来按「管理员密码存 Cloudflare KV」章节完成
+密码设置与登录**：先加 `BLOG_ADMIN_SETUP_KEY` 环境变量 → `curl` 调 `/api/admin/setup` 设密码
+→ 删除环境变量 → 打开 `/admin` 登录 → 写作页点「🚀 发布到云端」即可存数据。
 
 > `wrangler pages deploy` 也会读取 `wrangler.toml`（已兼容），不会再报 `ASSETS` 保留名错误。
 
@@ -102,18 +114,68 @@ node seed.js https://<你的子域>.workers.dev
 - 想强制某种模式？改 `public/config.js`：`mode: 'static' | 'api' | 'auto'`；跨域部署可填 `apiBase`。
 - 云端模式里点「⬇️ 备份 posts.js」可把云端数据导出为带日期的本地备份文件。
 
-#### （可选）启用写入令牌，防止公网被乱写
+### 🔐 管理员密码存 Cloudflare KV（安全认证，推荐）
 
-默认部署后，任何人知道网址都能增删内容。需要保护时：
+部署后，**管理员密码不再写在前端源码里**（`config.js` 的 `adminPwd` 云端模式请保持留空），
+密码只存 Cloudflare KV；前端登录后拿到的只是一个**短期会话令牌**，写操作凭令牌鉴权。
+即使源码全部公开，攻击者也拿不到你的密码，也无法伪造写请求。
 
-1. 后端设置令牌（二选一）：
-   - Workers：`npx wrangler secret put BLOG_WRITE_TOKEN`
-   - Pages：Cloudflare 控制台 → 项目 → Settings → Environment variables 添加 `BLOG_WRITE_TOKEN`
-2. 前端填写同一个令牌（二选一）：
-   - 改 `public/config.js` 的 `writeToken`
-   - 或在浏览器控制台执行 `localStorage.setItem('qingyu.token', '你的令牌')`
+工作原理：
 
-配置后，未携带令牌的写操作（发布/更新/删除）返回 401；读操作不受影响。
+```
+浏览器                     Cloudflare（Pages Functions + KV）
+  │ 首次部署：POST /api/admin/setup {"password":"..."}  + X-Setup-Key
+  │  ──────────────────────────►  校验设置密钥 → PBKDF2-SHA256 加盐哈希 → 存 KV(admin:auth)
+  │ 日常登录：POST /api/admin/login {"password":"..."}
+  │  ──────────────────────────►  服务端重新派生哈希并比对（恒定时间比较）
+  │ ◄──────────────────────────  { token }（随机 32 字节，存 KV admin:session:*，7 天有效）
+  │ 写作：PUT/POST /api/posts   Authorization: Bearer <token>
+  │  ──────────────────────────►  校验会话有效 → 写入 KV
+```
+
+#### 第 1 步：设置一次性环境变量（防抢注）
+
+在 Cloudflare 控制台 → 你的 Pages 项目 → **Settings → Environment variables** 添加：
+
+| 变量名 | 值 | 说明 |
+| --- | --- | --- |
+| `BLOG_ADMIN_SETUP_KEY` | 一段随机长字符串（如 `openssl rand -hex 32` 的输出） | 仅首次设置密码时使用，**设完密码后即可删除** |
+
+> 为什么需要它：不设密钥的话，部署后**任何人都能抢先设置管理密码**。设了它，只有你知道密钥才能初始化密码。
+
+#### 第 2 步：首次设置管理员密码（一次性）
+
+部署完成后，在**你自己的电脑**上执行（把 URL 换成你的站点）：
+
+```bash
+SETUP_KEY=你的BLOG_ADMIN_SETUP_KEY
+
+curl -X POST https://<你的项目>.pages.dev/api/admin/setup \
+  -H "Content-Type: application/json" \
+  -H "X-Setup-Key: $SETUP_KEY" \
+  -d '{"password":"你的强密码（至少8位，建议12位以上）"}'
+```
+
+成功返回 `201`：`{"ok":true,"message":"管理员密码已设置"}`。
+可以验证：KV 控制台里 `admin:auth` 存的是 `{salt, hash, iter}`——**绝无明文密码**。
+设置成功后，**删除 `BLOG_ADMIN_SETUP_KEY` 环境变量**（防止被再次调用）。忘记密码时：先删除 KV 的
+`admin:auth` 键 + 重新设置该环境变量，再执行本步即可重置。
+
+#### 第 3 步：日常使用
+
+- 打开 `https://<你的项目>.pages.dev/admin` → 出现**「管理员登录」**框 → 输入密码 → 登录成功。
+- 写文章页点「🚀 发布到云端」→ 保存到 KV（自动携带会话令牌）。
+- 其他浏览器/设备要用：同样只需登录一次；会话 7 天有效，或点「退出」随时失效。
+- 本地 `file://` 双击打开（无后端）：自动退回静态模式的本机密码门禁，功能不受影响。
+
+#### 内置安全措施
+
+- **密码不明文存储**：PBKDF2-SHA256，120,000 次迭代 + 每用户随机盐；即使 KV 泄露，暴力破解成本极高。
+- **会话最小化**：前端只持有 32 字节随机 token（7 天 TTL，服务端可单独吊销）；密码永不进 localStorage、永不返回前端。
+- **防暴力破解**：同一 IP 连续失败 5 次锁定 15 分钟（基于 KV 计数）。
+- **防抢注**：首次设置密码需要一次性 `BLOG_ADMIN_SETUP_KEY`。
+- **安全默认**：只要后端可写面，未携带任何凭证的写请求一律 401（不再"裸奔"）。
+- **旧式令牌兼容**：仍支持 `BLOG_WRITE_TOKEN` 环境变量 + `config.js` 的 `writeToken`（适合脚本/自动化）；未配置时写操作必须走上方会话登录。
 
 ### 🗺 路由（真实路径，无 hash）
 
@@ -136,13 +198,16 @@ node seed.js https://<你的子域>.workers.dev
 
 ### 🔐 管理员门禁（写文章页）
 
-两种模式，任选其一：
+按部署方式区分：
 
-1. **固定密码**：在 `public/config.js` 填 `adminPwd`（如 `'my-secret'`），所有浏览器都用它验证。
-2. **首次强制设置**（默认，`adminPwd` 留空）：第一次进入「写文章」页**必须**设置一个管理密码（≥4 位，不可跳过），之后进入写作页都需要验证；密码保存在该浏览器本地，换浏览器需重新设置（或改用模式 1）。
+1. **云端部署（推荐）**：密码存 Cloudflare KV（见上方「管理员密码存 Cloudflare KV」），
+   写作页显示「管理员登录」；`public/config.js` 的 `adminPwd` **保持留空**。
+2. **静态模式**（`file://` 双击或纯静态托管，无后端）：两种本地密码任选——
+   - 固定密码：`public/config.js` 填 `adminPwd`（如 `'my-secret'`）；
+   - 首次强制设置（默认，`adminPwd` 留空）：第一次进入「写文章」页**必须**设置一个管理密码（≥4 位），之后写作页需验证；密码存本浏览器（防君子，真安全请走云端模式）。
 
-- 验证通过后本次会话内有效；点「退出管理」可重新验证（写作页工具栏）。
-- 这是**前端门禁**（防君子）：公网环境的真实写权限由后端的 `BLOG_WRITE_TOKEN` 保证（见上文）。
+- 验证通过后本次会话有效；点「退出管理」可重新验证（写作页工具栏）。
+- **云端模式下前端永远拿不到密码**：本地只存会话令牌，写权限由服务端校验（见上文）。
 
 ### 📦 文章多了会不会臃肿？不会
 
@@ -226,7 +291,7 @@ footer: {
 - 🧰 编辑器工具栏（加粗/斜体/行内代码/标题/链接/图片/引用/列表/代码块一键插入）
 - 👁 阅读数 + ❤ 点赞（云端 KV 全局统计 / 静态模式本机统计，每会话计一次阅读、每浏览器一赞）
 - ✏️ 本地写作 / 编辑，草稿自动保存；云端模式一键发布/更新/删除
-- 🔐 写作页管理员门禁：首次进入**强制设置**管理密码（存本浏览器），或配置 `adminPwd` 固定密码；可随时退出管理
+- 🔐 写作页管理员门禁：云端模式密码存 Cloudflare KV（会话令牌登录，防爆破/防抢注）；静态模式本机密码（二选一）
 - 📥 人性化保存：保存文章 / RSS / Sitemap 走系统保存对话框，**选中原文件即原地覆盖**（一步发布）
 - 🚶 详情页脚「上一篇 / 下一篇」按日期相邻导航
 - 📡 云端正文按需加载：列表只返回摘要，打开文章才取全文（文章再多也不臃肿）

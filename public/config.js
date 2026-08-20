@@ -11,6 +11,14 @@
  * siteUrl ：站点对外地址（用于生成 RSS/Sitemap 链接），如 https://blog.example.com；
  *          留空时后端自动取请求来源、前端取页面来源。
  *
+ * 管理员安全（云端模式）：
+ *   · 密码只存 Cloudflare KV（PBKDF2-SHA256 加盐哈希，绝不存明文/不出前端源码）。
+ *   · 首次部署：POST /api/admin/setup（需环境变量 BLOG_ADMIN_SETUP_KEY，一次性防抢注）。
+ *   · 日常登录：POST /api/admin/login → 服务端校验 → 返回 7 天会话 token
+ *     （存浏览器 localStorage，写操作携带；服务端内置 5 次/15 分钟失败锁定）。
+ *   · 下方 adminPwd 仅用于「静态模式」的本地门禁（file:// 或纯静态托管），
+ *     云端部署时请留空，真正密码在 Cloudflare 后端，前端永远拿不到。
+ *
  * 路由（真实路径，无 hash）：
  *   首页 / · 归档 /archive · 关于 /about · 标签 /tags · 后台 /admin 或 /write
  *   文章  /posts/<文章别名>/   编辑  /posts/<文章别名>/edit
@@ -18,10 +26,8 @@
  * 部署要求：站点根目录直接服务本 public/ 内容（不要带 /public 前缀）；
  * 本地 file:// 双击 index.html 自动退化为主页可用。
  * ------------------------------------------------------------
- * writeToken：可选。若后端设置了 BLOG_WRITE_TOKEN 环境变量（写入令牌），
- *             这里填写同样的令牌，发布/更新/删除时会自动携带。
- *             也可以不填，改为在浏览器控制台执行：
- *               localStorage.setItem('qingyu.token', '你的令牌')
+ * writeToken：可选。旧版静态令牌（后端 BLOG_WRITE_TOKEN 环境变量），
+ *             建议改用上方的会话登录；普通用户一般无需填写。
  * ------------------------------------------------------------
  * ads：广告位（按需启用，未启用完全不输出）。
  *   enabled: true      总开关
@@ -37,11 +43,11 @@ window.BLOG_CONFIG = {
   apiBase: '',
   siteUrl: '',
   writeToken: '',
-  /* 管理员门禁：写文章页访问密码（可选，两种模式二选一）。
-   * 1) 在此填写固定密码（如 'my-secret'）：所有浏览器都用它验证；
-   * 2) 留空：首次进入「写文章」会强制要求设置一个管理密码（≥4 位），
-   *    密码保存在该浏览器本地；换浏览器则需重新设置。
-   * 注意：这是前端门禁（防君子），真正的写权限由后端的 BLOG_WRITE_TOKEN 保证。
+  /* 管理员门禁（静态模式本地密码；云端模式请留空）。
+   * 云端部署（推荐）：密码只存 Cloudflare KV，见文件头说明——
+   *   首次 /api/admin/setup 设置，之后 /api/admin/login 登录拿会话 token。
+   * 静态模式（file:// 或纯静态托管，无后端）：可在此填固定密码（如 'my-secret'），
+   *   或留空让浏览器本地设置（≥4 位，仅防君子，真安全请走云端模式）。
    *
    * 写文章入口（真实路径，无 hash）：
    *   https://blog.example.com/admin     （或 https://xxx.pages.dev/admin）
