@@ -65,12 +65,17 @@ jobs:
         env:
           BLOG_KV_ID: ${{ secrets.BLOG_KV_ID }}
         run: |
-          sed "s|{env.BLOG_KV_ID}|${BLOG_KV_ID}|g" wrangler.workers.toml > /tmp/wrangler.workers.ci.toml
-          if grep -q '{env.BLOG_KV_ID}' /tmp/wrangler.workers.ci.toml; then
-            echo "::error::KV 占位符未替换，请确认 BLOG_KV_ID Secret 已设置"
-            exit 1
-          fi
-          echo "✅ 部署配置已生成（含真实 KV id，不会打印）"
+          python3 - <<'PY'
+          import os
+          kv_id = os.environ['BLOG_KV_ID'].strip()
+          if not kv_id or len(kv_id) != 32 or not all(c in '0123456789abcdef' for c in kv_id.lower()):
+              print('::error::BLOG_KV_ID 不是有效的 32 位十六进制 KV id（去除多余空格/换行后重试）')
+              raise SystemExit(1)
+          src = open('wrangler.workers.toml', encoding='utf-8').read()
+          dst = src.replace('{env.BLOG_KV_ID}', kv_id)
+          open('/tmp/wrangler.workers.ci.toml', 'w', encoding='utf-8').write(dst)
+          print('✅ 部署配置已生成（含真实 KV id，不会打印）')
+          PY
 
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3
