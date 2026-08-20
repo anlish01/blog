@@ -812,7 +812,7 @@ async function renderPost(id) {
     });
     return;
   }
-  if (getConfig().mode === 'api' && !post.protected && !post.content && !post._fullLoaded) {
+  if (_cloudOn() && !post.protected && !post.content && !post._fullLoaded) {
     html += '<div class="empty"><div class="big">⏳</div><p>加载中…</p></div>';
     html += '</div></main>' + renderFooter();
     app().innerHTML = html;
