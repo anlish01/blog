@@ -27,7 +27,33 @@ function applyTheme(t) {
 }
 function setTheme(t) { applyTheme(t); try { localStorage.setItem(themeKey(), t); } catch (e) {} }
 function toggleTheme() { var n = getTheme() === 'dark' ? 'light' : 'dark'; setTheme(n); refreshThemeIcon(); return n; }
-function themeIcon() { return getTheme() === 'dark' ? '☀️' : '🌙'; }
+/* 统一 SVG 图标：currentColor 描边，自动继承文字色、hover 变主题色 */
+function svgIcon(name, size) {
+  size = size || 18;
+  var s = 'width="' + size + '" height="' + size + '"';
+  var c = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
+  var I = {
+    sun: '<svg ' + s + ' ' + c + '><circle cx="12" cy="12" r="4"/><path d="M12 2.4v2.4M12 19.2v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.4 12h2.4M19.2 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>',
+    moon: '<svg ' + s + ' ' + c + '><path d="M20.5 13.2A8.5 8.5 0 1 1 11 3.5a6.6 6.6 0 0 0 9.5 9.7z"/></svg>',
+    pin: '<svg ' + s + ' ' + c + '><path d="M12 21s-6-5.3-6-10a6 6 0 1 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>',
+    lock: '<svg ' + s + ' ' + c + '><rect x="5" y="11" width="14" height="9" rx="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+    eye: '<svg ' + s + ' ' + c + '><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/></svg>',
+    heart: '<svg ' + s + ' ' + c + '><path d="M12 20s-7-4.6-7-9.3A3.7 3.7 0 0 1 12 7a3.7 3.7 0 0 1 7 3.7C19 15.4 12 20 12 20z"/></svg>',
+    cloud: '<svg ' + s + ' ' + c + '><path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1.3A3.5 3.5 0 0 1 17.5 18z"/><path d="M12 13v5M9.5 15.5 12 13l2.5 2.5"/></svg>',
+    save: '<svg ' + s + ' ' + c + '><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>',
+    external: '<svg ' + s + ' ' + c + '><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
+    download: '<svg ' + s + ' ' + c + '><path d="M12 4v10M8 11l4 4 4-4M5 19h14"/></svg>',
+    upload: '<svg ' + s + ' ' + c + '><path d="M12 20V10M8 13l4-4 4 4M5 5h14"/></svg>',
+    file: '<svg ' + s + ' ' + c + '><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg>',
+    rss: '<svg ' + s + ' ' + c + '><circle cx="5" cy="18" r="1"/><path d="M4 11a9 9 0 0 1 9 9M4 5a15 15 0 0 1 15 15"/></svg>',
+    sitemap: '<svg ' + s + ' ' + c + '><rect x="3" y="4" width="7" height="5" rx="1"/><rect x="14" y="4" width="7" height="5" rx="1"/><rect x="9" y="15" width="7" height="5" rx="1"/><path d="M6.5 9v3h11V9M12.5 12v3"/></svg>',
+    spinner: '<svg class="spin-icon" ' + s + ' ' + c + '><path d="M12 3a9 9 0 1 0 9 9" /></svg>',
+    question: '<svg ' + s + ' ' + c + '><circle cx="12" cy="12" r="9"/><path d="M9.2 9.6a2.8 2.8 0 0 1 5.4 1c0 1.8-2.6 2-2.6 3.6M12 17h.01"/></svg>',
+    doc: '<svg ' + s + ' ' + c + '><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M9.5 12h5M9.5 15h5"/></svg>'
+  };
+  return I[name] || '';
+}
+function themeIcon() { return getTheme() === 'dark' ? svgIcon('sun', 18) : svgIcon('moon', 18); }
 function refreshThemeIcon() {
   var b = document.querySelector('#themeToggle'); if (b) b.innerHTML = themeIcon();
 }
@@ -755,7 +781,7 @@ function renderHome() {
   html += '<div id="listContainer">';
   var filtered = tag ? posts.filter(function (p) { return (p.tags || []).indexOf(tag) >= 0; }) : posts;
   html += renderCardList(filtered, ads, adsEnabled);
-  if (!filtered.length) html += '<div class="empty"><div class="big">🕸</div><p>这里还没有文章。</p></div>';
+  if (!filtered.length) html += '<div class="empty"><div class="big">' + svgIcon('doc', 36) + '</div><p>这里还没有文章。</p></div>';
   html += '</div></main>';
   html += renderFooter();
   return html;
@@ -798,7 +824,7 @@ function renderCardList(plist, ads, adsEnabled) {
 }
 
 function renderCard(p) {
-  var badge = p.pinned ? '<span class="pin">📌 置顶</span>' : '';
+  var badge = p.pinned ? '<span class="pin">' + svgIcon('pin', 13) + ' 置顶</span>' : '';
   var tags = normalizeTags(p).map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('');
   var excerpt = p.excerpt || stripMd(p.content || '').slice(0, 100);
   return '<a class="post-card" href="' + esc(href(postUrl(p.id))) + '"><div class="meta"><span class="date">' + esc(p.date || '') + '</span>' + badge + '</div><h2>' + esc(p.title || '') + '</h2>' + (tags ? '<div class="mini-tags">' + tags + '</div>' : '') + '<div class="excerpt">' + esc(excerpt) + '</div></a>';
@@ -811,13 +837,13 @@ async function renderPost(id) {
   var post = posts.find(function (p) { return p.id === id; });
   html += '<main class="container page-fade"><div class="post-body">';
   if (!post) {
-    html += '<div class="empty"><div class="big">🤔</div><p>内容不存在</p><p><a href="' + esc(href('/')) + '">返回首页</a></p></div></div></main>';
+    html += '<div class="empty"><div class="big">' + svgIcon('question', 36) + '</div><p>内容不存在</p><p><a href="' + esc(href('/')) + '">返回首页</a></p></div></div></main>';
     html += renderFooter();
     app().innerHTML = html;
     return;
   }
   if (post.protected && !_unlocked[post.id]) {
-    html += '<div class="lock-card"><div class="big">🔒</div><h3>这是一篇加密文章</h3><p>输入访问密码以阅读</p><div class="lock-form"><input type="password" id="lockInput" placeholder="访问密码"><button class="btn btn-primary" id="lockBtn">解锁</button></div><div class="lock-msg" id="lockMsg"></div></div>';
+    html += '<div class="lock-card"><div class="big">' + svgIcon('lock', 28) + '</div><h3>这是一篇加密文章</h3><p>输入访问密码以阅读</p><div class="lock-form"><input type="password" id="lockInput" placeholder="访问密码"><button class="btn btn-primary" id="lockBtn">解锁</button></div><div class="lock-msg" id="lockMsg"></div></div>';
     html += '</div></main>' + renderFooter();
     app().innerHTML = html;
     var btn = document.querySelector('#lockBtn');
@@ -832,7 +858,7 @@ async function renderPost(id) {
     return;
   }
   if (_cloudOn() && !post.protected && !post.content && !post._fullLoaded) {
-    html += '<div class="empty"><div class="big">⏳</div><p>加载中…</p></div>';
+    html += '<div class="empty"><div class="big">' + svgIcon('spinner', 26) + '</div><p>加载中…</p></div>';
     html += '</div></main>' + renderFooter();
     app().innerHTML = html;
     // 超时保护：10 秒拿不到正文就放弃加载态，避免“一直加载中”
@@ -861,11 +887,11 @@ async function renderPost(id) {
   var tocHeadings = tocRes.headings;
   var tags = normalizeTags(post).map(function (t) { return '<a href="' + esc(href('/', { tag: t })) + '" data-tag-link>' + esc(t) + '</a>'; }).join('');
   var minutes = Math.max(1, Math.ceil((stripMd(content || '').length / 400)));
-  html += '<div class="post-header"><h1>' + esc(post.title || '') + '</h1><div class="meta"><span class="meta-date">' + esc(post.date || '') + '</span><span class="meta-dot">·</span><span>' + minutes + ' 分钟阅读</span><span class="meta-dot">·</span><span class="meta-views">👁 <span id="viewCount">' + '0' + '</span> 次浏览</span>' + (post.pinned ? '<span class="pin">📌 置顶</span>' : '') + '</div></div>';
+  html += '<div class="post-header"><h1>' + esc(post.title || '') + '</h1><div class="meta"><span class="meta-date">' + esc(post.date || '') + '</span><span class="meta-dot">·</span><span>' + minutes + ' 分钟阅读</span><span class="meta-dot">·</span><span class="meta-views">' + svgIcon('eye', 14) + ' <span id="viewCount">0</span> 次浏览</span>' + (post.pinned ? '<span class="pin">' + svgIcon('pin', 13) + ' 置顶</span>' : '') + '</div></div>';
   html += toc;
   html += '<article class="article">' + bodyHtml + '</article>';
   // 点赞：正文尾部，水平居中
-  html += '<div class="like-bar"><button class="btn like-btn" id="likeBtn">❤ <span id="likeCount">' + '0' + '</span></button></div>';
+  html += '<div class="like-bar"><button class="btn like-btn" id="likeBtn">' + svgIcon('heart', 15) + ' <span id="likeCount">0</span></button></div>';
   // 底部：左标签、右复制链接(+编辑)
   html += '<div class="article-footer"><div class="af-tags">' + (tags || '') + '</div><div class="af-actions"><button class="btn" id="btnCopyLink">🔗 复制链接</button></div></div>';
 
@@ -1019,11 +1045,11 @@ function renderWrite() {
   if (!adminOk()) {
     if (_cloudOn()) {
       // 云端模式：密码在 Cloudflare KV，此页只做登录（token 已存则直接进入编辑）
-      html += '<div class="card gate-card"><div class="big">🔒</div><h3>管理员登录</h3><p>请输入管理员密码以继续写作（密码存储于 Cloudflare KV，仅校验、不回传）</p><div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码"><button class="btn btn-primary" id="btnGate">登录</button></div><div class="gate-msg" id="gateMsg"></div><p class="gate-back"><a href="' + esc(href('/')) + '">返回首页</a></p><p class="gate-hint">提示：首次部署请先按 README 用 /api/admin/setup 设置密码。</p></div>';
+      html += '<div class="card gate-card"><div class="big">' + svgIcon('lock', 26) + '</div><h3>管理员登录</h3><p>请输入管理员密码以继续写作（密码存储于 Cloudflare KV，仅校验、不回传）</p><div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码"><button class="btn btn-primary" id="btnGate">登录</button></div><div class="gate-msg" id="gateMsg"></div><p class="gate-back"><a href="' + esc(href('/')) + '">返回首页</a></p><p class="gate-hint">提示：首次部署请先按 README 用 /api/admin/setup 设置密码。</p></div>';
     } else if (needAdminSetup()) {
       html += '<div class="card gate-card"><div class="big">🔐</div><h3>设置管理密码</h3><p>首次使用请设置一个至少 4 位的管理密码</p><div class="gate-form"><input type="password" id="setupPwd" placeholder="管理密码"><button class="btn btn-primary" id="btnSetup">设置</button></div><div class="gate-msg" id="gateMsg"></div></div>';
     } else {
-      html += '<div class="card gate-card"><div class="big">🔒</div><h3>管理员验证</h3><p>请输入管理密码以继续写作</p><div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码"><button class="btn btn-primary" id="btnGate">进入</button></div><div class="gate-msg" id="gateMsg"></div><p class="gate-back"><a href="' + esc(href('/')) + '">返回首页</a></p><p class="gate-hint">提示：可在 public/config.js 配置 adminPwd，或点击「退出」清除本地密码。<br>验证通过后会有一段时间保持登录状态，可随时退出。</p></div>';
+      html += '<div class="card gate-card"><div class="big">' + svgIcon('lock', 26) + '</div><h3>管理员验证</h3><p>请输入管理密码以继续写作</p><div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码"><button class="btn btn-primary" id="btnGate">进入</button></div><div class="gate-msg" id="gateMsg"></div><p class="gate-back"><a href="' + esc(href('/')) + '">返回首页</a></p><p class="gate-hint">提示：可在 public/config.js 配置 adminPwd，或点击「退出」清除本地密码。<br>验证通过后会有一段时间保持登录状态，可随时退出。</p></div>';
     }
     html += '</main>' + renderFooter();
     app().innerHTML = html;
@@ -1052,9 +1078,9 @@ function renderWrite() {
   }
   var _editId = currentEditId();
   var _editPost = _editId ? getStaticPosts().find(function (p) { return p.id === _editId; }) : null;
-  html += '<div class="card editor-meta"><div id="writeTitleHint" class="pane-title">' + (_editPost ? esc('正在编辑：' + (_editPost.title || '')) : '') + '</div><div class="editor-grid"><div class="field"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div><div class="field"><label>日期（可精确到时间）</label><input type="datetime-local" id="dateInput"></div><div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div><div class="field"><label>摘要（可选）</label><input type="text" id="excerptInput" placeholder="不填则自动截取"></div><div class="field check-label"><label><input type="checkbox" id="pinnedInput"> 置顶</label></div><div class="field check-label" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> 🔒 加密</label><input type="password" id="protectPwdInput" placeholder="文章访问密码（勾选加密后设置）" style="display:none;width:220px;margin-left:8px"></div></div></div>';
+  html += '<div class="card editor-meta"><div id="writeTitleHint" class="pane-title">' + (_editPost ? esc('正在编辑：' + (_editPost.title || '')) : '') + '</div><div class="editor-grid"><div class="field"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div><div class="field"><label>日期（可精确到时间）</label><input type="datetime-local" id="dateInput"></div><div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div><div class="field"><label>摘要（可选）</label><input type="text" id="excerptInput" placeholder="不填则自动截取"></div><div class="field check-label"><label><input type="checkbox" id="pinnedInput"> 置顶</label></div><div class="field check-label" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" placeholder="文章访问密码（勾选加密后设置）" style="display:none;width:220px;margin-left:8px"></div></div></div>';
   html += '<div class="editor-wrap"><div class="editor-area"><div class="pane-title">编辑</div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" rows="18" placeholder="用 Markdown 写作…"></textarea></div><div class="preview-pane"><div class="pane-title">预览</div><div class="write-preview article" id="previewPane"></div></div></div>';
-  html += '<div class="editor-actions">' + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">🚀 发布到云端</button>' : '') + '<button class="btn btn-primary" id="btnSave">📥 保存文章</button><button class="btn" id="btnOpenMdEditor">📝 官方编辑器</button><button class="btn" id="btnExport">导出 posts.js</button><button class="btn" id="btnSaveDraft">💾 存草稿</button><button class="btn" id="btnImport">导入 .md</button><input type="file" id="mdFileInput" accept=".md,.markdown" hidden><button class="btn" id="btnRss">📡 RSS</button><button class="btn" id="btnSitemap">🗺 Sitemap</button><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span></div>';
+  html += '<div class="editor-actions">' + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">' + svgIcon('cloud', 15) + ' 发布到云端</button>' : '') + '<button class="btn btn-primary" id="btnSave">' + svgIcon('save', 15) + ' 保存文章</button><button class="btn" id="btnOpenMdEditor">' + svgIcon('external', 15) + ' 官方编辑器</button><button class="btn" id="btnExport">' + svgIcon('download', 15) + ' 导出 posts.js</button><button class="btn" id="btnSaveDraft">' + svgIcon('upload', 15) + ' 存草稿</button><button class="btn" id="btnImport">' + svgIcon('file', 15) + ' 导入 .md</button><input type="file" id="mdFileInput" accept=".md,.markdown" hidden><button class="btn" id="btnRss">' + svgIcon('rss', 15) + ' RSS</button><button class="btn" id="btnSitemap">' + svgIcon('sitemap', 15) + ' Sitemap</button><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span></div>';
   html += '<p class="keys-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> 存草稿 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 保存文章</p>';
   html += '<h3 class="draft-hint"><b>一键导出：</b>保存文章 / RSS / Sitemap 会打开系统保存对话框，选中原文件即可原地覆盖发布。</h3>';
   html += '</main>' + renderFooter();
@@ -1485,7 +1511,7 @@ async function route() {
   else if (path === '/about') { app().innerHTML = renderAbout(); }
   else if (path === '/tags') { app().innerHTML = renderTags(); }
   else {
-    app().innerHTML = renderNav(path) + '<main class="container page-fade"><div class="empty"><div class="big">🤔</div><p>内容不存在</p><p><a href="' + esc(href('/')) + '">返回首页</a></p></div></main>' + renderFooter();
+    app().innerHTML = renderNav(path) + '<main class="container page-fade"><div class="empty"><div class="big">' + svgIcon('question', 36) + '</div><p>内容不存在</p><p><a href="' + esc(href('/')) + '">返回首页</a></p></div></main>' + renderFooter();
   }
   bindGlobal();
 }
@@ -1572,7 +1598,7 @@ function bindHomeSearch() {
     if (!box) return;
     var ads = getConfig().ads || {};
     box.innerHTML = renderCardList(filtered, ads, !!ads.enabled)
-      + (filtered.length ? '' : '<div class="empty"><div class="big">🕸</div><p>没有匹配的文章。</p></div>');
+      + (filtered.length ? '' : '<div class="empty"><div class="big">' + svgIcon('doc', 36) + '</div><p>没有匹配的文章。</p></div>');
   });
 }
 

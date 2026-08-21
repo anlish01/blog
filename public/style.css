@@ -393,7 +393,7 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
 .post-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 18px 20px;
   box-shadow: var(--shadow);
   cursor: pointer;
@@ -440,6 +440,18 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
   padding: 56px 0;
 }
 .empty .big { font-size: 40px; margin-bottom: 10px; }
+
+/* ---------- 文章列表间距（首尾不变，仅卡片之间留空隙） ---------- */
+#listContainer { display: flex; flex-direction: column; gap: 18px; }
+
+/* ---------- SVG 图标对齐与动效 ---------- */
+.icon-btn svg { display: block; }
+.big svg { display: block; margin: 0 auto; }
+.pin svg { vertical-align: -2px; margin-right: 4px; }
+.meta-views svg { vertical-align: -2px; margin-right: 4px; }
+.like-btn.liked svg { fill: currentColor; }
+.spin-icon { animation: qy-spin 0.9s linear infinite; transform-origin: center; }
+@keyframes qy-spin { to { transform: rotate(360deg); } }
 
 /* ---------- 文章详情 ---------- */
 .post-body { max-width: 760px; }

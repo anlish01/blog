@@ -528,7 +528,7 @@ tests.push(['置顶：排序置顶优先 + 首页徽章 + 导出保留', async (
   assert.strictEqual(sorted[0].id, 'b', '置顶在前');
   assert.strictEqual(sorted[1].id, 'c', '其余按日期倒序');
   const home = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } });
-  assert.ok(home.html.includes('📌 置顶'), '首页置顶徽章');
+  assert.ok(home.html.includes('class="pin"') && home.html.includes('置顶'), '首页置顶徽章（SVG 图标）');
   const out = parsePostsJs(await ctx.buildPostsJs());
   const pinned = out.find((p) => p.id === 'hello-qingyu');
   assert.ok(pinned && pinned.pinned === true, '导出保留 pinned');
