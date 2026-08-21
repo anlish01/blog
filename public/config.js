@@ -43,6 +43,9 @@ window.BLOG_CONFIG = {
   apiBase: '',
   siteUrl: '',
   writeToken: '',
+  /* 首页每页显示文章数（分页）。设为 0 = 不分页、全部显示。
+   * 例：pageSize: 8 → 首页每页 8 篇，底部出现「上一页 / 下一页」。 */
+  pageSize: 8,
   /* 管理员门禁（静态模式本地密码；云端模式请留空）。
    * 云端部署（推荐）：密码只存 Cloudflare KV，见文件头说明——
    *   首次 /api/admin/setup 设置，之后 /api/admin/login 登录拿会话 token。

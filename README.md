@@ -155,6 +155,7 @@ curl -X POST https://<你的域名>/api/admin/setup \
 | 配置项 | 说明 | 示例 |
 | --- | --- | --- |
 | `mode` | `'auto'` 自动检测（推荐）/ `'static'` 强制静态 / `'api'` 强制云端 | `'auto'` |
+| `pageSize` | 首页每页显示文章数；`0` = 不分页、全部显示（列表底部出现「上一页 / 下一页」） | `8` |
 | `apiBase` | 后端 API 基础地址；留空 = 同源（Cloudflare 部署默认） | `''` |
 | `siteUrl` | 站点对外地址，用于 RSS / Sitemap 链接 | `'https://blog.example.com'` |
 | `adminPwd` | **仅静态模式**的本地门禁密码；云端模式请留空（密码在 Cloudflare 后端） | `''` |

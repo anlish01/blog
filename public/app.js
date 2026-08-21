@@ -343,6 +343,7 @@ function getConfig() {
     siteUrl: cfg.siteUrl || (typeof location !== 'undefined' ? location.origin : ''),
     writeToken: cfg.writeToken || '',
     adminPwd: cfg.adminPwd || '',
+    pageSize: (typeof cfg.pageSize === 'number' && cfg.pageSize >= 0) ? cfg.pageSize : 8,
     nav: Array.isArray(cfg.nav) ? cfg.nav : [],
     footer: cfg.footer || {},
     ads: cfg.ads || {}
@@ -764,6 +765,34 @@ function renderFooter() {
   return '<footer><div class="container footer-inner"><div class="footer-common">' + commonHtml + '</div>' + (chain.length ? '<div class="footer-links">' + chain.join('<span class="footer-dot">·</span>') + '</div>' : '') + '<div class="footer-info">' + infoHtml + '</div></div></footer>';
 }
 
+function homePageSize() {
+  var n = Number(getConfig().pageSize);
+  return (n && n > 0) ? n : 0;   // 0 = 不分页，全部显示
+}
+
+/* 计算当前分页并渲染「卡片列表 + 翻页器」 */
+function homeListHtml(filtered, ads, adsEnabled, page, pageSize, emptyMsg) {
+  var total = filtered.length;
+  var totalPages = pageSize > 0 ? Math.max(1, Math.ceil(total / pageSize)) : 1;
+  if (page < 1) page = 1;
+  if (page > totalPages) page = totalPages;
+  var pageItems = pageSize > 0 ? filtered.slice((page - 1) * pageSize, page * pageSize) : filtered;
+  var list = renderCardList(pageItems, ads, adsEnabled);
+  if (!pageItems.length) list = '<div class="empty"><div class="big">' + svgIcon('doc', 36) + '</div><p>' + (emptyMsg || '这里还没有文章。') + '</p></div>';
+  return { html: '<div id="listContainer">' + list + '</div>' + pagerHtml(page, totalPages), page: page, totalPages: totalPages };
+}
+
+/* 翻页器：上一页 / 下一页，保留当前标签与页码（query 形式，链接可前进/后退） */
+function pagerHtml(page, totalPages) {
+  if (totalPages <= 1) return '';
+  var tag = (currentRoute().query.tag) || '';
+  var prevHref = href('/', tag ? { tag: tag, page: page - 1 } : { page: page - 1 });
+  var nextHref = href('/', tag ? { tag: tag, page: page + 1 } : { page: page + 1 });
+  var prev = (page <= 1) ? '<span class="pager-btn disabled">上一页</span>' : '<a class="pager-btn" href="' + esc(prevHref) + '">上一页</a>';
+  var next = (page >= totalPages) ? '<span class="pager-btn disabled">下一页</span>' : '<a class="pager-btn" href="' + esc(nextHref) + '">下一页</a>';
+  return '<div class="pager">' + prev + '<span class="pager-info">第 ' + page + ' / ' + totalPages + ' 页</span>' + next + '</div>';
+}
+
 function renderHome() {
   var cfg = getConfig();
   var posts = sortPagePosts(getStaticPosts());
@@ -771,6 +800,8 @@ function renderHome() {
   var tag = cur.query.tag || '';
   var ads = cfg.ads || {};
   var adsEnabled = !!ads.enabled;
+  var pageSize = homePageSize();
+  var page = parseInt(cur.query.page, 10) || 1;
   var html = renderNav(cur.path);
   html += '<main class="container page-fade"><div class="list-head"><h2 class="page-title">最新发布</h2><div class="home-search"><span class="hs-icon">' + searchIconSvg() + '</span><input id="homeSearchInput" type="text" placeholder="搜索文章…" autocomplete="off"></div></div>';
   if (tag) {
@@ -778,11 +809,10 @@ function renderHome() {
   }
   html += renderHomeTagRow(posts, tag);
   if (adsEnabled && ads.belowSearch) html += '<div class="ad-slot"><span class="ad-label">广告</span>' + ads.belowSearch + '</div>';
-  html += '<div id="listContainer">';
   var filtered = tag ? posts.filter(function (p) { return (p.tags || []).indexOf(tag) >= 0; }) : posts;
-  html += renderCardList(filtered, ads, adsEnabled);
-  if (!filtered.length) html += '<div class="empty"><div class="big">' + svgIcon('doc', 36) + '</div><p>这里还没有文章。</p></div>';
-  html += '</div></main>';
+  var body = homeListHtml(filtered, ads, adsEnabled, page, pageSize);
+  html += '<div id="homeBody">' + body.html + '</div>';
+  html += '</main>';
   html += renderFooter();
   return html;
 }
@@ -1594,11 +1624,12 @@ function bindHomeSearch() {
         return hay.toLowerCase().indexOf(q) >= 0;
       });
     }
-    var box = document.querySelector('#listContainer');
+    var box = document.querySelector('#homeBody');
     if (!box) return;
     var ads = getConfig().ads || {};
-    box.innerHTML = renderCardList(filtered, ads, !!ads.enabled)
-      + (filtered.length ? '' : '<div class="empty"><div class="big">' + svgIcon('doc', 36) + '</div><p>没有匹配的文章。</p></div>');
+    var pageSize = homePageSize();
+    // 搜索结果从第 1 页起渲染，并复用同一翻页器
+    box.innerHTML = homeListHtml(filtered, ads, !!ads.enabled, 1, pageSize, '没有匹配的文章。').html;
   });
 }
 

@@ -174,6 +174,40 @@ tests.push(['干净路径：无 #/ 残留，导航用真实路径', async () => 
   assert.ok(ctx.postUrl('abc中') === '/posts/' + encodeURIComponent('abc中') + '/', 'postUrl 带尾斜杠');
 }]);
 
+tests.push(['首页分页：pageSize 控量 + 上一页/下一页 + 翻页切换内容 + pageSize=0 不分页', async () => {
+  const { ctx } = await boot({ 'window.BLOG_CONFIG': { mode: 'static', pageSize: 3 } });
+  const many = [];
+  for (let i = 1; i <= 7; i++) many.push({ id: 'pg' + i, title: '分页文章' + i, date: '2025-0' + ((i % 9) + 1) + '-01', tags: ['测试'], content: '正文' + i });
+  ctx.window.BLOG_POSTS = many;
+  await ctx.route();
+  let html = ctx.document.querySelector('#app').innerHTML;
+  assert.ok(html.includes('class="pager"'), '出现翻页器');
+  assert.ok(html.includes('下一页'), '有「下一页」');
+  assert.ok((html.match(/post-card/g) || []).length === 3, '第 1 页显示 3 篇');
+  const idsOf = (h) => (h.match(/posts\/(pg\d+)\//g) || []);
+  const p1 = idsOf(html);
+  // 翻到第 2 页（模拟 query ?page=2）
+  ctx.location.pathname = '/';
+  ctx.location.search = '?page=2';
+  await ctx.route();
+  html = ctx.document.querySelector('#app').innerHTML;
+  assert.ok((html.match(/post-card/g) || []).length === 3, '第 2 页显示 3 篇');
+  assert.ok(idsOf(html).join() !== p1.join(), '第 2 页文章与第 1 页不同');
+  // 第 3 页（剩余 1 篇）
+  ctx.location.search = '?page=3';
+  await ctx.route();
+  html = ctx.document.querySelector('#app').innerHTML;
+  assert.ok((html.match(/post-card/g) || []).length === 1, '第 3 页显示 1 篇');
+  assert.ok(html.includes('上一页') && html.includes('下一页'), '第 3 页仍显示翻页按钮');
+  // pageSize=0 → 不分页，全部显示且无翻页器
+  const { ctx: c2 } = await boot({ 'window.BLOG_CONFIG': { mode: 'static', pageSize: 0 } });
+  c2.window.BLOG_POSTS = many;
+  await c2.route();
+  const html2 = c2.document.querySelector('#app').innerHTML;
+  assert.ok((html2.match(/post-card/g) || []).length === 7, 'pageSize=0 全部显示 7 篇');
+  assert.ok(!html2.includes('class="pager"'), 'pageSize=0 无翻页器');
+}]);
+
 tests.push(['标签筛选：首页 /?tag=随笔 只渲染该标签文章（history 模式 query）', async () => {
   // 直接访问 /?tag=随笔（刷新/直达）：只显示含「随笔」标签的文章
   const t = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } }, '/?tag=' + encodeURIComponent('随笔'));

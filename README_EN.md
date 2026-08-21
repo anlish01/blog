@@ -155,6 +155,7 @@ All site configuration lives in `window.BLOG_CONFIG` in `public/config.js` — n
 | Key | Description | Example |
 | --- | --- | --- |
 | `mode` | `'auto'` auto-detect (recommended) / `'static'` force static / `'api'` force cloud | `'auto'` |
+| `pageSize` | Posts per home page; `0` = no pagination, show all (a "Prev / Next" pager appears at the bottom) | `8` |
 | `apiBase` | API base URL; empty = same origin (Cloudflare default) | `''` |
 | `siteUrl` | Site URL used for RSS / Sitemap links | `'https://blog.example.com'` |
 | `adminPwd` | **Static mode only** local gate password; leave empty in cloud mode (password lives in Cloudflare) | `''` |
