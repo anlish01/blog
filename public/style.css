@@ -284,10 +284,11 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
   align-items: center;
   gap: 10px;
   width: 100%;
-  max-width: 560px;
+  max-width: 480px;
 }
 .topbar.searching .topbar-search { display: flex; grid-column: 2; justify-self: center; }
-.topbar.searching .main-nav { display: none; }   /* 仅隐藏中间导航链接，品牌与右侧按钮保留 */
+.topbar.searching .topbar-left,
+.topbar.searching .main-nav { display: none; }   /* 隐藏整个顶部导航（品牌 + 链接），其位置由搜索框居中替代 */
 .ts-icon { display: none; }   /* 搜索框内不再显示放大镜图标 */
 .search-icon { width: 16px; height: 16px; display: block; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 #globalSearchInput {
