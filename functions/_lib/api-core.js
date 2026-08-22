@@ -39,6 +39,11 @@ export function corsPreflight() {
   return new Response(null, { status: 204, headers: CORS });
 }
 
+/** 401 统一响应（缺少/无效凭证） */
+function unauthorized() {
+  return json({ error: '未授权：请先登录获取会话 token，并在请求头携带 Authorization: Bearer <token>' }, 401);
+}
+
 export function normalizePost(p) {
   const out = p || {};
   const protectedPost = !!out.protected && out.enc && typeof out.enc === 'object';

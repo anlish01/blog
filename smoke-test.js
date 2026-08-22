@@ -313,18 +313,98 @@ tests.push(['stripMd 生成纯文本摘要', async () => {
   assert.ok(t.includes('加粗') && t.includes('码'));
 }]);
 
-/* ---------- 云端 API（shared/api-core.js）测试 ---------- */
+/* ---------- 云端 API（functions/_lib/api-core.js）测试 ---------- */
+
+/**
+ * 内存版 D1 模拟器：支持 api-core.js 用到的全部 SQL 形态。
+ * prepare(sql).bind(...params) → { all / first / run }，与真实 D1 绑定同构。
+ */
+function makeD1() {
+  const t = {
+    posts: new Map(), comments: new Map(), stats: new Map(),
+    admin_auth: new Map(), admin_sessions: new Map(), admin_fails: new Map()
+  };
+  const POST_COLS = ['id', 'title', 'date', 'excerpt', 'content', 'pinned', 'protected', 'enc', 'tags'];
+
+  function exec(sql, params) {
+    const s = sql.replace(/\s+/g, ' ').trim();
+    /* posts */
+    if (s === 'SELECT * FROM posts') return [...t.posts.values()];
+    if (s === 'SELECT 1 FROM posts WHERE id = ?') return t.posts.has(params[0]) ? { '1': 1 } : null;
+    if (s === 'SELECT * FROM posts WHERE id = ?') return t.posts.get(params[0]) || null;
+    if (/^INSERT( OR REPLACE)? INTO posts/.test(s)) {
+      const row = {}; POST_COLS.forEach((c, i) => { row[c] = params[i]; });
+      t.posts.set(row.id, row); return { success: true };
+    }
+    if (s === 'DELETE FROM posts WHERE id = ?') { t.posts.delete(params[0]); return { success: true }; }
+    /* comments */
+    if (s === 'SELECT * FROM comments WHERE post_id = ? ORDER BY date ASC, id ASC') {
+      return [...t.comments.values()].filter((r) => r.post_id === params[0])
+        .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.id < b.id ? -1 : 1)));
+    }
+    if (s === 'SELECT COUNT(*) AS c FROM comments WHERE post_id = ?') {
+      let c = 0; for (const r of t.comments.values()) if (r.post_id === params[0]) c++;
+      return { c };
+    }
+    if (/^INSERT INTO comments/.test(s)) {
+      const [id, post_id, author, content, date] = params;
+      t.comments.set(id, { id, post_id, author, content, date }); return { success: true };
+    }
+    if (s === 'SELECT 1 FROM comments WHERE post_id = ? AND id = ?') {
+      const r = t.comments.get(params[1]);
+      return (r && r.post_id === params[0]) ? { '1': 1 } : null;
+    }
+    if (s === 'DELETE FROM comments WHERE post_id = ? AND id = ?') {
+      const r = t.comments.get(params[1]);
+      if (r && r.post_id === params[0]) t.comments.delete(params[1]);
+      return { success: true };
+    }
+    /* stats */
+    if (s === 'SELECT * FROM stats WHERE post_id = ?') return t.stats.get(params[0]) || null;
+    if (/^INSERT INTO stats/.test(s)) {
+      const [post_id, likes, views] = params;
+      t.stats.set(post_id, { post_id, likes, views }); return { success: true };
+    }
+    /* admin_auth */
+    if (s === "SELECT * FROM admin_auth WHERE k = ?") return t.admin_auth.get(params[0]) || null;
+    if (/^INSERT INTO admin_auth/.test(s)) {
+      const [k, salt, hash, iter] = params;
+      t.admin_auth.set(k, { k, salt, hash, iter }); return { success: true };
+    }
+    /* admin_sessions */
+    if (s === 'SELECT * FROM admin_sessions WHERE token = ?') return t.admin_sessions.get(params[0]) || null;
+    if (/^INSERT INTO admin_sessions/.test(s)) {
+      const [token, exp] = params;
+      t.admin_sessions.set(token, { token, exp }); return { success: true };
+    }
+    if (s === 'DELETE FROM admin_sessions WHERE token = ?') { t.admin_sessions.delete(params[0]); return { success: true }; }
+    /* admin_fails */
+    if (s === 'SELECT * FROM admin_fails WHERE ip = ?') return t.admin_fails.get(params[0]) || null;
+    if (/^INSERT INTO admin_fails/.test(s)) {
+      const [ip, n, until] = params;
+      t.admin_fails.set(ip, { ip, n, until }); return { success: true };
+    }
+    if (s === 'DELETE FROM admin_fails WHERE ip = ?') { t.admin_fails.delete(params[0]); return { success: true }; }
+
+    throw new Error('mock D1：未支持的 SQL —— ' + s);
+  }
+
+  return {
+    _tables: t,
+    prepare(sql) {
+      const chain = (params) => ({
+        async all() { return { results: exec(sql, params) || [] }; },
+        async first() { return exec(sql, params); },
+        async run() { exec(sql, params); return { success: true }; }
+      });
+      return { bind: (...params) => chain(params), ...chain([]) };
+    }
+  };
+}
 
 function mockEnv() {
-  const kv = new Map();
-  return {
-    BLOG: {
-      get: async (k) => (kv.has(k) ? kv.get(k) : null),
-      put: async (k, v) => kv.set(k, String(v)),
-      delete: async (k) => kv.delete(k),
-    },
-    _kv: kv,
-  };
+  const db = makeD1();
+  return { DB: db, _d1: db._tables };
 }
 
 /** 建一个已配置管理员密码、且已登录拿到会话 token 的环境（写操作测试用） */
@@ -371,7 +451,7 @@ tests.push(['API：POST / GET / 重复 id 409 / 缺字段 400', async () => {
   assert.deepStrictEqual(list.posts[0].tags, ['技术', '随笔'], 'tags 归一为数组');
 }]);
 
-tests.push(['API：PUT 更新 / PUT 未知 id 新建 / DELETE / 404 / 无 KV 500', async () => {
+tests.push(['API：PUT 更新 / PUT 未知 id 新建 / DELETE / 404 / 无 DB 500', async () => {
   const { env, token, core } = await authEnv();
   const authJson = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
   await core.handlePosts(new Request('http://t/api/posts', {
@@ -399,9 +479,9 @@ tests.push(['API：PUT 更新 / PUT 未知 id 新建 / DELETE / 404 / 无 KV 500
   assert.strictEqual(r.status, 404, '删除不存在的返回 404');
 
   r = await core.handlePosts(new Request('http://t/api/posts'), {});
-  assert.strictEqual(r.status, 500, '未绑定 KV 返回 500');
+  assert.strictEqual(r.status, 500, '未绑定 D1 返回 500');
   const err = await r.json();
-  assert.ok(err.error.includes('BLOG'), '错误信息提示 KV 绑定');
+  assert.ok(err.error.includes('数据库未配置'), '错误信息提示 D1 绑定');
 }]);
 
 tests.push(['管理员认证：无凭证 401 / 会话 token 201 / 错误密码 401 / 限流 429', async () => {
@@ -1115,8 +1195,7 @@ tests.push(['rfc822 支持 HH:mm 时间', async () => {
 /* 后端：加密文章存/取往返（列表不泄漏 content/enc，详情保留 enc） */
 tests.push(['后端：加密文章 content 恒空、enc 仅详情返回（含时间日期）', async () => {
   const core = await import('./functions/_lib/api-core.js');
-  const kv = new Map();
-  const env = { BLOG: { get: async (k) => kv.get(k) ?? null, put: async (k, v) => kv.set(k, v) } };
+  const env = mockEnv();
   const setEnv = Object.assign(env, { BLOG_ADMIN_SETUP_KEY: 'sk1' });
   await core.handleAdminSetup(new Request('http://t/api/admin/setup', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Setup-Key': 'sk1' }, body: JSON.stringify({ password: 'Passw0rd!@' }) }), setEnv);
   const lo = await (await core.handleAdminLogin(new Request('http://t/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'Passw0rd!@' }) }), env)).json();
