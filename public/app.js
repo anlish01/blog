@@ -1105,7 +1105,7 @@ function renderWrite() {
   if (!adminOk()) {
     if (_cloudOn()) {
       // 云端模式：密码在 Cloudflare KV，此页只做登录（token 已存则直接进入编辑）
-      html += '<div class="card gate-card"><div class="big">' + svgIcon('lock', 26) + '</div><h3>管理员登录</h3><p>请输入管理员密码以继续写作（密码存储于 Cloudflare KV，仅校验、不回传）</p><div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码"><button class="btn btn-primary" id="btnGate">登录</button></div><div class="gate-msg" id="gateMsg"></div><p class="gate-back"><a href="' + esc(href('/')) + '">返回首页</a></p><p class="gate-hint">提示：首次部署请先按 README 用 /api/admin/setup 设置密码。</p></div>';
+      html += '<div class="card gate-card"><div class="big">' + svgIcon('lock', 26) + '</div><h3>管理员登录</h3><p>请输入管理员密码以继续写作（密码校验于 Cloudflare D1 后端，仅比对哈希、不回传）</p><div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码"><button class="btn btn-primary" id="btnGate">登录</button></div><div class="gate-msg" id="gateMsg"></div><p class="gate-back"><a href="' + esc(href('/')) + '">返回首页</a></p><p class="gate-hint">提示：首次部署请先按 README 用 /api/admin/setup 设置密码。</p></div>';
     } else if (needAdminSetup()) {
       html += '<div class="card gate-card"><div class="big">🔐</div><h3>设置管理密码</h3><p>首次使用请设置一个至少 4 位的管理密码</p><div class="gate-form"><input type="password" id="setupPwd" placeholder="管理密码"><button class="btn btn-primary" id="btnSetup">设置</button></div><div class="gate-msg" id="gateMsg"></div></div>';
     } else {
@@ -1140,7 +1140,7 @@ function renderWrite() {
   var _editPost = _editId ? getStaticPosts().find(function (p) { return p.id === _editId; }) : null;
   html += '<div class="card editor-meta"><div id="writeTitleHint" class="pane-title">' + (_editPost ? esc('正在编辑：' + (_editPost.title || '')) : '') + '</div><div class="editor-grid"><div class="field"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div><div class="field"><label>日期（可精确到时间）</label><input type="datetime-local" id="dateInput"></div><div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div><div class="field"><label>摘要（可选）</label><input type="text" id="excerptInput" placeholder="不填则自动截取"></div><div class="field check-label"><label><input type="checkbox" id="pinnedInput"> 置顶</label></div><div class="field check-label" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" placeholder="文章访问密码（勾选加密后设置）" style="display:none;width:220px;margin-left:8px"></div></div></div>';
   html += '<div class="editor-wrap"><div class="editor-area"><div class="pane-title">编辑</div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" rows="18" placeholder="用 Markdown 写作…"></textarea></div><div class="preview-pane"><div class="pane-title">预览</div><div class="write-preview article" id="previewPane"></div></div></div>';
-  html += '<div class="editor-actions">' + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">' + svgIcon('cloud', 15) + ' 发布到云端</button>' : '') + '<button class="btn btn-primary" id="btnSave">' + svgIcon('save', 15) + ' 保存文章</button><button class="btn" id="btnOpenMdEditor">' + svgIcon('external', 15) + ' 官方编辑器</button><button class="btn" id="btnExport">' + svgIcon('download', 15) + ' 导出 posts.js</button><button class="btn" id="btnSaveDraft">' + svgIcon('upload', 15) + ' 存草稿</button><button class="btn" id="btnImport">' + svgIcon('file', 15) + ' 导入 .md</button><input type="file" id="mdFileInput" accept=".md,.markdown" hidden><button class="btn" id="btnRss">' + svgIcon('rss', 15) + ' RSS</button><button class="btn" id="btnSitemap">' + svgIcon('sitemap', 15) + ' Sitemap</button><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span></div>';
+  html += '<div class="editor-actions">' + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">' + svgIcon('cloud', 15) + ' 发布到云端</button>' : '') + '<button class="btn btn-primary" id="btnSave">' + svgIcon('save', 15) + ' 保存文章</button><button class="btn" id="btnOpenMdEditor">' + svgIcon('external', 15) + ' 官方编辑器</button><button class="btn" id="btnExport">' + svgIcon('download', 15) + ' 导出 posts.js</button><button class="btn" id="btnSaveDraft">' + svgIcon('upload', 15) + ' 存草稿</button><button class="btn" id="btnImport">' + svgIcon('file', 15) + ' 导入 .md</button><input type="file" id="mdFileInput" accept=".md,.markdown" hidden><button class="btn" id="btnRss">' + svgIcon('rss', 15) + ' RSS</button><button class="btn" id="btnSitemap">' + svgIcon('sitemap', 15) + ' Sitemap</button><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span><button class="btn btn-ghost" id="btnLogout">' + svgIcon('external', 15) + ' 退出登录</button></div>';
   html += '<p class="keys-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> 存草稿 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 保存文章</p>';
   html += '<h3 class="draft-hint"><b>一键导出：</b>保存文章 / RSS / Sitemap 会打开系统保存对话框，选中原文件即可原地覆盖发布。</h3>';
   html += '</main>' + renderFooter();
@@ -1312,7 +1312,16 @@ function bindWriteEvents() {
       saveDraftToStore('__new', d);
       if (st) st.textContent = '✅ 已发布到云端';
     } catch (e) {
-      if (st) st.textContent = '发布失败：' + ((e && e.message) || '未知错误');
+      var em = (e && e.message) || '未知错误';
+      // 会话过期/无效：清掉本地旧 token，跳回登录页重新拿新令牌
+      if (/401/.test(em)) {
+        _setSessionToken('');
+        _setAdminSession(false);
+        if (st) st.textContent = '登录已过期，正在前往重新登录…';
+        setTimeout(function () { route(); }, 900);
+        return;
+      }
+      if (st) st.textContent = '发布失败：' + em;
     }
   });
 
@@ -1329,6 +1338,13 @@ function bindWriteEvents() {
   var btnSitemap = document.querySelector('#btnSitemap');
   if (btnSitemap) btnSitemap.addEventListener('click', function () {
     saveFileFriendly('sitemap.xml', buildSitemapClient(), '已导出 sitemap.xml', '已下载 sitemap.xml');
+  });
+
+  // 退出登录：清除本地会话（云端同时撤销服务端 token），回到登录门
+  var btnLogout = document.querySelector('#btnLogout');
+  if (btnLogout) btnLogout.addEventListener('click', async function () {
+    await adminLogout();
+    route();
   });
 
   var btnDraft = document.querySelector('#btnSaveDraft');
