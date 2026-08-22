@@ -16,7 +16,7 @@ main = "worker.js"
 directory = "./public"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
-html_handling = "auto"
+html_handling = "auto-trailing-slash"
 
 # KV 命名空间（文章数据存储 + 管理员密码哈希）
 # id 用 {env.BLOG_KV_ID} 占位 → 部署时由 GitHub Actions 的 sed 替换为真实 Secret
