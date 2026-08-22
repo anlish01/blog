@@ -278,17 +278,20 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
 .tag-chip:hover { color: var(--accent); border-color: var(--accent); }
 
 /* 首页搜索框：位于「最新发布」同行最右侧，直接显示可输入 */
-/* 顶部导航搜索：圆形 SVG 图标按钮；展开时仅替换中间导航位置为搜索框（电脑/手机通用） */
+/* 顶部导航搜索：圆形 SVG 图标按钮；展开时隐藏整条导航、搜索框占满导航条（电脑/手机通用） */
 .topbar-search {
   display: none;
+  position: absolute;
+  inset: 0;
   align-items: center;
   gap: 10px;
-  width: 100%;
-  max-width: 480px;
+  padding: 0 14px;
+  background: var(--bg);
+  z-index: 11;
 }
-.topbar.searching .topbar-search { display: flex; grid-column: 2; justify-self: center; }
+.topbar.searching .topbar-search { display: flex; }
 .topbar.searching .topbar-left,
-.topbar.searching .main-nav { display: none; }   /* 隐藏整个顶部导航（品牌 + 链接），其位置由搜索框居中替代 */
+.topbar.searching .main-nav { display: none; }   /* 展开时隐藏整条顶部导航（品牌 + 链接），由搜索框替代 */
 .ts-icon { display: none; }   /* 搜索框内不再显示放大镜图标 */
 .search-icon { width: 16px; height: 16px; display: block; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 #globalSearchInput {
