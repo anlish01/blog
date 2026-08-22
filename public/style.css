@@ -706,30 +706,36 @@ footer { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--
 .footer-inner {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 20px 18px;
+  align-items: flex-start;   /* 左对齐，不居中 */
+  gap: 8px;                  /* 所有行之间距统一 */
+  padding: 14px 20px 16px;
 }
 /* 页脚导航行（电脑端含 RSS；移动端隐藏 RSS 与下方声明区块） */
 .footer-nav {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   align-items: center;
-  gap: 4px 0;
-  font-size: 13.5px;
+  font-size: 12px;
+  line-height: 1.6;
 }
-.footer-nav a { color: var(--muted); text-decoration: none; transition: color 0.15s ease; padding: 2px 8px; }
+.footer-nav a { color: var(--muted); text-decoration: none; transition: color 0.15s ease; padding: 1px 5px; }
 .footer-nav a:hover { color: var(--accent); }
-.footer-dot { color: var(--border); margin: 0 2px; }
+.footer-dot { color: var(--border); margin: 0 1px; }
 .footer-rss { color: var(--accent); }
-/* 电脑端专属：站点声明 / 联系方式 / 友情链接 */
-.footer-extra { margin-top: 14px; font-size: 12.5px; color: var(--muted); line-height: 1.9; text-align: center; }
+/* 电脑端专属：站点声明 / 联系方式 / 友情链接（行距与其余行统一） */
+.footer-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.6;
+}
 .footer-extra p { margin: 0; }
-.footer-decl { max-width: 760px; margin-left: auto; margin-right: auto; }
+.footer-decl { max-width: 760px; }
 .footer-contact a, .footer-friends a { color: var(--accent); }
-.footer-copy { margin-top: 14px; font-size: 12.5px; color: var(--muted); text-align: center; }
-.footer-icp { margin-left: 6px; }
+.footer-copy { font-size: 11.5px; color: var(--muted); line-height: 1.6; }
+.footer-icp { margin-left: 8px; }
 .footer-icp:hover { color: var(--accent); }
 
 /* 移动端：仅保留导航行与版权行，隐藏声明/联系方式/友链/RSS/备案 */
@@ -737,9 +743,6 @@ footer { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--
   .footer-extra { display: none; }
   .footer-rss { display: none; }
   .footer-icp { display: none; }
-}
-  color: var(--muted);
-  opacity: 0.85;
 }
 
 /* ---------- 关于页 ---------- */

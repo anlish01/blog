@@ -758,7 +758,7 @@ function renderFooter() {
   // 电脑端专属区块：自定义文字 / 站点声明 / 联系方式 / 友情链接
   var extra = '';
   if (f.text) extra += '<p class="footer-text">' + esc(f.text) + '</p>';
-  if (f.decl) extra += '<p class="footer-decl">' + esc(f.decl) + '</p>';
+  if (f.decl) extra += '<p class="footer-decl">站点声明：' + esc(f.decl) + '</p>';
   if (f.email) extra += '<p class="footer-contact">相关侵权、举报、投诉及建议等，请发邮件至 E-mail：<a href="mailto:' + esc(f.email) + '">' + esc(f.email) + '</a></p>';
   var friends = (f.links || []).map(l).join('');
   if (friends) extra += '<p class="footer-friends">友情链接：' + friends + '</p>';
