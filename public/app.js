@@ -9,6 +9,8 @@ var BLOG_VERSION = '2.4.2';
 
 /* ---------- 全局缓存 ---------- */
 var _unlocked = {};
+var _searchOpen = false;   // 顶部导航搜索是否展开
+var _searchDocBound = false;   // document 级外部点击监听是否已绑定
 var _commentsCache = {};
 var _statsCache = {};
 var _routeTimer = null;
@@ -730,7 +732,21 @@ function renderNav(active) {
     return '<div class="nav-item"><a href="' + esc(url) + '" class="' + cls + '"' + ext + '>' + esc(n.text || '') + '</a></div>';
   }).join('');
   var sup = '<button class="icon-btn" id="themeToggle" aria-label="切换深色模式" title="切换深色/浅色模式">' + themeIcon() + '</button>';
-  return '<header class="topbar"><div class="container topbar-inner"><div class="topbar-left"><a class="brand" href="' + esc(href('/')) + '">轻语博客</a></div><nav class="main-nav">' + links + '</nav><div class="topbar-actions">' + sup + '</div></div></header>';
+  var searchBtn = '<button class="icon-btn search-toggle" id="searchToggle" aria-label="搜索" title="搜索文章">' + searchIconSvg() + '</button>';
+  var searchForm = '<form class="topbar-search" id="topbarSearch" role="search" onsubmit="return false">'
+    + '<span class="ts-icon">' + searchIconSvg() + '</span>'
+    + '<input id="globalSearchInput" type="search" placeholder="搜索文章…" autocomplete="off" aria-label="搜索文章">'
+    + '<button type="button" class="ts-close" id="searchClose" aria-label="关闭搜索">✕</button>'
+    + '</form>';
+  return '<header class="topbar' + (active && _searchOpen ? ' searching' : '') + '">'
+    + '<div class="container topbar-inner">'
+    + '<div class="topbar-left"><a class="brand" href="' + esc(href('/')) + '">轻语博客</a></div>'
+    + '<nav class="main-nav">' + links + '</nav>'
+    + '<div class="topbar-actions">' + searchBtn + sup + '</div>'
+    + searchForm
+    + '</div>'
+    + '<div class="search-panel" id="searchPanel"></div>'
+    + '</header>';
 }
 
 function renderFooter() {
@@ -817,7 +833,7 @@ function renderHome() {
   var pageSize = homePageSize();
   var page = parseInt(cur.query.page, 10) || 1;
   var html = renderNav(cur.path);
-  html += '<main class="container page-fade"><div class="list-head"><h2 class="page-title">最新发布</h2><div class="home-search"><span class="hs-icon">' + searchIconSvg() + '</span><input id="homeSearchInput" type="text" placeholder="搜索文章…" autocomplete="off"></div></div>';
+  html += '<main class="container page-fade"><div class="list-head"><h2 class="page-title">最新发布</h2></div>';
   if (tag) {
     html += '<div class="current-tag"><span class="tag-chip">' + esc(tag) + ' <a class="tag-clear" href="' + esc(href('/')) + '">✕</a></span></div>';
   }
@@ -1528,6 +1544,7 @@ function parseQuery(source) {
 }
 
 async function route() {
+  _searchOpen = false;   // 进入新页面时收起顶部搜索
   var r = currentRoute();
   var path = r.path;
   var q = r.query;
@@ -1564,7 +1581,7 @@ function bindGlobal() {
   var tb = document.querySelector('#themeToggle');
   if (tb) tb.addEventListener('click', function () { toggleTheme(); });
   bindTocScroll();
-  bindHomeSearch();
+  bindSearch();
   bindBackTop();
 }
 
@@ -1647,30 +1664,74 @@ function bindTocScroll() {
   });
 }
 
-/* 首页搜索框：在「最新发布」行右侧实时过滤卡片列表 */
-function bindHomeSearch() {
-  var inp = document.querySelector('#homeSearchInput');
-  if (!inp) return;
-  inp.addEventListener('input', function () {
-    var q = inp.value.trim().toLowerCase();
-    var tag = currentRoute().query.tag || '';
-    var posts = sortPagePosts(getStaticPosts());
-    var base = tag ? posts.filter(function (p) { return (p.tags || []).indexOf(tag) >= 0; }) : posts;
-    var filtered = base;
-    if (q) {
-      filtered = base.filter(function (p) {
-        if (p.protected && !_unlocked[p.id]) return false;
-        var hay = (p.title || '') + ' ' + (p.excerpt || '') + ' ' + (p.content || '') + ' ' + (p.tags || []).join(' ');
-        return hay.toLowerCase().indexOf(q) >= 0;
-      });
+/* 顶部导航搜索：点击搜索图标 → 隐藏导航、显示搜索框；输入实时出结果下拉面板 */
+function bindSearch() {
+  var toggle = document.querySelector('#searchToggle');
+  var close = document.querySelector('#searchClose');
+  var form = document.querySelector('#topbarSearch');
+  var input = document.querySelector('#globalSearchInput');
+  var panel = document.querySelector('#searchPanel');
+
+  if (toggle) toggle.addEventListener('click', function () {
+    var bar = document.querySelector('.topbar');
+    if (bar && bar.classList.contains('searching')) {   // 再次点击 = 收起
+      if (close) close.click();
+      return;
     }
-    var box = document.querySelector('#homeBody');
-    if (!box) return;
-    var ads = getConfig().ads || {};
-    var pageSize = homePageSize();
-    // 搜索结果从第 1 页起渲染，并复用同一翻页器
-    box.innerHTML = homeListHtml(filtered, ads, !!ads.enabled, 1, pageSize, '没有匹配的文章。').html;
+    _searchOpen = true;
+    if (bar) bar.classList.add('searching');
+    if (input) { input.focus(); input.select && input.select(); }
   });
+  if (close) close.addEventListener('click', function () {
+    _searchOpen = false;
+    var bar = document.querySelector('.topbar');
+    if (bar) bar.classList.remove('searching');
+    if (input) input.value = '';
+    if (panel) { panel.innerHTML = ''; panel.classList.remove('open'); }
+  });
+  if (input) {
+    input.addEventListener('input', function () { renderSearchPanel(input.value); });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { if (close) close.click(); }
+    });
+  }
+  // 点击面板内部不冒泡；点击面板外部则收起整个搜索框
+  if (panel) panel.addEventListener('click', function (e) { e.stopPropagation(); });
+  if (!_searchDocBound && typeof document !== 'undefined' && document.addEventListener) {
+    _searchDocBound = true;
+    document.addEventListener('click', function (e) {
+      var bar = document.querySelector('.topbar');
+      if (!bar || !bar.classList.contains('searching')) return;
+      var t = e.target;
+      while (t && t !== document) {
+        if (t.id === 'topbarSearch' || t.id === 'searchPanel' || t.id === 'searchToggle') return;
+        t = t.parentNode;
+      }
+      var c = document.querySelector('#searchClose');   // 每次重新查询，避免路由重渲染后引用失效
+      if (c) c.click();
+    });
+  }
+}
+
+/* 渲染搜索结果下拉面板（跨全部文章，非当前页过滤） */
+function renderSearchPanel(query) {
+  var panel = document.querySelector('#searchPanel');
+  if (!panel) return;
+  var q = String(query || '').trim();
+  if (!q) { panel.innerHTML = ''; panel.classList.remove('open'); return; }
+  var hits = globalSearch(q, 20);
+  if (!hits.length) {
+    panel.innerHTML = '<div class="search-empty">没有匹配的文章</div>';
+  } else {
+    panel.innerHTML = hits.map(function (p) {
+      var snip = searchSnippet(p, q);
+      return '<a class="search-hit" href="' + esc(href(postUrl(p.id))) + '">'
+        + '<div class="sh-title">' + esc(p.title || '') + '</div>'
+        + (snip ? '<div class="sh-snip">' + esc(snip) + '</div>' : '')
+        + '</a>';
+    }).join('');
+  }
+  panel.classList.add('open');
 }
 
 /* ---------- 启动引导 ---------- */

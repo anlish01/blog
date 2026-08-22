@@ -149,7 +149,7 @@ tests.push(['首页（静态模式）：导航在、搜索框在标题右侧、�
   const chrome = html.slice(html.indexOf('<div class="list-head">'), html.indexOf('id="listContainer"')) + html.slice(html.indexOf('<footer>'));
   assert.ok(chrome.includes('最新发布'), '首页标题为「最新发布」');
   assert.ok(!/文章/.test(chrome.replace(/placeholder="搜索文章…"/g, '')), '首页框架（标题/说明/页脚）除搜索占位外无「文章」字样');
-  assert.ok(html.includes('homeSearchInput') && html.includes('home-search'), '首页搜索框在「最新发布」右侧');
+  assert.ok(html.includes('searchToggle') && html.includes('globalSearchInput') && html.includes('topbarSearch'), '顶部导航含搜索按钮与搜索框');
   assert.ok(html.includes('home-tags') && html.includes('分类'), '首页标签分类栏在标题下方');
   assert.ok(html.includes('footer-inner') && html.includes('footer-nav') && html.includes('footer-copy'), '页脚结构（导航行 + 版权行）');
   assert.ok(!html.includes('💾 本地') && !html.includes('📡 在线'), '页脚无本地/在线标识');
