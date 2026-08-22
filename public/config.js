@@ -80,7 +80,7 @@ window.BLOG_CONFIG = {
       // { text: '邮箱', url: 'mailto:you@example.com' }
     ],
     links: [
-      // { text: '雨幕', url: 'https://example.com' }
+     { text: '雨幕', url: 'https://www.yumus.cn' }
     ],
     decl: '本站部分内容转载自网络，作品版权归原作者及来源网站所有，任何内容转载、商业用途等均须联系原作者并注明来源。',
     email: 'admin@cloumail.com',
