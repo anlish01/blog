@@ -94,10 +94,12 @@ Data is now stored primarily in **D1** (SQLite). The original KV namespace is ke
 **② D1 database (primary)**
 
 1. Dashboard → **Workers & Pages → D1 SQL Database → Create**, name it **`blog`** (must match the config)
-2. Copy the **database ID** (32-character hex)
+2. Open the database you just created — its detail page shows the **Database ID**: a **UUID** like `0fa366ac-f04a-4be2-8e11-5adc6ee6d686`. Copy the whole string including dashes.
 3. No manual table creation needed — CI runs `migrations/0001_init.sql` on every deploy (idempotent)
 
-> CLI alternative: `npx wrangler d1 create blog`
+> CLI alternative: `npx wrangler d1 create blog` (the database_id in its output is what you need);
+> retrieve anytime with `npx wrangler d1 info blog`.
+> ⚠️ This must be the **database_id (UUID)** — not the database name `blog`, and not the KV namespace ID.
 
 ### Step 2: Configure GitHub Secrets (sensitive data never lands in the repo)
 
@@ -106,7 +108,7 @@ In your GitHub repo → **Settings → Secrets and variables → Actions → New
 | Secret name | Value | Required |
 | --- | --- | --- |
 | `BLOG_KV_ID` | The KV namespace ID from Step 1① (backup binding) | ✅ |
-| `BLOG_D1_ID` | The D1 database ID from Step 1② (primary store) | ✅ |
+| `BLOG_D1_ID` | The D1 database ID from Step 1② (UUID, primary store) | ✅ |
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API Token (permissions: Workers / KV / D1 edit) | ✅ |
 | `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare Account ID (the string in the Dashboard URL) | ✅ |
 | `PAGES_PROJECT_NAME` | (optional) Custom worker name; **unset = the name in the config file** | optional |

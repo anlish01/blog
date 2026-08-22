@@ -94,10 +94,12 @@
 **② D1 数据库（主存储）**
 
 1. Dashboard → **Workers & Pages → D1 SQL Database → Create**，名字填 **`blog`**（与配置文件一致）
-2. 记下 **database ID**（32 位十六进制）
+2. 点进刚建的数据库，详情页有 **Database ID**——**UUID 格式**（如 `0fa366ac-f04a-4be2-8e11-5adc6ee6d686`），复制整串含连字符
 3. 建表不用手动做——CI 部署时会自动执行 `migrations/0001_init.sql`（幂等，可重复跑）
 
-> 命令行方式：`npx wrangler d1 create blog`
+> 命令行方式：`npx wrangler d1 create blog`（输出里的 database_id 即所需）；
+> 忘了可随时用 `npx wrangler d1 info blog` 查看。
+> ⚠️ 注意：要的是 **database_id（UUID）**，不是数据库名 `blog`，也不是 KV 的 namespace ID。
 
 ### 第 2 步：配置 GitHub Secrets（敏感数据不进仓库）
 
@@ -106,7 +108,7 @@ GitHub 仓库 → **Settings → Secrets and variables → Actions → New repos
 | Secret 名称 | 值 | 必填 |
 | --- | --- | --- |
 | `BLOG_KV_ID` | 第 1 步①记下的 KV 命名空间 ID（备用绑定） | ✅ |
-| `BLOG_D1_ID` | 第 1 步②记下的 D1 database ID（主存储） | ✅ |
+| `BLOG_D1_ID` | 第 1 步②记下的 D1 database ID（UUID 格式，主存储） | ✅ |
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API Token（权限：Workers / KV / D1 编辑） | ✅ |
 | `CLOUDFLARE_ACCOUNT_ID` | 你的 Cloudflare 账户 ID（Dashboard 右上角 URL 里那串） | ✅ |
 | `PAGES_PROJECT_NAME` | （可选）自定义 worker 名；**不设置 = 用配置文件里的名字** | 可选 |

@@ -76,11 +76,13 @@ jobs:
               raise SystemExit(1)
           src = open('wrangler.workers.toml', encoding='utf-8').read()
           dst = src.replace('{env.BLOG_KV_ID}', kv_id)
-          d1_id = os.environ['BLOG_D1_ID'].strip()
-          if not d1_id or len(d1_id) != 32 or not all(c in '0123456789abcdef' for c in d1_id.lower()):
-              print('::error::BLOG_D1_ID 不是有效的 32 位十六进制 D1 database_id（去除多余空格/换行后重试）')
+          # D1 database_id 是 UUID（如 0fa366ac-f04a-4be2-8e11-5adc6ee6d686），与 KV 的 32 位十六进制不同
+          import re
+          d1_raw = os.environ['BLOG_D1_ID'].strip().strip('"').strip("'")
+          if not re.fullmatch(r'[0-9a-fA-F]{32}', d1_raw.replace('-', '')):
+              print('::error::BLOG_D1_ID 不是有效的 D1 database_id（UUID 格式，见 D1 数据库详情页；不是数据库名，也不是 KV 的 ID）')
               raise SystemExit(1)
-          dst = dst.replace('{env.BLOG_D1_ID}', d1_id)
+          dst = dst.replace('{env.BLOG_D1_ID}', d1_raw)
           open('wrangler.workers.ci.toml', 'w', encoding='utf-8').write(dst)
           print('✅ 部署配置已生成（含真实 KV id 与 D1 id，不会打印）')
           PY
