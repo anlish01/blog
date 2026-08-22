@@ -1229,7 +1229,7 @@ kbd {
 
 /* ---------- 管理员门禁（登录页） ---------- */
 .gate-card {
-  max-width: 430px;
+  max-width: 520px;
   margin: 56px auto 0;
   padding: 44px 34px 26px;
   text-align: center;
