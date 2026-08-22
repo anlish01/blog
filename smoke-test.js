@@ -966,12 +966,19 @@ tests.push(['页脚新版式：导航行含写作后台+RSS，声明/邮箱/友�
   const f = b.html.slice(b.html.indexOf('<footer>'));
   ['首页', '标签', '归档', '关于', '写作后台'].forEach((t) => assert.ok(f.includes('>' + t + '<'), '页脚导航含「' + t + '」'));
   assert.ok(f.includes('>RSS<'), '电脑端导航行含 RSS');
-  assert.ok(f.includes('footer-extra') && f.includes('本站部分内容转载自网络'), '站点声明渲染');
+  assert.ok(f.includes('footer-extra') && f.includes('站点声明：本站部分内容转载自网络'), '站点声明渲染（含前缀）');
   assert.ok(f.includes('admin@cloumail.com'), '联系邮箱渲染');
   assert.ok(f.includes('友情链接：') && f.includes('>雨幕<'), '友情链接渲染');
   const y = String(new Date().getFullYear());
   assert.ok(f.includes('Copyright ©2019-' + y + ' 轻语'), '版权为「起始年-当前年 署名」');
   assert.ok(f.includes('京ICP备12345678号'), '备案号渲染');
+}]);
+
+tests.push(['文章底部「返回首页顶部」按钮存在且指向首页', async () => {
+  const b = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } }, '/posts/hello-qingyu/');
+  assert.ok(b.html.includes('id="homeTopBtn"'), '详情页含返回按钮');
+  assert.ok(b.html.includes('返回首页顶部'), '按钮文案正确');
+  assert.ok(/id="homeTopBtn"[^>]*href="\/"/.test(b.html), 'href 指向首页根路径');
 }]);
 
 tests.push(['导航栏搜索：图标点击展开，实时命中并带摘要', async () => {

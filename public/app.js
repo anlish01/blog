@@ -49,7 +49,8 @@ function svgIcon(name, size) {
     sitemap: '<svg ' + s + ' ' + c + '><rect x="3" y="4" width="7" height="5" rx="1"/><rect x="14" y="4" width="7" height="5" rx="1"/><rect x="9" y="15" width="7" height="5" rx="1"/><path d="M6.5 9v3h11V9M12.5 12v3"/></svg>',
     spinner: '<svg class="spin-icon" ' + s + ' ' + c + '><path d="M12 3a9 9 0 1 0 9 9" /></svg>',
     question: '<svg ' + s + ' ' + c + '><circle cx="12" cy="12" r="9"/><path d="M9.2 9.6a2.8 2.8 0 0 1 5.4 1c0 1.8-2.6 2-2.6 3.6M12 17h.01"/></svg>',
-    doc: '<svg ' + s + ' ' + c + '><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M9.5 12h5M9.5 15h5"/></svg>'
+    doc: '<svg ' + s + ' ' + c + '><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M9.5 12h5M9.5 15h5"/></svg>',
+    top: '<svg ' + s + ' ' + c + '><path d="M12 20V6"/><path d="M6 11.5 12 5.5l6 6"/></svg>'
   };
   return I[name] || '';
 }
@@ -951,6 +952,9 @@ async function renderPost(id) {
   html += '<div class="comment-form"><input type="text" id="commentAuthor" placeholder="昵称"><textarea id="commentContent" rows="2" placeholder="说点什么…"></textarea><div class="comment-submit-row"><button class="btn btn-primary" id="commentSubmit">发表评论</button><span class="c-status" id="commentStatus"></span></div></div>';
   html += '<ul class="comment-list" id="commentList"></ul></div>';
 
+  // 文章底部：返回首页顶部（点击回到首页并滚动至顶部）
+  html += '<div class="home-top-bar"><a class="btn home-top-btn" id="homeTopBtn" href="' + esc(href('/')) + '">' + svgIcon('top', 15) + ' 返回首页顶部</a></div>';
+
   var adCfg = getConfig().ads || {};
   if (adCfg.enabled && adCfg.content) html += '<div class="ad-slot"><span class="ad-label">广告</span>' + adCfg.content + '</div>';
 
@@ -971,6 +975,14 @@ async function renderPost(id) {
   if (copyBtn) copyBtn.addEventListener('click', function () {
     var url = location.origin + appRoot() + postUrl(post.id);
     navigator.clipboard && navigator.clipboard.writeText(url) && (copyBtn.textContent = '✓ 已复制');
+  });
+
+  // 返回首页顶部：SPA 内导航并滚动到顶部（阻止全局链接拦截重复跳转）
+  var homeTopBtn = document.querySelector('#homeTopBtn');
+  if (homeTopBtn) homeTopBtn.addEventListener('click', function (e) {
+    e.preventDefault(); e.stopPropagation();
+    navigate('/');
+    window.scrollTo(0, 0);
   });
 
   // load comments
