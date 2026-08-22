@@ -10,11 +10,19 @@
   <base href="/">
   <script>
     // file:// 本地双击直开时，把资源基准改回当前目录，保持本地预览可用；在线部署保持根路径。
+    // 同时尽早应用主题，避免深色模式用户首屏白闪（FOUC）。
     (function () {
       if (/^file:/i.test(location.protocol)) {
         var b = document.querySelector('base');
         if (b) b.setAttribute('href', './');
       }
+      try {
+        var t = localStorage.getItem('qingyu.theme');
+        if (t !== 'light' && t !== 'dark') {
+          t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
     })();
   </script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23c25e3a'/></svg>">
@@ -23,7 +31,7 @@
     .boot-load {
       position: fixed; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 16px; background: #faf7f2; z-index: 1000;
+      gap: 16px; background: var(--bg, #faf7f2); z-index: 1000;
     }
     .boot-ring {
       width: 36px; height: 36px; position: relative;

@@ -64,12 +64,21 @@ export default {
       return handlePostId(request, env, decodeURIComponent(match[1]));
     }
 
+    // 未知 /api/* 路径：返回 JSON 404，绝不回退到 index.html（避免 API 调用方收到 HTML）
+    if (url.pathname === '/api' || url.pathname.indexOf('/api/') === 0) {
+      return new Response(JSON.stringify({ ok: false, error: 'Not Found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+      });
+    }
+
     // 静态资源（index.html / style.css / app.js / …）
     if (env.ASSETS) {
       const res = await env.ASSETS.fetch(request);
       // SPA 回退：干净路径 / 首页 / 归档 / 关于 / 标签 / /posts/<别名>/ /admin / /write，
       // 以及 /api 以外的任何无扩展名路径，都返回 index.html（由前端 app.js 依据 pathname 渲染）。
-      if (res.status === 404 && !/\.[a-zA-Z0-9]+$/.test(url.pathname)) {
+      // 仅对 GET/HEAD 回退：POST 等非幂等方法拿到 HTML 会误导调用方。
+      if (res.status === 404 && (request.method === 'GET' || request.method === 'HEAD') && !/\.[a-zA-Z0-9]+$/.test(url.pathname)) {
         const idx = await env.ASSETS.fetch(new Request(url.origin + '/', request));
         if (idx.status === 200) return idx;
         return res;

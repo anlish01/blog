@@ -289,10 +289,16 @@ function inlineMd(s) {
   t = t.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
   // 删除线
   t = t.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
-  // 图片
-  t = t.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
-  // 链接
-  t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  // 图片（过滤 javascript:/data: 等危险协议）
+  t = t.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function (m, alt, src) {
+    if (/^\s*(javascript|data|vbscript):/i.test(String(src).trim())) return m;
+    return '<img src="' + src + '" alt="' + alt + '">';
+  });
+  // 链接（过滤 javascript:/data: 等危险协议）
+  t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (m, txt, url) {
+    if (/^\s*(javascript|data|vbscript):/i.test(String(url).trim())) return m;
+    return '<a href="' + url + '">' + txt + '</a>';
+  });
   // 恢复遮罩
   t = t.replace(/\u0001([*_`~\[\]])/g, '$1');
   return t;
@@ -383,7 +389,11 @@ async function apiFetch(url, opts) {
   var session = _sessionToken();
   if (session) headers['Authorization'] = 'Bearer ' + session;
   else if (cfg.writeToken) headers['Authorization'] = 'Bearer ' + cfg.writeToken;
-  headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  // 仅写请求（或显式带 body）才设置 Content-Type：GET 设置它会在跨域时多一次 OPTIONS 预检
+  var method = String((opts && opts.method) || 'GET').toUpperCase();
+  if (method !== 'GET' && method !== 'HEAD' || (opts && opts.body)) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  }
   var res = await fetch(full, Object.assign({}, opts, { headers: headers }));
   if (!res.ok) throw new Error('HTTP ' + res.status);
   return res.json();
@@ -479,11 +489,24 @@ async function tryUnlock(id, password) {
   return false;
 }
 
-/* ---------- 评论（静态模式 localStorage） ---------- */
+/* ---------- 评论 ----------
+ * 云端模式：走 D1 后端（/api/posts/:id/comments，跨用户共享）；
+ * 静态模式：本地 localStorage。
+ */
 function commentKey(id) { return 'qingyu.comments.' + id; }
+function commentApi(id) { return 'api/posts/' + encodeURIComponent(String(id || '')) + '/comments'; }
 
 async function loadComments(postId) {
   var id = String(postId || '');
+  if (_cloudOn()) {
+    // 云端评论实时共享，不命中本地缓存
+    try {
+      var data = await apiFetch(commentApi(id));
+      var arr = (data && Array.isArray(data.comments)) ? data.comments : [];
+      _commentsCache[id] = arr;
+      return arr;
+    } catch (e) { return []; }
+  }
   if (_commentsCache[id]) return _commentsCache[id];
   var raw = '';
   try { raw = localStorage.getItem(commentKey(id)) || ''; } catch (e) {}
@@ -495,14 +518,27 @@ async function loadComments(postId) {
 
 async function saveComment(postId, author, content) {
   var id = String(postId || '');
+  author = String(author || '').trim().slice(0, 30);
+  content = String(content || '').trim().slice(0, 1000);
+  if (!author || !content) return null;
+  if (_cloudOn()) {
+    try {
+      var data = await apiFetch(commentApi(id), {
+        method: 'POST',
+        body: JSON.stringify({ author: author, content: content })
+      });
+      var c = (data && data.comment) || null;
+      if (c) { try { delete _commentsCache[id]; } catch (e) {} }
+      return c;
+    } catch (e) { return null; }
+  }
   var list = await loadComments(id);
   var comment = {
     id: 'c-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    author: String(author || '').trim().slice(0, 30),
-    content: String(content || '').trim().slice(0, 1000),
+    author: author,
+    content: content,
     date: new Date().toISOString().slice(0, 10)
   };
-  if (!comment.author || !comment.content) return null;
   if (list.length >= 300) list.shift();
   list.push(comment);
   _commentsCache[id] = list;
@@ -512,6 +548,14 @@ async function saveComment(postId, author, content) {
 
 async function deleteComment(postId, cid) {
   var id = String(postId || '');
+  if (_cloudOn()) {
+    // 云端删除需管理员会话（apiFetch 自动携带 Bearer token）
+    try {
+      await apiFetch(commentApi(id) + '/' + encodeURIComponent(String(cid || '')), { method: 'DELETE', body: '{}' });
+      try { delete _commentsCache[id]; } catch (e) {}
+      return await loadComments(id);
+    } catch (e) { return _commentsCache[id] || []; }
+  }
   var list = await loadComments(id);
   var next = list.filter(function (c) { return c.id !== cid; });
   _commentsCache[id] = next;
@@ -519,11 +563,23 @@ async function deleteComment(postId, cid) {
   return next;
 }
 
-/* ---------- 统计 ---------- */
+/* ---------- 统计 ----------
+ * 云端模式：走 D1 后端（/api/posts/:id/stats，跨用户共享）；
+ * 静态模式：本地 localStorage。
+ */
 function statKey(id) { return 'qingyu.stats.' + id; }
+function statApi(id) { return 'api/posts/' + encodeURIComponent(String(id || '')) + '/stats'; }
 
 async function loadStats(postId) {
   var id = String(postId || '');
+  if (_cloudOn()) {
+    try {
+      var data = await apiFetch(statApi(id));
+      var s = (data && data.stats) || { views: 0, likes: 0 };
+      _statsCache[id] = s;
+      return s;
+    } catch (e) { return { views: 0, likes: 0 }; }
+  }
   if (_statsCache[id]) return _statsCache[id];
   var s = { views: 0, likes: 0 };
   try {
@@ -535,6 +591,14 @@ async function loadStats(postId) {
 }
 
 async function incView(postId) {
+  if (_cloudOn()) {
+    try {
+      var data = await apiFetch(statApi(postId), { method: 'POST', body: JSON.stringify({ action: 'views' }) });
+      var s = (data && data.stats) || { views: 0, likes: 0 };
+      _statsCache[postId] = s;
+      return s;
+    } catch (e) { return _statsCache[postId] || { views: 0, likes: 0 }; }
+  }
   var s = await loadStats(postId);
   s.views = Math.min(s.views + 1, 9999999);
   _statsCache[postId] = s;
@@ -542,9 +606,29 @@ async function incView(postId) {
   return s;
 }
 
+/** 是否已点过赞（本地记录，防刷） */
+function likedKey(id) { return 'qingyu.liked.' + String(id || ''); }
+function wasLiked(postId) {
+  try { return localStorage.getItem(likedKey(postId)) === '1'; } catch (e) { return false; }
+}
+function markLiked(postId) {
+  try { localStorage.setItem(likedKey(postId), '1'); } catch (e) {}
+}
+
 async function likePost(postId) {
+  if (wasLiked(postId)) return null;   // 已赞，防重复
+  if (_cloudOn()) {
+    try {
+      var data = await apiFetch(statApi(postId), { method: 'POST', body: JSON.stringify({ action: 'like' }) });
+      markLiked(postId);
+      var s = (data && data.stats) || { views: 0, likes: 0 };
+      _statsCache[postId] = s;
+      return s;
+    } catch (e) { return null; }
+  }
   var s = await loadStats(postId);
   s.likes = Math.min(s.likes + 1, 9999999);
+  markLiked(postId);
   _statsCache[postId] = s;
   try { localStorage.setItem(statKey(postId), JSON.stringify(s)); } catch (e) {}
   return s;
@@ -644,6 +728,17 @@ function buildPostsJs() {
   return out;
 }
 
+/** 读取草稿：key='__new' 返回最近一次「保存/发布文章」的条目（总是 push 到最后），
+ *  其余返回指定 id 的条目；找不到返回 null */
+function loadDraftFromStore(key) {
+  try {
+    var arr = JSON.parse(localStorage.getItem('qingyu.drafts') || '[]');
+    if (!Array.isArray(arr)) return null;
+    if (key === '__new') return arr.length ? arr[arr.length - 1] : null;
+    return arr.find(function (d) { return d && d.id === key; }) || null;
+  } catch (e) { return null; }
+}
+
 function saveDraftToStore(key, val) {
   try {
     var keyS = String(key || '');
@@ -713,6 +808,7 @@ function renderNav(active) {
   var cfg = getConfig();
   var navs = cfg.nav.length ? cfg.nav : [
     { text: '首页', url: '/', path: '/' },
+    { text: '标签', url: '/tags', path: '/tags' },
     { text: '归档', url: '/archive', path: '/archive' },
     { text: '关于', url: '/about', path: '/about' }
   ];
@@ -774,7 +870,9 @@ function renderFooter() {
     return '<a href="' + esc(u) + '">' + esc(x.text || '') + '</a>';
   }
   var navHtml = nav.map(l).join('<span class="footer-dot">·</span>');
-  navHtml += '<span class="footer-dot footer-rss">·</span><a class="footer-rss" href="feed.xml">RSS</a>';
+  // RSS：file:// 直开时在同目录，其余用根路径（避免在 /posts/<别名>/ 下相对解析成 404）
+  var rssHref = useHashMode() ? 'feed.xml' : '/feed.xml';
+  navHtml += '<span class="footer-dot footer-rss">·</span><a class="footer-rss" href="' + esc(rssHref) + '">RSS</a>';
   // 电脑端专属区块：自定义文字 / 站点声明 / 联系方式 / 友情链接
   var extra = '';
   if (f.text) extra += '<p class="footer-text">' + esc(f.text) + '</p>';
@@ -956,7 +1054,10 @@ async function renderPost(id) {
   // 点赞：正文尾部，水平居中
   html += '<div class="like-bar"><button class="btn like-btn" id="likeBtn">' + svgIcon('heart', 15) + ' <span id="likeCount">0</span></button></div>';
   // 底部：左标签、右复制链接(+编辑)
-  html += '<div class="article-footer"><div class="af-tags">' + (tags || '') + '</div><div class="af-actions"><button class="btn" id="btnCopyLink">🔗 复制链接</button></div></div>';
+  var afEdit = adminOk()
+    ? '<a class="btn" href="' + esc(href(postUrl(post.id) + 'edit')) + '">' + svgIcon('pen', 13) + ' 编辑</a>'
+    : '';
+  html += '<div class="article-footer"><div class="af-tags">' + (tags || '') + '</div><div class="af-actions">' + afEdit + '<button class="btn" id="btnCopyLink">🔗 复制链接</button></div></div>';
 
   // prev / next
   var sorted = posts.slice().sort(sortPosts);
@@ -986,9 +1087,21 @@ async function renderPost(id) {
     var v = document.querySelector('#viewCount'); if (v) v.textContent = String(s.views);
     var l = document.querySelector('#likeCount'); if (l) l.textContent = String(s.likes);
   });
-  incView(post.id);
+  incView(post.id).then(function (s) {
+    var v = document.querySelector('#viewCount'); if (v && s) v.textContent = String(s.views);
+  });
   var likeBtn = document.querySelector('#likeBtn');
-  if (likeBtn) likeBtn.addEventListener('click', function () { likePost(post.id).then(function (s) { var l = document.querySelector('#likeCount'); if (l) l.textContent = String(s.likes); }); });
+  if (likeBtn) {
+    if (wasLiked(post.id)) { likeBtn.classList.add('liked'); likeBtn.disabled = true; }
+    likeBtn.addEventListener('click', function () {
+      likePost(post.id).then(function (s) {
+        var l = document.querySelector('#likeCount');
+        if (s && l) l.textContent = String(s.likes);
+        likeBtn.classList.add('liked');
+        likeBtn.disabled = true;
+      });
+    });
+  }
 
   var copyBtn = document.querySelector('#btnCopyLink');
   if (copyBtn) copyBtn.addEventListener('click', function () {
@@ -1002,9 +1115,10 @@ async function renderPost(id) {
     var cnt = document.querySelector('#commentCount');
     if (cnt) cnt.textContent = String(list.length);
     if (!ul) return;
+    var canDel = !_cloudOn() || adminOk();
     if (!list.length) { ul.innerHTML = '<li class="comment-empty">暂无评论</li>'; return; }
     ul.innerHTML = list.map(function (c) {
-      return '<li class="comment"><div class="comment-head"><span class="comment-author">' + esc(c.author) + '</span><span class="comment-date">' + esc(c.date || '') + '</span><button class="comment-del" data-cid="' + esc(c.id) + '">删除</button></div><div class="comment-content">' + esc(c.content) + '</div></li>';
+      return '<li class="comment"><div class="comment-head"><span class="comment-author">' + esc(c.author) + '</span><span class="comment-date">' + esc(c.date || '') + '</span>' + (canDel ? '<button class="comment-del" data-cid="' + esc(c.id) + '">删除</button>' : '') + '</div><div class="comment-content">' + esc(c.content) + '</div></li>';
     }).join('');
     ul.querySelectorAll('.comment-del').forEach(function (b) {
       b.addEventListener('click', function () { deleteComment(post.id, b.getAttribute('data-cid')).then(renderCommentsList); });
@@ -1029,9 +1143,10 @@ async function renderPost(id) {
     var cnt = document.querySelector('#commentCount');
     if (cnt) cnt.textContent = String(list.length);
     if (!ul) return;
+    var canDel = !_cloudOn() || adminOk();
     if (!list.length) { ul.innerHTML = '<li class="comment-empty">暂无评论</li>'; return; }
     ul.innerHTML = list.map(function (c) {
-      return '<li class="comment"><div class="comment-head"><span class="comment-author">' + esc(c.author) + '</span><span class="comment-date">' + esc(c.date || '') + '</span><button class="comment-del" data-cid="' + esc(c.id) + '">删除</button></div><div class="comment-content">' + esc(c.content) + '</div></li>';
+      return '<li class="comment"><div class="comment-head"><span class="comment-author">' + esc(c.author) + '</span><span class="comment-date">' + esc(c.date || '') + '</span>' + (canDel ? '<button class="comment-del" data-cid="' + esc(c.id) + '">删除</button>' : '') + '</div><div class="comment-content">' + esc(c.content) + '</div></li>';
     }).join('');
     ul.querySelectorAll('.comment-del').forEach(function (b) {
       b.addEventListener('click', function () { deleteComment(post.id, b.getAttribute('data-cid')).then(renderCommentsList); });
@@ -1082,7 +1197,7 @@ function renderAbout() {
   var html = renderNav(currentRoute().path);
   html += '<main class="container page-fade"><h2 class="page-title">关于</h2><div class="about-card card"><h3>轻语博客</h3><p>一个零依赖、双击即开的轻量博客。</p>';
   html += '<div class="stat-grid"><div class="stat"><b>' + posts.length + '</b><span>篇内容</span></div><div class="stat"><b>' + Object.keys(tags).length + '</b><span>个标签</span></div><div class="stat"><b>' + totalWords + '</b><span>总字数</span></div><div class="stat"><b>' + esc(latest || '-') + '</b><span>最新更新</span></div></div>';
-  html += '<h3>版本</h3><p>v' + esc(BLOG_VERSION) + '</p><h3>数据模式</h3><p>' + (cfg.mode === 'api' ? '云端模式' : '静态模式') + '</p><h3>首次使用</h3><p>双击 index.html 即可开始。</p>';
+  html += '<h3>版本</h3><p>v' + esc(BLOG_VERSION) + '</p><h3>数据模式</h3><p>' + (_cloudOn() ? '云端模式' : '静态模式') + '</p><h3>首次使用</h3><p>双击 index.html 即可开始。</p>';
   html += '</div></main>' + renderFooter();
   return html;
 }
@@ -1105,7 +1220,7 @@ function renderTags() {
 /* ---------- 管理后台辅助函数 ---------- */
 function adminRoute() {
   var path = currentRoute().path;
-  if (path === '/admin' || path === '/admin/write') return 'write';
+  if (path === '/write' || path === '/admin' || path === '/admin/write') return 'write';
   if (path === '/admin/posts') return 'posts';
   if (/^\/admin\/posts\/[^\/]+\/edit$/.test(path)) return 'edit';
   return 'write';
@@ -1766,8 +1881,8 @@ function renderAdmin() {
     });
   }
 
-  // 加载编辑数据
-  var editId = currentEditId();
+  // 加载编辑数据（/admin/posts/:id/edit 路由下 currentEditId() 解析不到，需用 getEditIdFromRoute 兜底）
+  var editId = currentEditId() || getEditIdFromRoute();
   if (editId) {
     var post = getStaticPosts().find(function (p) { return p.id === editId; });
     if (post) {
@@ -1825,7 +1940,13 @@ function collectEditor() {
   var protectPwd = document.querySelector('#protectPwdInput');
   // 日期：datetime-local 值形如 "2025-01-01T08:30"；存库统一 "YYYY-MM-DD HH:mm"
   var dv = String((date && date.value) || '').replace('T', ' ');
-  if (!dv) dv = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  if (!dv) {
+    // 未填写时用本地时间（toISOString 是 UTC，东八区凌晨会错到前一天）
+    var now = new Date();
+    var pad2 = function (n) { return String(n).padStart(2, '0'); };
+    dv = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()) + ' '
+      + pad2(now.getHours()) + ':' + pad2(now.getMinutes());
+  }
   return {
     title: title.value || '未命名',
     date: dv,
@@ -2014,7 +2135,7 @@ async function route() {
       await renderPost(id);
     }
   }
-  else if (path === '/admin' || path === '/admin/write' || path === '/admin/posts' || /^\/admin\/posts\/[^\/]+\/edit$/.test(path)) { renderAdmin(); }
+  else if (path === '/write' || path === '/admin' || path === '/admin/write' || path === '/admin/posts' || /^\/admin\/posts\/[^\/]+\/edit$/.test(path)) { renderAdmin(); }
   else if (path === '/archive') { app().innerHTML = renderArchive(); }
   else if (path === '/about') { app().innerHTML = renderAbout(); }
   else if (path === '/tags') { app().innerHTML = renderTags(); }
@@ -2200,7 +2321,18 @@ window.__bootPromise = (async function () {
           var existing = (Array.isArray(window.BLOG_POSTS) ? window.BLOG_POSTS : []);
           var byId = {};
           existing.forEach(function (p) { byId[p.id] = p; });
-          data.posts.forEach(function (p) { byId[p.id] = p; });
+          data.posts.forEach(function (p) {
+            var old = byId[p.id];
+            if (old) {
+              // 云端列表是摘要（不含 content/enc）：仅覆盖已返回字段，保留静态正文与摘要，
+              // 避免首页卡片摘要被清空、全文搜索失效
+              var merged = {};
+              Object.keys(p).forEach(function (k) { if (p[k] !== undefined) merged[k] = p[k]; });
+              byId[p.id] = Object.assign({}, old, merged);
+            } else {
+              byId[p.id] = p;
+            }
+          });
           window.BLOG_POSTS = Object.keys(byId).map(function (k) { return byId[k]; });
         }
       }
