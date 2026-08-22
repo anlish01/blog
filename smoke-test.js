@@ -320,6 +320,7 @@ tests.push(['stripMd 生成纯文本摘要', async () => {
  * prepare(sql).bind(...params) → { all / first / run }，与真实 D1 绑定同构。
  */
 function makeD1() {
+  let seq = 0;   // 模拟 SQLite rowid（单调递增，保证插入顺序稳定）
   const t = {
     posts: new Map(), comments: new Map(), stats: new Map(),
     admin_auth: new Map(), admin_sessions: new Map(), admin_fails: new Map()
@@ -338,9 +339,9 @@ function makeD1() {
     }
     if (s === 'DELETE FROM posts WHERE id = ?') { t.posts.delete(params[0]); return { success: true }; }
     /* comments */
-    if (s === 'SELECT * FROM comments WHERE post_id = ? ORDER BY date ASC, id ASC') {
+    if (s === 'SELECT * FROM comments WHERE post_id = ? ORDER BY rowid ASC') {
       return [...t.comments.values()].filter((r) => r.post_id === params[0])
-        .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.id < b.id ? -1 : 1)));
+        .sort((a, b) => (a.__rowid || 0) - (b.__rowid || 0));
     }
     if (s === 'SELECT COUNT(*) AS c FROM comments WHERE post_id = ?') {
       let c = 0; for (const r of t.comments.values()) if (r.post_id === params[0]) c++;
@@ -348,7 +349,7 @@ function makeD1() {
     }
     if (/^INSERT INTO comments/.test(s)) {
       const [id, post_id, author, content, date] = params;
-      t.comments.set(id, { id, post_id, author, content, date }); return { success: true };
+      t.comments.set(id, { id, post_id, author, content, date, __rowid: ++seq }); return { success: true };
     }
     if (s === 'SELECT 1 FROM comments WHERE post_id = ? AND id = ?') {
       const r = t.comments.get(params[1]);

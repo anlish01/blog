@@ -246,7 +246,8 @@ export async function handleComments(request, env, postId) {
   const method = request.method.toUpperCase();
 
   if (method === 'GET') {
-    const list = await dbAll(env.DB, 'SELECT * FROM comments WHERE post_id = ? ORDER BY date ASC, id ASC', postId);
+    // 按写入顺序返回（rowid 单调递增），与旧版 KV 行为一致
+    const list = await dbAll(env.DB, 'SELECT * FROM comments WHERE post_id = ? ORDER BY rowid ASC', postId);
     return json({ ok: true, postId, comments: list });
   }
 

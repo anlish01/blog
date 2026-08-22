@@ -52,7 +52,9 @@ function svgIcon(name, size) {
     spinner: '<svg class="spin-icon" ' + s + ' ' + c + '><path d="M12 3a9 9 0 1 0 9 9" /></svg>',
     question: '<svg ' + s + ' ' + c + '><circle cx="12" cy="12" r="9"/><path d="M9.2 9.6a2.8 2.8 0 0 1 5.4 1c0 1.8-2.6 2-2.6 3.6M12 17h.01"/></svg>',
     doc: '<svg ' + s + ' ' + c + '><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M9.5 12h5M9.5 15h5"/></svg>',
-    top: '<svg ' + s + ' ' + c + '><path d="M12 20V6"/><path d="M6 11.5 12 5.5l6 6"/></svg>'
+    top: '<svg ' + s + ' ' + c + '><path d="M12 20V6"/><path d="M6 11.5 12 5.5l6 6"/></svg>',
+    pen: '<svg ' + s + ' ' + c + '><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+    logout: '<svg ' + s + ' ' + c + '><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>'
   };
   return I[name] || '';
 }
@@ -1104,12 +1106,34 @@ function renderWrite() {
   html += '<main class="container page-fade">';
   if (!adminOk()) {
     if (_cloudOn()) {
-      // 云端模式：密码在 Cloudflare KV，此页只做登录（token 已存则直接进入编辑）
-      html += '<div class="card gate-card"><div class="big">' + svgIcon('lock', 26) + '</div><h3>管理员登录</h3><p>请输入管理员密码以继续写作（密码校验于 Cloudflare D1 后端，仅比对哈希、不回传）</p><div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码"><button class="btn btn-primary" id="btnGate">登录</button></div><div class="gate-msg" id="gateMsg"></div><p class="gate-back"><a href="' + esc(href('/')) + '">返回首页</a></p><p class="gate-hint">提示：首次部署请先按 README 用 /api/admin/setup 设置密码。</p></div>';
+      // 云端模式：密码校验于 Cloudflare D1 后端，此页只做登录（token 已存则直接进入编辑）
+      html += '<div class="card gate-card">'
+        + '<div class="gate-badge">' + svgIcon('lock', 26) + '</div>'
+        + '<h3 class="gate-title">管理员登录</h3>'
+        + '<p class="gate-sub">输入管理员密码以继续写作<br>密码校验于 Cloudflare D1 后端，仅比对哈希、不回传</p>'
+        + '<div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码" autocomplete="current-password"><button class="btn btn-primary" id="btnGate">' + svgIcon('logout', 15) + ' 登 录</button></div>'
+        + '<div class="gate-msg alert-strip" id="gateMsg"></div>'
+        + '<div class="gate-foot"><a href="' + esc(href('/')) + '">← 返回首页</a></div>'
+        + '<p class="gate-hint">提示：首次部署请先按 README 用 <code>/api/admin/setup</code> 设置密码。</p>'
+        + '</div>';
     } else if (needAdminSetup()) {
-      html += '<div class="card gate-card"><div class="big">🔐</div><h3>设置管理密码</h3><p>首次使用请设置一个至少 4 位的管理密码</p><div class="gate-form"><input type="password" id="setupPwd" placeholder="管理密码"><button class="btn btn-primary" id="btnSetup">设置</button></div><div class="gate-msg" id="gateMsg"></div></div>';
+      html += '<div class="card gate-card">'
+        + '<div class="gate-badge">' + svgIcon('lock', 26) + '</div>'
+        + '<h3 class="gate-title">设置管理密码</h3>'
+        + '<p class="gate-sub">首次使用请设置一个至少 4 位的管理密码<br>仅保存在本机浏览器，不上传服务器</p>'
+        + '<div class="gate-form"><input type="password" id="setupPwd" placeholder="管理密码" autocomplete="new-password"><button class="btn btn-primary" id="btnSetup">设置并进入</button></div>'
+        + '<div class="gate-msg alert-strip" id="gateMsg"></div>'
+        + '</div>';
     } else {
-      html += '<div class="card gate-card"><div class="big">' + svgIcon('lock', 26) + '</div><h3>管理员验证</h3><p>请输入管理密码以继续写作</p><div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码"><button class="btn btn-primary" id="btnGate">进入</button></div><div class="gate-msg" id="gateMsg"></div><p class="gate-back"><a href="' + esc(href('/')) + '">返回首页</a></p><p class="gate-hint">提示：可在 public/config.js 配置 adminPwd，或点击「退出」清除本地密码。<br>验证通过后会有一段时间保持登录状态，可随时退出。</p></div>';
+      html += '<div class="card gate-card">'
+        + '<div class="gate-badge">' + svgIcon('lock', 26) + '</div>'
+        + '<h3 class="gate-title">管理员验证</h3>'
+        + '<p class="gate-sub">请输入管理密码以继续写作<br>验证通过后会保持登录状态，可随时退出</p>'
+        + '<div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码" autocomplete="current-password"><button class="btn btn-primary" id="btnGate">进 入</button></div>'
+        + '<div class="gate-msg alert-strip" id="gateMsg"></div>'
+        + '<div class="gate-foot"><a href="' + esc(href('/')) + '">← 返回首页</a></div>'
+        + '<p class="gate-hint">提示：可在 <code>public/config.js</code> 配置 adminPwd。</p>'
+        + '</div>';
     }
     html += '</main>' + renderFooter();
     app().innerHTML = html;
@@ -1125,22 +1149,74 @@ function renderWrite() {
     if (btnGate) btnGate.addEventListener('click', function () {
       var inp = document.querySelector('#gatePwd');
       var msg = document.querySelector('#gateMsg');
-      if (!inp) return;
+      if (!inp || !inp.value) { if (msg) msg.textContent = '请输入密码'; return; }
       if (_cloudOn()) {
+        // 加载态：防重复提交，spinner 反馈
+        var orig = btnGate.innerHTML;
+        btnGate.disabled = true;
+        btnGate.innerHTML = svgIcon('spinner', 14) + ' 登录中…';
         cloudLogin(inp.value).then(function (r) {
+          btnGate.disabled = false;
+          btnGate.innerHTML = orig;
           if (r.ok) { route(); }
-          else if (msg) msg.textContent = r.message || '密码错误';
+          else {
+            if (msg) msg.textContent = r.message || '密码错误';
+            try { inp.focus(); inp.select(); } catch (e2) {}
+          }
         });
       } else if (tryAdmin(inp.value)) { route(); }
       else if (msg) msg.textContent = '密码错误';
+    });
+    // 回车即提交 + 自动聚焦密码框
+    [['#setupPwd', '#btnSetup'], ['#gatePwd', '#btnGate']].forEach(function (pair) {
+      var inp = document.querySelector(pair[0]);
+      var btn = document.querySelector(pair[1]);
+      if (inp && btn) {
+        inp.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter') { ev.preventDefault(); btn.click(); }
+        });
+        try { inp.focus(); } catch (e) {}
+      }
     });
     return;
   }
   var _editId = currentEditId();
   var _editPost = _editId ? getStaticPosts().find(function (p) { return p.id === _editId; }) : null;
-  html += '<div class="card editor-meta"><div id="writeTitleHint" class="pane-title">' + (_editPost ? esc('正在编辑：' + (_editPost.title || '')) : '') + '</div><div class="editor-grid"><div class="field"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div><div class="field"><label>日期（可精确到时间）</label><input type="datetime-local" id="dateInput"></div><div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div><div class="field"><label>摘要（可选）</label><input type="text" id="excerptInput" placeholder="不填则自动截取"></div><div class="field check-label"><label><input type="checkbox" id="pinnedInput"> 置顶</label></div><div class="field check-label" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" placeholder="文章访问密码（勾选加密后设置）" style="display:none;width:220px;margin-left:8px"></div></div></div>';
-  html += '<div class="editor-wrap"><div class="editor-area"><div class="pane-title">编辑</div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" rows="18" placeholder="用 Markdown 写作…"></textarea></div><div class="preview-pane"><div class="pane-title">预览</div><div class="write-preview article" id="previewPane"></div></div></div>';
-  html += '<div class="editor-actions">' + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">' + svgIcon('cloud', 15) + ' 发布到云端</button>' : '') + '<button class="btn btn-primary" id="btnSave">' + svgIcon('save', 15) + ' 保存文章</button><button class="btn" id="btnOpenMdEditor">' + svgIcon('external', 15) + ' 官方编辑器</button><button class="btn" id="btnExport">' + svgIcon('download', 15) + ' 导出 posts.js</button><button class="btn" id="btnSaveDraft">' + svgIcon('upload', 15) + ' 存草稿</button><button class="btn" id="btnImport">' + svgIcon('file', 15) + ' 导入 .md</button><input type="file" id="mdFileInput" accept=".md,.markdown" hidden><button class="btn" id="btnRss">' + svgIcon('rss', 15) + ' RSS</button><button class="btn" id="btnSitemap">' + svgIcon('sitemap', 15) + ' Sitemap</button><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span><button class="btn btn-ghost" id="btnLogout">' + svgIcon('external', 15) + ' 退出登录</button></div>';
+  // 顶栏：页面标题 + 模式徽章 + 编辑状态，层次一目了然
+  html += '<div class="write-head">'
+    + '<h2 class="page-title wh-title">' + svgIcon('pen', 20) + ' 写作台</h2>'
+    + (_cloudOn()
+        ? '<span class="mode-chip cloud">' + svgIcon('cloud', 12) + ' 云端模式</span>'
+        : '<span class="mode-chip local">' + svgIcon('file', 12) + ' 本地模式</span>')
+    + (_editId ? '<span class="mode-chip editing" id="writeTitleHint">' + (_editPost ? esc('编辑：' + (_editPost.title || '')) : '新文章') + '</span>' : '')
+    + '</div>';
+  html += '<div class="card editor-meta"><div class="editor-grid">'
+    + '<div class="field field-full"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div>'
+    + '<div class="field"><label>日期（可精确到时间）</label><input type="datetime-local" id="dateInput"></div>'
+    + '<div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div>'
+    + '<div class="field field-full"><label>摘要（可选，不填则自动截取）</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
+    + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' 置顶</label></div>'
+    + '<div class="field check-label" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" placeholder="文章访问密码（勾选加密后设置）" style="display:none;width:220px;margin-left:8px"></div>'
+    + '</div></div>';
+  html += '<div class="editor-wrap">'
+    + '<section class="editor-pane"><div class="pane-head">' + svgIcon('pen', 13) + ' 编辑<span class="pane-note">Markdown</span></div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" class="md-input" rows="18" placeholder="用 Markdown 写作…"></textarea></section>'
+    + '<section class="editor-pane preview-pane"><div class="pane-head">' + svgIcon('eye', 13) + ' 预览<span class="pane-note">实时渲染</span></div><div class="write-preview article preview-body" id="previewPane"></div></section>'
+    + '</div>';
+  html += '<div class="editor-actions actions-bar">'
+    + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">' + svgIcon('cloud', 15) + ' 发布到云端</button>' : '')
+    + '<button class="btn btn-primary" id="btnSave">' + svgIcon('save', 15) + ' 保存文章</button>'
+    + '<span class="action-sep"></span>'
+    + '<button class="btn" id="btnSaveDraft">' + svgIcon('upload', 15) + ' 存草稿</button>'
+    + '<button class="btn" id="btnImport">' + svgIcon('file', 15) + ' 导入 .md</button>'
+    + '<input type="file" id="mdFileInput" accept=".md,.markdown" hidden>'
+    + '<button class="btn" id="btnOpenMdEditor">' + svgIcon('external', 15) + ' 官方编辑器</button>'
+    + '<span class="action-sep"></span>'
+    + '<button class="btn" id="btnExport">' + svgIcon('download', 15) + ' 导出 posts.js</button>'
+    + '<button class="btn" id="btnRss">' + svgIcon('rss', 15) + ' RSS</button>'
+    + '<button class="btn" id="btnSitemap">' + svgIcon('sitemap', 15) + ' Sitemap</button>'
+    + '<span class="actions-right"><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span>'
+    + '<button class="btn btn-ghost btn-logout" id="btnLogout">' + svgIcon('logout', 15) + ' 退出登录</button></span>'
+    + '</div>';
   html += '<p class="keys-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> 存草稿 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 保存文章</p>';
   html += '<h3 class="draft-hint"><b>一键导出：</b>保存文章 / RSS / Sitemap 会打开系统保存对话框，选中原文件即可原地覆盖发布。</h3>';
   html += '</main>' + renderFooter();
