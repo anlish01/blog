@@ -963,7 +963,7 @@ tests.push(['云端登录：/api/admin/login 换取 token、写操作携带 Auth
   const b = await boot({ 'window.BLOG_CONFIG': { mode: 'api', adminPwd: '' }, fetch: fetchStub });
   // 云模式：无 token 时写作页显示「管理员登录」而非本地设密码
   const w = await boot({ 'window.BLOG_CONFIG': { mode: 'api', adminPwd: '' }, fetch: fetchStub }, '/write');
-  assert.ok(w.html.includes('管理员登录') && w.html.includes('密码存储于 Cloudflare KV'), '云端写作页为登录框');
+  assert.ok(w.html.includes('管理员登录') && w.html.includes('Cloudflare D1'), '云端写作页为登录框');
   // 登录:正确密码
   const r = await b.ctx.cloudLogin('admin-pass-1');
   assert.strictEqual(r.ok, true, '登录成功');
