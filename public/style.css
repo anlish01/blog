@@ -445,7 +445,7 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
 #listContainer { display: flex; flex-direction: column; gap: 18px; }
 
 /* ---------- 翻页器（直角，与文章卡片风格一致） ---------- */
-.pager { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 26px; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 26px; margin-bottom: 32px; }
 .pager-btn {
   display: inline-flex; align-items: center; justify-content: center;
   padding: 8px 20px; border: 1px solid var(--border); background: var(--card);
@@ -710,46 +710,34 @@ footer { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--
   gap: 8px;
   padding: 14px 20px 18px;
 }
-/* 页脚常见导航快捷行 */
-.footer-common {
+/* 页脚导航行（电脑端含 RSS；移动端隐藏 RSS 与下方声明区块） */
+.footer-nav {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 4px 14px;
-  font-size: 13px;
-  font-weight: 600;
+  gap: 4px 0;
+  font-size: 13.5px;
 }
-.footer-common a { color: var(--muted); transition: color 0.15s ease; }
-.footer-common a:hover { color: var(--accent); text-decoration: none; }
-.footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 4px 14px;
-  font-size: 13px;
-}
-.footer-links a { color: var(--muted); transition: color 0.15s ease; }
-.footer-links a:hover { color: var(--accent); text-decoration: none; }
-.footer-dot { color: var(--border); }
-.footer-info {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 4px 14px;
-  font-size: 12px;
-  color: var(--muted);
-  opacity: 0.88;
-  margin-top: 2px;
-}
-.footer-copy { color: var(--muted); }
-.footer-icp { color: var(--muted); }
+.footer-nav a { color: var(--muted); text-decoration: none; transition: color 0.15s ease; padding: 2px 8px; }
+.footer-nav a:hover { color: var(--accent); }
+.footer-dot { color: var(--border); margin: 0 2px; }
+.footer-rss { color: var(--accent); }
+/* 电脑端专属：站点声明 / 联系方式 / 友情链接 */
+.footer-extra { margin-top: 14px; font-size: 12.5px; color: var(--muted); line-height: 1.9; text-align: center; }
+.footer-extra p { margin: 0; }
+.footer-decl { max-width: 760px; margin-left: auto; margin-right: auto; }
+.footer-contact a, .footer-friends a { color: var(--accent); }
+.footer-copy { margin-top: 14px; font-size: 12.5px; color: var(--muted); text-align: center; }
+.footer-icp { margin-left: 6px; }
 .footer-icp:hover { color: var(--accent); }
-.footer-text {
-  margin: 0;
-  font-size: 12px;
+
+/* 移动端：仅保留导航行与版权行，隐藏声明/联系方式/友链/RSS/备案 */
+@media (max-width: 640px) {
+  .footer-extra { display: none; }
+  .footer-rss { display: none; }
+  .footer-icp { display: none; }
+}
   color: var(--muted);
   opacity: 0.85;
 }

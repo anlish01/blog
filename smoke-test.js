@@ -151,7 +151,7 @@ tests.push(['首页（静态模式）：导航在、搜索框在标题右侧、�
   assert.ok(!/文章/.test(chrome.replace(/placeholder="搜索文章…"/g, '')), '首页框架（标题/说明/页脚）除搜索占位外无「文章」字样');
   assert.ok(html.includes('homeSearchInput') && html.includes('home-search'), '首页搜索框在「最新发布」右侧');
   assert.ok(html.includes('home-tags') && html.includes('分类'), '首页标签分类栏在标题下方');
-  assert.ok(html.includes('footer-inner') && html.includes('footer-links'), '页脚结构');
+  assert.ok(html.includes('footer-inner') && html.includes('footer-nav') && html.includes('footer-copy'), '页脚结构（导航行 + 版权行）');
   assert.ok(!html.includes('💾 本地') && !html.includes('📡 在线'), '页脚无本地/在线标识');
   assert.ok(html.includes('/posts/hello-qingyu/'), '首页卡片用 /posts/<别名>/ 链接');
   assert.ok(html.includes('href="/"') || html.includes('href="#">'), '首页链接指向根');
@@ -183,6 +183,7 @@ tests.push(['首页分页：pageSize 控量 + 上一页/下一页 + 翻页切换
   let html = ctx.document.querySelector('#app').innerHTML;
   assert.ok(html.includes('class="pager"'), '出现翻页器');
   assert.ok(html.includes('下一页'), '有「下一页」');
+  assert.ok(!html.includes('上一页'), '第 1 页仅显示「下一页」（无上一页）');
   assert.ok((html.match(/post-card/g) || []).length === 3, '第 1 页显示 3 篇');
   const idsOf = (h) => (h.match(/posts\/(pg\d+)\//g) || []);
   const p1 = idsOf(html);
@@ -193,12 +194,14 @@ tests.push(['首页分页：pageSize 控量 + 上一页/下一页 + 翻页切换
   html = ctx.document.querySelector('#app').innerHTML;
   assert.ok((html.match(/post-card/g) || []).length === 3, '第 2 页显示 3 篇');
   assert.ok(idsOf(html).join() !== p1.join(), '第 2 页文章与第 1 页不同');
+  assert.ok(html.includes('上一页') && html.includes('下一页'), '中间页同时显示上/下一页');
   // 第 3 页（剩余 1 篇）
   ctx.location.search = '?page=3';
   await ctx.route();
   html = ctx.document.querySelector('#app').innerHTML;
   assert.ok((html.match(/post-card/g) || []).length === 1, '第 3 页显示 1 篇');
-  assert.ok(html.includes('上一页') && html.includes('下一页'), '第 3 页仍显示翻页按钮');
+  assert.ok(html.includes('上一页'), '末页显示「上一页」');
+  assert.ok(!html.includes('下一页'), '末页仅显示「上一页」（无下一页）');
   // pageSize=0 → 不分页，全部显示且无翻页器
   const { ctx: c2 } = await boot({ 'window.BLOG_CONFIG': { mode: 'static', pageSize: 0 } });
   c2.window.BLOG_POSTS = many;
@@ -948,7 +951,27 @@ tests.push(['页脚：可配置友链与文字，无「本地」字样、贴底�
   assert.ok(b.html.includes('>友情链接<') && b.html.includes('https://friend.example'), '友链渲染');
   assert.ok(b.html.includes('/archive') && b.html.includes('Made with ♥'), '站内链接与自定义文字');
   assert.ok(!/本地|在线/.test(b.html.slice(b.html.indexOf('<footer>'))), '页脚无本地/在线字样');
-  assert.ok(b.html.includes('footer-links') && b.html.includes('>RSS<'), '页脚链接行含 RSS');
+  assert.ok(b.html.includes('footer-nav') && b.html.includes('>RSS<'), '页脚导航行含 RSS');
+}]);
+
+tests.push(['页脚新版式：导航行含写作后台+RSS，声明/邮箱/友链/版权区间正确', async () => {
+  const b = await boot({ 'window.BLOG_CONFIG': { mode: 'static', footer: {
+    decl: '本站部分内容转载自网络，作品版权归原作者及来源网站所有。',
+    email: 'admin@cloumail.com',
+    icp: '京ICP备12345678号',
+    links: [{ text: '雨幕', url: 'https://rain.example' }],
+    startYear: 2019,
+    copyrightName: '轻语'
+  } } });
+  const f = b.html.slice(b.html.indexOf('<footer>'));
+  ['首页', '标签', '归档', '关于', '写作后台'].forEach((t) => assert.ok(f.includes('>' + t + '<'), '页脚导航含「' + t + '」'));
+  assert.ok(f.includes('>RSS<'), '电脑端导航行含 RSS');
+  assert.ok(f.includes('footer-extra') && f.includes('本站部分内容转载自网络'), '站点声明渲染');
+  assert.ok(f.includes('admin@cloumail.com'), '联系邮箱渲染');
+  assert.ok(f.includes('友情链接：') && f.includes('>雨幕<'), '友情链接渲染');
+  const y = String(new Date().getFullYear());
+  assert.ok(f.includes('Copyright ©2019-' + y + ' 轻语'), '版权为「起始年-当前年 署名」');
+  assert.ok(f.includes('京ICP备12345678号'), '备案号渲染');
 }]);
 
 tests.push(['导航栏搜索：图标点击展开，实时命中并带摘要', async () => {

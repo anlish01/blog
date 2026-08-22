@@ -69,9 +69,9 @@ window.BLOG_CONFIG = {
     // ]}
   ],
 
-  /* 页脚（可选）：text 为自定义说明文字；links 为友情链接等（不再显示「本地/云端」标识）。
-   *   icp：备案号（如 '沪ICP备12345678号'），会在页脚显示并链接到工信部备案查询。
-   *   contact：联系方式一组（邮箱 / GitHub 等），显示在 RSS 后方。 */
+  /* 页脚（可选）：links 为友情链接（电脑端显示「友情链接：…」）；icp 为备案号。
+   *   decl：站点声明（电脑端显示）；email：侵权/举报联系邮箱（电脑端显示）。
+   *   startYear：版权起始年（固定）；copyrightName：版权署名。版权为「©起始年-当前年 署名」。 */
   footer: {
     text: '',
     icp: '',
@@ -80,8 +80,12 @@ window.BLOG_CONFIG = {
       // { text: '邮箱', url: 'mailto:you@example.com' }
     ],
     links: [
-      // { text: '友情链接', url: 'https://example.com' }
-    ]
+      // { text: '雨幕', url: 'https://example.com' }
+    ],
+    decl: '本站部分内容转载自网络，作品版权归原作者及来源网站所有，任何内容转载、商业用途等均须联系原作者并注明来源。',
+    email: 'admin@cloumail.com',
+    startYear: 2019,
+    copyrightName: '轻语'
   },
 
   ads: {

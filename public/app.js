@@ -735,34 +735,41 @@ function renderNav(active) {
 function renderFooter() {
   var cfg = getConfig();
   var f = cfg.footer || {};
-  var links = f.links || [];
   var year = new Date().getFullYear();
-  var site = cfg.title || '轻语博客';
-  // 常见信息：主导航快捷链接
-  var common = [
+  var startYear = Number(f.startYear) || 2019;
+  var copyRange = (startYear && startYear < year) ? (startYear + '-' + year) : ('' + year);
+  var site = f.copyrightName || cfg.title || '轻语博客';
+  // 页脚导航行（含写作后台；RSS 仅在电脑端显示，移动端隐藏）
+  var nav = [
     { text: '首页', url: '/' },
     { text: '标签', url: '/tags' },
     { text: '归档', url: '/archive' },
-    { text: '关于', url: '/about' }
+    { text: '关于', url: '/about' },
+    { text: '写作后台', url: '/admin' }
   ];
-  if (adminOk()) common.push({ text: '写作后台', url: '/admin' });
   function l(x) {
     var u = x.url || '/';
     if (/^#\//.test(u)) u = href(u.slice(1));
     else if (/^\//.test(u)) u = href(u);
     return '<a href="' + esc(u) + '">' + esc(x.text || '') + '</a>';
   }
-  var commonHtml = common.map(l).join('<span class="footer-dot">·</span>');
-  // 版权与站点信息
-  var infoHtml = '<span class="footer-copy">© ' + year + ' · ' + esc(site) + '</span>';
-  if (f.icp) infoHtml += '<span class="footer-dot">·</span><a class="footer-icp" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">' + esc(f.icp) + '</a>';
-  if (f.text) infoHtml += '<span class="footer-dot">·</span><span class="footer-text">' + esc(f.text) + '</span>';
-  // 联系方式 / 社交
-  var contacts = (f.contact || []).map(l).join('<span class="footer-dot">·</span>');
-  var chain = ['<a href="feed.xml">RSS</a>'];
-  if (contacts) chain.push(contacts);
-  if (links.length) chain.push(links.map(l).join('<span class="footer-dot">·</span>'));
-  return '<footer><div class="container footer-inner"><div class="footer-common">' + commonHtml + '</div>' + (chain.length ? '<div class="footer-links">' + chain.join('<span class="footer-dot">·</span>') + '</div>' : '') + '<div class="footer-info">' + infoHtml + '</div></div></footer>';
+  var navHtml = nav.map(l).join('<span class="footer-dot">·</span>');
+  navHtml += '<span class="footer-dot footer-rss">·</span><a class="footer-rss" href="feed.xml">RSS</a>';
+  // 电脑端专属区块：自定义文字 / 站点声明 / 联系方式 / 友情链接
+  var extra = '';
+  if (f.text) extra += '<p class="footer-text">' + esc(f.text) + '</p>';
+  if (f.decl) extra += '<p class="footer-decl">' + esc(f.decl) + '</p>';
+  if (f.email) extra += '<p class="footer-contact">相关侵权、举报、投诉及建议等，请发邮件至 E-mail：<a href="mailto:' + esc(f.email) + '">' + esc(f.email) + '</a></p>';
+  var friends = (f.links || []).map(l).join('');
+  if (friends) extra += '<p class="footer-friends">友情链接：' + friends + '</p>';
+  // 版权行（移动端仅显示此行，备案号在移动端隐藏）
+  var copy = 'Copyright ©' + copyRange + ' ' + esc(site);
+  var icp = f.icp ? ' <span class="footer-icp">' + esc(f.icp) + '</span>' : '';
+  return '<footer><div class="container footer-inner">'
+    + '<div class="footer-nav">' + navHtml + '</div>'
+    + (extra ? '<div class="footer-extra">' + extra + '</div>' : '')
+    + '<div class="footer-copy">' + copy + icp + '</div>'
+    + '</div></footer>';
 }
 
 function homePageSize() {
@@ -782,15 +789,18 @@ function homeListHtml(filtered, ads, adsEnabled, page, pageSize, emptyMsg) {
   return { html: '<div id="listContainer">' + list + '</div>' + pagerHtml(page, totalPages), page: page, totalPages: totalPages };
 }
 
-/* 翻页器：上一页 / 下一页，保留当前标签与页码（query 形式，链接可前进/后退） */
+/* 翻页器：上一页 / 下一页，保留当前标签与页码（query 形式，链接可前进/后退）。
+ * 仅在第 1 页时显示「下一页」，末页时显示「上一页」，单页则不显示翻页器。 */
 function pagerHtml(page, totalPages) {
   if (totalPages <= 1) return '';
   var tag = (currentRoute().query.tag) || '';
   var prevHref = href('/', tag ? { tag: tag, page: page - 1 } : { page: page - 1 });
   var nextHref = href('/', tag ? { tag: tag, page: page + 1 } : { page: page + 1 });
-  var prev = (page <= 1) ? '<span class="pager-btn disabled">上一页</span>' : '<a class="pager-btn" href="' + esc(prevHref) + '">上一页</a>';
-  var next = (page >= totalPages) ? '<span class="pager-btn disabled">下一页</span>' : '<a class="pager-btn" href="' + esc(nextHref) + '">下一页</a>';
-  return '<div class="pager">' + prev + '<span class="pager-info">第 ' + page + ' / ' + totalPages + ' 页</span>' + next + '</div>';
+  var parts = [];
+  if (page > 1) parts.push('<a class="pager-btn" href="' + esc(prevHref) + '">上一页</a>');
+  parts.push('<span class="pager-info">第 ' + page + ' / ' + totalPages + ' 页</span>');
+  if (page < totalPages) parts.push('<a class="pager-btn" href="' + esc(nextHref) + '">下一页</a>');
+  return '<div class="pager">' + parts.join('') + '</div>';
 }
 
 function renderHome() {

@@ -161,7 +161,7 @@ All site configuration lives in `window.BLOG_CONFIG` in `public/config.js` — n
 | `adminPwd` | **Static mode only** local gate password; leave empty in cloud mode (password lives in Cloudflare) | `''` |
 | `writeToken` | (optional) legacy static write token | `''` |
 | `nav` | Custom navbar with optional dropdown children and external links | `[{text:'Home',url:'/'}]` |
-| `footer` | Footer text, friend links, ICP number, contact info | `{text:'', links:[]}` |
+| `footer` | Footer: text / friend links (`links`) / ICP (`icp`) / site notice (`decl`) / contact email (`email`) / copyright start year & name (`startYear`, `copyrightName`). Desktop shows all; mobile keeps nav + copyright only | `{links:[], decl:'', email:''}` |
 | `ads` | Ad slots (off by default): above the feed / between items / post bottom | `{enabled:false}` |
 
 > Change the accent color: the `--accent` variable at the top of `public/style.css`. Change the blog name: the `brand` value in `public/app.js` and the `<title>` in `public/index.html`.

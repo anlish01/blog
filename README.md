@@ -161,7 +161,7 @@ curl -X POST https://<你的域名>/api/admin/setup \
 | `adminPwd` | **仅静态模式**的本地门禁密码；云端模式请留空（密码在 Cloudflare 后端） | `''` |
 | `writeToken` | （可选）旧式静态写入令牌 | `''` |
 | `nav` | 自定义导航菜单，支持二级下拉、外链自动新窗口 | `[{text:'首页',url:'/'}]` |
-| `footer` | 页脚说明文字、友情链接、备案号（icp）、联系方式 | `{text:'', links:[]}` |
+| `footer` | 页脚：说明文字 / 友情链接（links）/ 备案号（icp）/ 站点声明（decl）/ 联系邮箱（email）/ 版权起始年与署名（startYear、copyrightName）。电脑端显示全部，移动端仅导航 + 版权 | `{links:[], decl:'', email:''}` |
 | `ads` | 广告位（默认关闭）：首页上方 / 列表间隔 / 详情底部 | `{enabled:false}` |
 
 > 换主题色：`public/style.css` 顶部 `:root` 里的 `--accent`。改博客名：`public/app.js` 的 `brand` 与 `public/index.html` 的 `<title>`。
