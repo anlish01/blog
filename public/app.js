@@ -1103,7 +1103,7 @@ function renderTags() {
 
 function renderWrite() {
   var html = renderNav(currentRoute().path);
-  html += '<main class="container page-fade">';
+  html += '<main class="container page-fade write-page">';
   if (!adminOk()) {
     if (_cloudOn()) {
       // 云端模式：密码校验于 Cloudflare D1 后端，此页只做登录（token 已存则直接进入编辑）

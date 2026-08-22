@@ -699,6 +699,9 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
 .editor-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 
 /* ---------- 写作台 · 顶栏与布局 ---------- */
+/* 写作台较正文更宽：编辑+预览并排时每栏更从容（正文/首页仍 760px 可读） */
+.container.write-page { max-width: 1160px; }
+.write-page .write-head { margin-bottom: 18px; }
 .write-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
 .write-head .page-title { margin: 0; font-size: 22px; display: inline-flex; align-items: center; gap: 8px; }
 .mode-chip {
@@ -748,23 +751,24 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
 }
 .md-input {
   width: 100%;
-  min-height: 460px;
+  min-height: 560px;
   border: 0;
   background: var(--bg);
   color: var(--fg);
-  padding: 16px 18px;
+  padding: 18px 22px;
   font-family: var(--mono);
-  font-size: 13.5px;
-  line-height: 1.75;
+  font-size: 14.5px;
+  line-height: 1.8;
   resize: vertical;
   outline: none;
 }
 .preview-body {
-  padding: 16px 18px;
-  min-height: 460px;
-  max-height: 72vh;
+  padding: 20px 22px;
+  min-height: 560px;
+  max-height: 76vh;
   overflow-y: auto;
-  font-size: 15px;
+  font-size: 16px;
+  line-height: 1.75;
 }
 
 /* 操作条：主操作 | 草稿/导入/外部 | 导出/RSS/Sitemap || 状态+退出 */
