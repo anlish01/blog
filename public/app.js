@@ -1101,6 +1101,111 @@ function renderTags() {
   return html;
 }
 
+/* ---------- 管理后台辅助函数 ---------- */
+function adminRoute() {
+  var path = currentRoute().path;
+  if (path === '/admin' || path === '/admin/write') return 'write';
+  if (path === '/admin/posts') return 'posts';
+  if (/^\/admin\/posts\/[^\/]+\/edit$/.test(path)) return 'edit';
+  return 'write';
+}
+
+function getEditIdFromRoute() {
+  var path = currentRoute().path;
+  var match = path.match(/^\/admin\/posts\/([^\/]+)\/edit$/);
+  return match ? match[1] : null;
+}
+
+function renderAdminSidebar(active) {
+  return '<aside class="admin-sidebar">'
+    + '<div class="admin-sidebar-brand">📋 管理</div>'
+    + '<nav class="admin-sidebar-nav">'
+    + '<a href="' + esc(href('/admin/write')) + '" class="admin-nav-item' + (active === 'write' ? ' active' : '') + '">✏️ 写作</a>'
+    + '<a href="' + esc(href('/admin/posts')) + '" class="admin-nav-item' + (active === 'posts' || active === 'edit' ? ' active' : '') + '">📄 文章</a>'
+    + '</nav>'
+    + '<div class="admin-sidebar-footer">'
+    + '<button class="btn btn-ghost btn-logout" id="btnLogoutSidebar">' + svgIcon('logout', 14) + ' 退出</button>'
+    + '</div>'
+    + '</aside>';
+}
+
+function renderPostList() {
+  var posts = getStaticPosts();
+  if (!posts || !posts.length) {
+    return '<div class="admin-posts-header"><h2>📄 所有文章</h2></div>'
+      + '<p class="empty-state">还没有文章，去 <a href="' + esc(href('/admin/write')) + '">写一篇</a> 吧</p>';
+  }
+  var html = '<div class="admin-posts-header"><h2>📄 所有文章</h2><span class="count">共 ' + posts.length + ' 篇</span></div>';
+  html += '<table class="admin-posts-table"><thead><tr><th>标题</th><th>日期</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+  posts.forEach(function (p) {
+    var status = p.pinned ? '📌 置顶' : (p.protected ? '🔒 加密' : '已发布');
+    var title = p.title || '未命名';
+    html += '<tr>'
+      + '<td><a href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '">' + esc(title) + '</a></td>'
+      + '<td>' + esc(p.date || '') + '</td>'
+      + '<td><span class="status-badge' + (p.pinned ? ' pinned' : '') + (p.protected ? ' protected' : '') + '">' + status + '</span></td>'
+      + '<td><div class="post-actions">'
+      + '<a href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '" class="btn btn-sm">✏️ 编辑</a>'
+      + '<button class="btn btn-sm btn-danger" data-post-id="' + esc(p.id) + '" data-post-title="' + esc(title) + '">🗑️ 删除</button>'
+      + '</div></td>'
+      + '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function renderEditorBody() {
+  var _editId = currentEditId();
+  var _editPost = _editId ? getStaticPosts().find(function (p) { return p.id === _editId; }) : null;
+  // 如果路由是编辑模式，使用路由中的 ID 覆盖
+  if (adminRoute() === 'edit') {
+    var routeId = getEditIdFromRoute();
+    if (routeId) {
+      _editId = routeId;
+      _editPost = getStaticPosts().find(function (p) { return p.id === _editId; });
+    }
+  }
+  var body = '';
+  body += '<div class="write-head">'
+    + '<h2 class="page-title wh-title">' + svgIcon('pen', 20) + ' 写作台</h2>'
+    + (_cloudOn()
+        ? '<span class="mode-chip cloud">' + svgIcon('cloud', 12) + ' 云端模式</span>'
+        : '<span class="mode-chip local">' + svgIcon('file', 12) + ' 本地模式</span>')
+    + (_editId ? '<span class="mode-chip editing" id="writeTitleHint">' + (_editPost ? esc('编辑：' + (_editPost.title || '')) : '新文章') + '</span>' : '')
+    + '</div>';
+  body += '<div class="card editor-meta"><div class="editor-grid">'
+    + '<div class="field"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div>'
+    + '<div class="field"><label>日期（可精确到时间）</label><div style="display:flex;gap:8px;align-items:center;"><input type="datetime-local" id="dateInput" style="flex:1;"><button class="btn btn-sm btn-ghost" id="btnToday" title="设为当前时间" style="flex-shrink:0;padding:5px 10px;font-size:12px;">今天</button></div></div>'
+    + '<div class="field"><label>摘要（可选，不填则自动截取）</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
+    + '<div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div>'
+    + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' 置顶</label></div>'
+    + '<div class="field check-label" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" placeholder="文章访问密码（勾选加密后设置）" style="display:none;width:220px;margin-left:8px"></div>'
+    + '</div></div>';
+  body += '<div class="editor-wrap">'
+    + '<section class="editor-pane"><div class="pane-head">' + svgIcon('pen', 13) + ' 编辑<span class="pane-note">Markdown</span></div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" class="md-input" rows="18" placeholder="用 Markdown 写作…"></textarea></section>'
+    + '<section class="editor-pane preview-pane"><div class="pane-head">' + svgIcon('eye', 13) + ' 预览<span class="pane-note">实时渲染</span></div><div class="write-preview article preview-body" id="previewPane"></div></section>'
+    + '</div>';
+  body += '<div class="editor-actions actions-bar">'
+    + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">' + svgIcon('cloud', 15) + ' 发布到云端</button>' : '')
+    + '<button class="btn btn-primary" id="btnSave">' + svgIcon('save', 15) + ' 保存文章</button>'
+    + '<span class="action-sep"></span>'
+    + '<button class="btn" id="btnSaveDraft">' + svgIcon('upload', 15) + ' 存草稿</button>'
+    + '<button class="btn" id="btnImport">' + svgIcon('file', 15) + ' 导入 .md</button>'
+    + '<input type="file" id="mdFileInput" accept=".md,.markdown" hidden>'
+    + '<button class="btn" id="btnOpenMdEditor">' + svgIcon('external', 15) + ' 官方编辑器</button>'
+    + '<span class="action-sep"></span>'
+    + '<button class="btn" id="btnExport">' + svgIcon('download', 15) + ' 导出 posts.js</button>'
+    + '<button class="btn" id="btnRss">' + svgIcon('rss', 15) + ' RSS</button>'
+    + '<button class="btn" id="btnSitemap">' + svgIcon('sitemap', 15) + ' Sitemap</button>'
+    + '<span class="actions-right"><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span>'
+    + '<button class="btn btn-outline-danger btn-logout" id="btnClearData" title="清除所有本地数据并重置站点">' + svgIcon('trash', 14) + ' 清理数据</button>'
+    + '<button class="btn btn-ghost btn-logout" id="btnLogout">' + svgIcon('logout', 15) + ' 退出登录</button></span>'
+    + '</div>';
+  body += '<p class="keys-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> 存草稿 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 保存文章</p>';
+  body += '<h3 class="draft-hint"><b>一键导出：</b>保存文章 / RSS / Sitemap 会打开系统保存对话框，选中原文件即可原地覆盖发布。</h3>';
+  return body;
+}
+
 function renderWrite() {
   var html = renderNav(currentRoute().path);
   html += '<main class="container page-fade write-page">';
@@ -1493,6 +1598,211 @@ function bindWriteEvents() {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveDraft(); }
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); saveStaticArticle(); }
   });
+}
+
+/* ---------- 管理后台：侧边栏 + 文章列表 ---------- */
+function renderAdmin() {
+  var html = renderNav(currentRoute().path);
+  html += '<main class="container page-fade write-page">';
+  
+  if (!adminOk()) {
+    // 未登录：复用 renderWrite 的登录逻辑
+    renderWrite();
+    return;
+  }
+  
+  var route = adminRoute();
+  var sidebar = renderAdminSidebar(route);
+  html += '<div class="admin-layout">' + sidebar + '<div class="admin-content">';
+  
+  if (route === 'posts') {
+    html += renderPostList();
+  } else {
+    html += renderEditorBody();
+  }
+  
+  html += '</div></div>';
+  html += '</main>' + renderFooter();
+  app().innerHTML = html;
+  
+  // --- 绑定编辑器事件（与 renderWrite 保持一致） ---
+  var btnClearData = document.querySelector('#btnClearData');
+  if (btnClearData) btnClearData.addEventListener('click', function () {
+    if (!confirm('确定要清空当前编辑内容吗？（不会影响已保存的文章和草稿）')) return;
+    var title = document.querySelector('#titleInput');
+    var date = document.querySelector('#dateInput');
+    var tags = document.querySelector('#tagInput');
+    var excerpt = document.querySelector('#excerptInput');
+    var md = document.querySelector('#mdInput');
+    var preview = document.querySelector('#previewPane');
+    var wordCount = document.querySelector('#wordCount');
+    var hint = document.querySelector('#writeTitleHint');
+    if (title) title.value = '';
+    if (date) date.value = '';
+    if (tags) tags.value = '';
+    if (excerpt) excerpt.value = '';
+    if (md) { md.value = ''; md.dispatchEvent(new Event('input')); }
+    if (preview) preview.innerHTML = '';
+    if (wordCount) wordCount.textContent = '0 字';
+    if (hint) hint.textContent = '新文章';
+    localStorage.removeItem('qingyu.edit.id');
+  });
+
+  var btnToday = document.querySelector('#btnToday');
+  if (btnToday) {
+    btnToday.addEventListener('click', function () {
+      var input = document.querySelector('#dateInput');
+      if (!input) return;
+      var now = new Date();
+      var year = now.getFullYear();
+      var month = String(now.getMonth() + 1).padStart(2, '0');
+      var day = String(now.getDate()).padStart(2, '0');
+      var hours = String(now.getHours()).padStart(2, '0');
+      var minutes = String(now.getMinutes()).padStart(2, '0');
+      input.value = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
+      if (typeof previewContent === 'function') previewContent();
+    });
+  }
+
+  var btnDraft = document.querySelector('#btnSaveDraft');
+  if (btnDraft) btnDraft.addEventListener('click', function () { saveDraft(); });
+
+  var btnImport = document.querySelector('#btnImport');
+  var fileInput = document.querySelector('#mdFileInput');
+  if (btnImport && fileInput) {
+    btnImport.addEventListener('click', function () { fileInput.click(); });
+    fileInput.addEventListener('change', function () {
+      var file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var parsed = parseMdFile(String(e.target.result || ''), file.name);
+        var title = document.querySelector('#titleInput'); if (title) title.value = parsed.title;
+        var date = document.querySelector('#dateInput'); if (date) date.value = parsed.date;
+        var tags = document.querySelector('#tagInput'); if (tags) tags.value = parsed.tags.join(', ');
+        var excerpt = document.querySelector('#excerptInput'); if (excerpt) excerpt.value = parsed.excerpt || '';
+        var md2 = document.querySelector('#mdInput'); if (md2) md2.value = parsed.content;
+        updatePreview();
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  var btnSave = document.querySelector('#btnSave');
+  if (btnSave) btnSave.addEventListener('click', function () { saveStaticArticle(); });
+
+  var btnCloud = document.querySelector('#btnCloud');
+  if (btnCloud) btnCloud.addEventListener('click', function () { cloudPublish(); });
+
+  var btnExport = document.querySelector('#btnExport');
+  if (btnExport) btnExport.addEventListener('click', function () {
+    saveFileFriendly('posts.js', buildPostsJs(), '已导出 posts.js', '已下载 posts.js');
+  });
+
+  var btnRss = document.querySelector('#btnRss');
+  if (btnRss) btnRss.addEventListener('click', function () {
+    saveFileFriendly('feed.xml', buildFeedXmlClient(getStaticPosts(), 20), '已导出 feed.xml', '已下载 feed.xml');
+  });
+
+  var btnSitemap = document.querySelector('#btnSitemap');
+  if (btnSitemap) btnSitemap.addEventListener('click', function () {
+    saveFileFriendly('sitemap.xml', buildSitemapClient(), '已导出 sitemap.xml', '已下载 sitemap.xml');
+  });
+
+  var btnLogout = document.querySelector('#btnLogout');
+  if (btnLogout) btnLogout.addEventListener('click', async function () {
+    await adminLogout();
+    route();
+  });
+
+  // 侧边栏退出按钮
+  var btnLogoutSidebar = document.querySelector('#btnLogoutSidebar');
+  if (btnLogoutSidebar) btnLogoutSidebar.addEventListener('click', async function () {
+    await adminLogout();
+    route();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveDraft(); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); saveStaticArticle(); }
+  });
+
+  // 文章列表的删除按钮（事件委托）
+  var content = document.querySelector('.admin-content');
+  if (content) {
+    content.addEventListener('click', function (e) {
+      var btn = e.target.closest('.btn-danger[data-post-id]');
+      if (!btn) return;
+      var id = btn.dataset.postId;
+      var title = btn.dataset.postTitle || '未命名';
+      if (!confirm('确定要删除文章「' + title + '」吗？此操作不可恢复！')) return;
+      if (_cloudOn()) {
+        apiFetch('api/admin/posts/' + encodeURIComponent(id), { method: 'DELETE' }).then(function (res) {
+          if (res && res.ok) {
+            alert('已删除');
+            route();
+          } else {
+            alert('删除失败，请重试');
+          }
+        }).catch(function () {
+          alert('删除失败，请检查网络');
+        });
+      } else {
+        var posts = getStaticPosts();
+        var idx = posts.findIndex(function (p) { return p.id === id; });
+        if (idx >= 0) {
+          posts.splice(idx, 1);
+          var blob = new Blob(['window.BLOG_POSTS=' + JSON.stringify(posts, null, 2) + ';'], { type: 'application/javascript' });
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'posts.js';
+          a.click();
+          URL.revokeObjectURL(a.href);
+          alert('已删除，请手动覆盖 posts.js 文件');
+          route();
+        }
+      }
+    });
+  }
+
+  // 加载编辑数据
+  var editId = currentEditId();
+  if (editId) {
+    var post = getStaticPosts().find(function (p) { return p.id === editId; });
+    if (post) {
+      var title = document.querySelector('#titleInput'); if (title) title.value = post.title || '';
+      var date = document.querySelector('#dateInput'); if (date) date.value = toDateTimeLocal(post.date || '');
+      var tags = document.querySelector('#tagInput'); if (tags) tags.value = (post.tags || []).join(', ');
+      var excerpt = document.querySelector('#excerptInput'); if (excerpt) excerpt.value = post.excerpt || '';
+      var pin = document.querySelector('#pinnedInput'); if (pin) pin.checked = !!post.pinned;
+      var protect = document.querySelector('#protectInput'); if (protect) protect.checked = !!post.protected;
+      var pwdBox = document.querySelector('#protectPwdInput');
+      if (pwdBox) pwdBox.style.display = post.protected ? 'inline-block' : 'none';
+      var md = document.querySelector('#mdInput');
+      if (md) {
+        if (post.protected) {
+          md.value = _unlocked[post.id] || '';
+          if (!_unlocked[post.id]) md.placeholder = '这是一篇加密文章，请先在详情页解锁后编辑';
+        } else {
+          md.value = post.content || '';
+        }
+      }
+      var st = document.querySelector('#saveStatus'); if (st) st.textContent = '正在编辑：' + (post.title || '');
+      var hTitle = document.querySelector('#writeTitleHint'); if (hTitle) hTitle.textContent = '正在编辑：' + (post.title || '');
+      updatePreview();
+    }
+  } else {
+    var draft = loadDraftFromStore('__new');
+    if (draft) {
+      var title = document.querySelector('#titleInput'); if (title) title.value = draft.title || '';
+      var date = document.querySelector('#dateInput'); if (date) date.value = draft.date || '';
+      var tags = document.querySelector('#tagInput'); if (tags) tags.value = (draft.tags || []).join(', ');
+      var excerpt = document.querySelector('#excerptInput'); if (excerpt) excerpt.value = draft.excerpt || '';
+      var pin = document.querySelector('#pinnedInput'); if (pin) pin.checked = !!draft.pinned;
+      var md = document.querySelector('#mdInput'); if (md) md.value = draft.content || '';
+      updatePreview();
+    }
+  }
 }
 
 /** 把库内日期（YYYY-MM-DD 或 YYYY-MM-DD HH:mm）转为 datetime-local 值（YYYY-MM-DDTHH:mm） */
