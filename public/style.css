@@ -755,26 +755,35 @@ footer { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--
 .about-card p { margin: 0.5em 0; }
 
 /* ---------- 回到顶部 ---------- */
+/* ---------- 回到顶部（悬浮右下角，滚动后出现） ---------- */
 .btn-top {
   position: fixed;
   right: 22px;
   bottom: 22px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  border-radius: 0;              /* 与全站直角风格一致 */
   border: 1px solid var(--border);
   background: var(--card);
   color: var(--fg);
   font-size: 17px;
   cursor: pointer;
   box-shadow: var(--shadow);
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 20;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  padding: 0;
+  z-index: 30;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease, border-color 0.15s ease, color 0.15s ease;
 }
+.btn-top.show { opacity: 1; visibility: visible; transform: translateY(0); }
 .btn-top:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+@media (max-width: 640px) {
+  .btn-top { right: 14px; bottom: 14px; width: 38px; height: 38px; }
+}
 
 /* ---------- 写作页细节：字数 / 保存状态 / 快捷键提示 ---------- */
 .word-count { color: var(--muted); font-weight: 400; }
@@ -1018,11 +1027,6 @@ kbd {
 .like-btn:hover { border-color: var(--accent); color: var(--accent); }
 .like-btn.liked { color: #e0245e; border-color: rgba(224, 36, 94, 0.35); background: rgba(224, 36, 94, 0.08); }
 .like-btn:disabled { cursor: default; }
-
-/* ---------- 文章底部：返回首页顶部 ---------- */
-.home-top-bar { display: flex; justify-content: center; margin: 26px 0 4px; }
-.home-top-btn { gap: 6px; padding: 8px 24px; font-size: 13px; border-radius: 0; }
-.home-top-btn svg { display: block; }
 
 /* ---------- 代码高亮 token ---------- */
 .code-block .tok-kw { color: var(--tok-kw); }

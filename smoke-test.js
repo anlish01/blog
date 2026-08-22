@@ -974,11 +974,13 @@ tests.push(['页脚新版式：导航行含写作后台+RSS，声明/邮箱/友�
   assert.ok(f.includes('京ICP备12345678号'), '备案号渲染');
 }]);
 
-tests.push(['文章底部「返回首页顶部」按钮存在且指向首页', async () => {
+tests.push(['返回顶部悬浮按钮：首页与详情页都有，点击仅滚动不跳页', async () => {
+  const h = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } });
+  assert.ok(h.html.includes('id="backTop"'), '首页含返回顶部按钮');
   const b = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } }, '/posts/hello-qingyu/');
-  assert.ok(b.html.includes('id="homeTopBtn"'), '详情页含返回按钮');
-  assert.ok(b.html.includes('返回首页顶部'), '按钮文案正确');
-  assert.ok(/id="homeTopBtn"[^>]*href="\/"/.test(b.html), 'href 指向首页根路径');
+  assert.ok(b.html.includes('id="backTop"'), '详情页含返回顶部按钮');
+  assert.ok(!b.html.includes('homeTopBtn'), '旧「返回首页」居中按钮已移除');
+  assert.ok(typeof b.ctx.updateBackTop === 'function', '滚动可见性函数已接线');
 }]);
 
 tests.push(['导航栏搜索：图标点击展开，实时命中并带摘要', async () => {

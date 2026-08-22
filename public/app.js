@@ -770,7 +770,10 @@ function renderFooter() {
     + '<div class="footer-nav">' + navHtml + '</div>'
     + (extra ? '<div class="footer-extra">' + extra + '</div>' : '')
     + '<div class="footer-copy">' + copy + icp + '</div>'
-    + '</div></footer>';
+    + '</div>'
+    // 返回顶部：固定悬浮右下角，所有页面共用（点击仅滚回当前页顶部）
+    + '<button class="btn-top" id="backTop" aria-label="返回顶部" title="返回顶部">' + svgIcon('top', 18) + '</button>'
+    + '</footer>';
 }
 
 function homePageSize() {
@@ -952,9 +955,6 @@ async function renderPost(id) {
   html += '<div class="comment-form"><input type="text" id="commentAuthor" placeholder="昵称"><textarea id="commentContent" rows="2" placeholder="说点什么…"></textarea><div class="comment-submit-row"><button class="btn btn-primary" id="commentSubmit">发表评论</button><span class="c-status" id="commentStatus"></span></div></div>';
   html += '<ul class="comment-list" id="commentList"></ul></div>';
 
-  // 文章底部：返回首页顶部（点击回到首页并滚动至顶部）
-  html += '<div class="home-top-bar"><a class="btn home-top-btn" id="homeTopBtn" href="' + esc(href('/')) + '">' + svgIcon('top', 15) + ' 返回首页顶部</a></div>';
-
   var adCfg = getConfig().ads || {};
   if (adCfg.enabled && adCfg.content) html += '<div class="ad-slot"><span class="ad-label">广告</span>' + adCfg.content + '</div>';
 
@@ -975,14 +975,6 @@ async function renderPost(id) {
   if (copyBtn) copyBtn.addEventListener('click', function () {
     var url = location.origin + appRoot() + postUrl(post.id);
     navigator.clipboard && navigator.clipboard.writeText(url) && (copyBtn.textContent = '✓ 已复制');
-  });
-
-  // 返回首页顶部：SPA 内导航并滚动到顶部（阻止全局链接拦截重复跳转）
-  var homeTopBtn = document.querySelector('#homeTopBtn');
-  if (homeTopBtn) homeTopBtn.addEventListener('click', function (e) {
-    e.preventDefault(); e.stopPropagation();
-    navigate('/');
-    window.scrollTo(0, 0);
   });
 
   // load comments
@@ -1573,6 +1565,32 @@ function bindGlobal() {
   if (tb) tb.addEventListener('click', function () { toggleTheme(); });
   bindTocScroll();
   bindHomeSearch();
+  bindBackTop();
+}
+
+/* 返回顶部悬浮按钮：滚动超过一屏出现，点击平滑滚回当前页顶部（不跳转页面） */
+var _backTopScrollBound = false;
+function bindBackTop() {
+  if (!_backTopScrollBound && typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    _backTopScrollBound = true;
+    window.addEventListener('scroll', function () { updateBackTop(); }, { passive: true });
+  }
+  var bt = document.querySelector('#backTop');
+  if (bt && bt.addEventListener) bt.addEventListener('click', function () {
+    if (typeof window.scrollTo === 'function') {
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      catch (e) { window.scrollTo(0, 0); }
+    }
+  });
+  updateBackTop();
+}
+function updateBackTop() {
+  var bt = document.querySelector('#backTop');
+  if (!bt || !bt.classList || !bt.classList.add) return;
+  var y = (typeof window !== 'undefined' && typeof window.scrollY === 'number')
+    ? window.scrollY
+    : ((typeof document !== 'undefined' && document.documentElement && document.documentElement.scrollTop) || 0);
+  if (y > 300) bt.classList.add('show'); else bt.classList.remove('show');
 }
 
 /* 站内链接点击拦截：history 模式用 pushState，避免整页刷新 */
