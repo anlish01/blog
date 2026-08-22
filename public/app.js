@@ -1191,10 +1191,10 @@ function renderWrite() {
     + (_editId ? '<span class="mode-chip editing" id="writeTitleHint">' + (_editPost ? esc('编辑：' + (_editPost.title || '')) : '新文章') + '</span>' : '')
     + '</div>';
   html += '<div class="card editor-meta"><div class="editor-grid">'
-    + '<div class="field field-full"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div>'
+    + '<div class="field"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div>'
     + '<div class="field"><label>日期（可精确到时间）</label><input type="datetime-local" id="dateInput"></div>'
+    + '<div class="field"><label>摘要（可选，不填则自动截取）</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
     + '<div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div>'
-    + '<div class="field field-full"><label>摘要（可选，不填则自动截取）</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
     + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' 置顶</label></div>'
     + '<div class="field check-label" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" placeholder="文章访问密码（勾选加密后设置）" style="display:none;width:220px;margin-left:8px"></div>'
     + '</div></div>';

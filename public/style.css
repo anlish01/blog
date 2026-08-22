@@ -655,7 +655,8 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
 .field textarea { resize: vertical; min-height: 90px; }
 
 .editor-meta { margin-bottom: 16px; }
-.editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* 两行并排：标题+日期 / 摘要+标签（首列较宽），置顶+加密第三行；移动端媒体查询恢复单列 */
+.editor-grid { display: grid; grid-template-columns: 2.4fr 1fr; gap: 12px; }
 
 .editor-area {
   display: block;
