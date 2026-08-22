@@ -1610,11 +1610,13 @@ function postUrl(id) {
 }
 /** 跳转：history 模式用 pushState，hash 模式用 hash 赋值 */
 function navigate(path, query) {
+  // 去掉任何残留的 ?查询 / #片段，避免路径出现双重 ?（如 #/?page=2?）
+  path = String(path || '/').replace(/[?#].*$/, '');
   if (useHashMode()) {
-    location.hash = '#/' + String(path).replace(/^\//, '') + (query ? serializeQuery(query) : '');
+    location.hash = '#/' + path.replace(/^\//, '') + (query ? serializeQuery(query) : '');
   } else {
     try {
-      history.pushState({}, '', appRoot() + String(path) + (query ? serializeQuery(query) : ''));
+      history.pushState({}, '', appRoot() + path + (query ? serializeQuery(query) : ''));
     } catch (e) {}
   }
   route();
@@ -1713,29 +1715,35 @@ function bindNavClicks() {
       var a = e.target;
       while (a && a.tagName !== 'A') a = a.parentNode;
       if (!a || !a.getAttribute) return;
-      // 外链 / 带 target 的 / 纯锚点（#toc-1 等）不拦截
       var hrefAttr = a.getAttribute('href') || '';
-      if (!hrefAttr || hrefAttr.charAt(0) === '#' || a.target || /^https?:|^\/\//i.test(hrefAttr)) return;
+      if (!hrefAttr) return;
+      // 外链 / 带 target / 静态资源（feed.xml 等）不拦截
+      if (a.target || /^https?:|^\/\//i.test(hrefAttr)) return;
       if (/^(feed\.xml|sitemap\.xml|posts\.js|config\.js|app\.js|style\.css|favicon)/.test(hrefAttr)) return;
+      // 纯 '#' 或站内锚点（#toc-1）不拦截，留给默认滚动
+      if (hrefAttr.charAt(0) === '#' && hrefAttr.charAt(1) !== '/') return;
       e.preventDefault();
       var raw = hrefAttr;
-      // 去掉 appRoot 前缀，得到应用内路径；文件直开走 hash 不做路径跳转
-      if (!useHashMode()) {
+      var qobj = {};
+      var path = raw;
+      if (raw.charAt(0) === '#') {            // hash 模式（file:// 直开）：#/posts/x → 去掉 '#'
+        path = raw.slice(1);
+      } else if (!useHashMode()) {            // 干净路径模式：去掉 appRoot 前缀
         var root = appRoot(); // ''（根）或 '/public'
-        if (root && raw.indexOf(root) === 0) raw = raw.slice(root.length);
-        // 解析 query
-        var qsIdx = raw.indexOf('?');
-        var qobj = {};
-        if (qsIdx >= 0) {
-          (raw.slice(qsIdx + 1)).split('&').forEach(function (kv) {
-            var p = kv.split('=');
-            if (p[0]) { try { qobj[decodeURIComponent(p[0])] = decodeURIComponent(p[1] || ''); } catch (e) {} }
-          });
-        }
-        var path = qsIdx >= 0 ? raw.slice(0, qsIdx) : raw;
-        navigate(path, qobj);
+        if (root && raw.indexOf(root) === 0) path = raw.slice(root.length);
       }
-    } catch (err) {}
+      // 注意：必须在去掉 '#' 之后的 path 上取 '?' 下标，否则与 raw 错位一位
+      var qi = path.indexOf('?');
+      if (qi >= 0) {
+        (path.slice(qi + 1)).split('&').forEach(function (kv) {
+          var p = kv.split('=');
+          if (p[0]) { try { qobj[decodeURIComponent(p[0])] = decodeURIComponent(p[1] || ''); } catch (e) {} }
+        });
+        path = path.slice(0, qi);
+      }
+      navigate(path, qobj);
+      }
+      catch (err) {}
   }, true);
 }
 

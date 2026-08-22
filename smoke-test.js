@@ -1256,6 +1256,59 @@ tests.push(['端到端：云端加密文章锁屏解锁成功（列表无 enc �
   assert.ok(badFailed, '错误密码解密失败（AES-GCM 认证失败）');
 }]);
 
+tests.push(['hash 模式翻页：file:// 下点击下一页能切换内容、URL 无双重 ?', async () => {
+  // file:// 环境，且让 document 真正捕获点击监听（供真正点击流转测）
+  let appEl = { innerHTML: '' };
+  const classListStub = { add() {}, remove() {}, contains: () => false, toggle() {} };
+  const stubEl2 = () => ({ innerHTML: '', querySelectorAll: () => [], addEventListener() {}, value: '', getAttribute: () => null, textContent: '', parentNode: null, classList: classListStub });
+  const docListeners = {};
+  const doc2 = { title: '', documentElement: { setAttribute() {} }, querySelector: (s) => s === '#app' ? appEl : stubEl2(), querySelectorAll: () => [], createElement: () => stubEl2(), body: { appendChild() {} }, addEventListener: (ev, fn) => { (docListeners[ev] = docListeners[ev] || []).push(fn); } };
+  const winListeners = {};
+  const win2 = { BLOG_POSTS: [], addEventListener: (ev, fn) => { winListeners[ev] = fn; }, matchMedia: () => ({ matches: false }), scrollTo() {}, crypto };
+  let hash = '#/';
+  const loc2 = {
+    protocol: 'file:', origin: 'null', host: '', pathname: 'C:/demo/public/index.html', search: '', href: 'file:///C:/demo/public/index.html',
+    get hash() { return hash; },
+    set hash(v) { hash = v; if (winListeners.hashchange) winListeners.hashchange(); },
+  };
+  const ctx2 = {
+    window: win2, document: doc2, location: loc2,
+    history: { pushState() {} },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+    confirm: () => true, setTimeout, clearTimeout, URLSearchParams, Blob: function () {},
+    URL: { createObjectURL: () => 'blob:stub', revokeObjectURL() {} },
+    console, Date, JSON, Math, String, Array, Object, RegExp, Map, Set, Uint8Array,
+    TextEncoder, TextDecoder, btoa, atob, encodeURIComponent, decodeURIComponent,
+  };
+  win2.BLOG_CONFIG = { mode: 'static', pageSize: 3 };
+  vm.createContext(ctx2);
+  // 用足够多文章触发分页（posts.js 之后、app.js 之前覆写 BLOG_POSTS）
+  const many = [];
+  for (let i = 0; i < 9; i++) many.push({ id: 'hp' + i, title: '标题' + i, date: '2024-01-0' + (i + 1), content: '内容' + i, tags: ['t'] });
+  vm.runInContext(fs.readFileSync(path.join(PUB, 'posts.js'), 'utf8'), ctx2, { filename: 'posts.js' });
+  win2.BLOG_POSTS = many;
+  vm.runInContext(fs.readFileSync(path.join(PUB, 'app.js'), 'utf8'), ctx2, { filename: 'app.js' });
+  await win2.__bootPromise;
+
+  const ids = (h) => (h.match(/#\/posts\/([^/"?#]+)\//g) || []).map((s) => s.split('/')[2]);
+  const p1 = appEl.innerHTML;
+  const p1ids = ids(p1).join(',');
+  assert.ok(/href="#\/\?page=2"/.test(p1), '首页有「下一页」链接（#/?page=2）');
+
+  // 模拟真实点击「下一页」：触发所有被捕获的 document 点击处理器（走 拦截→navigate→hash→route 全链路）
+  const anchor = { tagName: 'A', parentNode: null,
+    getAttribute: (k) => k === 'href' ? '#/?page=2' : null };
+  (docListeners['click'] || []).forEach(function (fn) {
+    fn({ target: anchor, preventDefault() {} });
+  });
+
+  const p2 = appEl.innerHTML;
+  const p2ids = ids(p2).join(',');
+  assert.notStrictEqual(p1ids, p2ids, '点击下一页后文章列表变化');
+  assert.ok(!/[?]page=2[?]/.test(loc2.hash), 'URL 未出现双重 ?（实际：' + loc2.hash + '）');
+  assert.strictEqual(loc2.hash, '#/?page=2', 'hash 正确为 #/?page=2');
+}]);
+
 /* ---------- 运行 ---------- */
 (async () => {
   let passed = 0, failed = 0;
