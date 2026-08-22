@@ -1426,21 +1426,26 @@ function bindWriteEvents() {
 
   var btnClearData = document.querySelector('#btnClearData');
   if (btnClearData) btnClearData.addEventListener('click', function () {
-    if (confirm('确定要清理所有本地数据吗？\n这将清除：会话、草稿、设置、缓存等本地存储内容（不影响云端已发布的文章）。')) {
-      var keys = Object.keys(localStorage);
-      var removed = 0;
-      keys.forEach(function (k) {
-        if (/^(qingyu\.|blog_|BLOG_)/.test(k)) {
-          localStorage.removeItem(k);
-          removed++;
-        }
-      });
-      alert('已清理 ' + removed + ' 项本地数据，页面将刷新回到首页。');
-      localStorage.removeItem('qingyu.token');
-      localStorage.removeItem('qingyu.admin.ok');
-      localStorage.removeItem('qingyu.admin.pwd');
-      location.href = '/';
-    }
+    if (!confirm('确定要清空当前编辑内容吗？（不会影响已保存的文章和草稿）')) return;
+    // 仅清空编辑器表单，保留登录态和所有存储数据
+    var title = document.querySelector('#titleInput');
+    var date = document.querySelector('#dateInput');
+    var tags = document.querySelector('#tagInput');
+    var excerpt = document.querySelector('#excerptInput');
+    var md = document.querySelector('#mdInput');
+    var preview = document.querySelector('#previewPane');
+    var wordCount = document.querySelector('#wordCount');
+    var hint = document.querySelector('#writeTitleHint');
+    if (title) title.value = '';
+    if (date) date.value = '';
+    if (tags) tags.value = '';
+    if (excerpt) excerpt.value = '';
+    if (md) { md.value = ''; md.dispatchEvent(new Event('input')); }
+    if (preview) preview.innerHTML = '';
+    if (wordCount) wordCount.textContent = '0 字';
+    if (hint) hint.textContent = '新文章';
+    // 清除当前编辑 id（如有），重置为新文章状态
+    localStorage.removeItem('qingyu.edit.id');
   });
 
   var btnToday = document.querySelector('#btnToday');
