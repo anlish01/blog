@@ -983,6 +983,17 @@ tests.push(['返回顶部悬浮按钮：首页与详情页都有，点击仅滚�
   assert.ok(typeof b.ctx.updateBackTop === 'function', '滚动可见性函数已接线');
 }]);
 
+tests.push(['index.html：静态 base 在资源之前 + 首屏加载动画存在（杜绝子页静态资源 404）', async () => {
+  const html = fs.readFileSync(path.join(PUB, 'index.html'), 'utf8');
+  const basePos = html.indexOf('<base href="/">');
+  const linkPos = html.indexOf('<link rel="stylesheet"');
+  const loaderPos = html.indexOf('class="boot-load"');
+  assert.ok(basePos > -1, '存在静态 <base href="/">');
+  assert.ok(basePos > -1 && linkPos > -1 && basePos < linkPos, 'base 位于样式表之前');
+  assert.ok(loaderPos > -1 && html.indexOf('轻语 · 加载中') > -1, '首屏加载动画标记存在');
+  assert.ok(!html.includes('id="dynBase"'), '旧的动态 base 脚本已移除');
+}]);
+
 tests.push(['导航栏搜索：图标点击展开，实时命中并带摘要', async () => {
   const { ctx } = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } });
   const hits = ctx.globalSearch('你好', 8);

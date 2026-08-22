@@ -5,27 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="轻语 · 零依赖轻量博客，双击即开；支持 Cloudflare Pages / Workers 云端存储。">
   <title>轻语 · 轻量博客</title>
-  <base id="dynBase">
+  <!-- 静态 base：彻底解决 /posts/<别名>/ 深度页面刷新时静态资源被按相对目录解析而 404 的问题。
+       （此前用 JS 动态插入 base，会与浏览器的预加载扫描器产生竞态，直达子页时仍会 404。） -->
+  <base href="/">
   <script>
-    // 动态 base：http/https 部署下，相对资源（style.css / config.js / app.js 等）
-    // 一律以「站点根」为基准解析——否则在 /posts/<别名>/ 这类子路径页面刷新时
-    // 会被解析成 /posts/<别名>/style.css 而 404（app.js 加载失败 → 页面卡加载中）。
-    // file:// 本地双击直开时保持相对当前目录（= 站点目录），不影响本地预览。
+    // file:// 本地双击直开时，把资源基准改回当前目录，保持本地预览可用；在线部署保持根路径。
     (function () {
-      var proto = (location.protocol || '').toLowerCase();
-      var base = document.getElementById('dynBase');
-      if (base && proto === 'http:' || proto === 'https:') {
-        base.href = location.origin + '/';
+      if (/^file:/i.test(location.protocol)) {
+        var b = document.querySelector('base');
+        if (b) b.setAttribute('href', './');
       }
     })();
   </script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23c25e3a'/></svg>">
+  <style>
+    /* 首屏加载动画：在 app.js 接管前显示，主题色与暖色调一致 */
+    .boot-load {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; background: #faf7f2; z-index: 1000;
+    }
+    .boot-ring {
+      width: 36px; height: 36px; position: relative;
+    }
+    .boot-ring::before, .boot-ring::after {
+      content: ""; position: absolute; inset: 0; border-radius: 50%;
+      border: 3px solid transparent; border-top-color: #c25e3a;
+      animation: bootSpin 1s cubic-bezier(.5,.15,.75,.45) infinite;
+    }
+    .boot-ring::after { animation-delay: .15s; border-top-color: #e08a63; opacity: .7; }
+    .boot-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #cfc4b6;
+      animation: bootPulse 1.2s ease-in-out infinite;
+    }
+    .boot-name { font-size: 13.5px; color: #9b8f83; letter-spacing: 3px; }
+    @keyframes bootSpin { to { transform: rotate(360deg); } }
+    @keyframes bootPulse { 0%,100% { opacity:.3; transform: scale(.8); } 50% { opacity:1; transform: scale(1.15); } }
+    @media (prefers-color-scheme: dark) {
+      .boot-load { background: #1d1a17; }
+      .boot-dot { background: #6a6158; }
+      .boot-name { color: #a89b8e; }
+    }
+  </style>
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
   <script src="posts.js"></script>
 </head>
 <body>
-  <div id="app"><div class="container" style="padding-top:40px;color:var(--muted)">加载中…</div></div>
+  <div id="app">
+    <div class="boot-load" id="bootLoad">
+      <div class="boot-ring"></div>
+      <div class="boot-dot"></div>
+      <div class="boot-name">轻语 · 加载中</div>
+    </div>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>
