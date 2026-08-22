@@ -2,6 +2,7 @@
  * 轻语博客 · 前端逻辑（app.js）
  * ----------------------------------------------------------------------------
  * 包含：列表 / 详情 / 写作 / 搜索 / 标签 / 归档 / 评论 / 加密 / TOC / 代码高亮 / 统计
+ * 版本 v2.1.0 ｜ 侧边导航已集成 ｜ 2026-08-22
  * ============================================================================ */
 'use strict';
 
@@ -2013,7 +2014,7 @@ async function route() {
       await renderPost(id);
     }
   }
-  else if (path === '/write' || path === '/admin') { renderWrite(); }
+  else if (path === '/admin' || path === '/admin/write' || path === '/admin/posts' || /^\/admin\/posts\/[^\/]+\/edit$/.test(path)) { renderAdmin(); }
   else if (path === '/archive') { app().innerHTML = renderArchive(); }
   else if (path === '/about') { app().innerHTML = renderAbout(); }
   else if (path === '/tags') { app().innerHTML = renderTags(); }
