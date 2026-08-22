@@ -2,8 +2,8 @@
  * 轻语博客 · Cloudflare Workers 入口
  * ------------------------------------------------------------
  * 职责：
- *   · /api/posts 与 /api/posts/:id → Cloudflare KV 存储 API
- *   · 其余请求 → 静态资源（由 wrangler.toml [assets] 绑定提供）
+ *   · /api/posts 与 /api/posts/:id → Cloudflare D1 存储 API
+ *   · 其余请求 → 静态资源（由 wrangler.workers.toml [assets] 绑定提供）
  * 部署：npx wrangler deploy
  * ============================================================ */
 import { handlePosts, handlePostId, handleFeed, handleComments, handleCommentId, handleSitemap, handleStats, handleAdminSetup, handleAdminLogin, handleAdminLogout } from './functions/_lib/api-core.js';

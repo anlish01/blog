@@ -24,3 +24,11 @@ binding = "ASSETS"
 binding = "BLOG"
 id = "{env.BLOG_KV_ID}"
 preview_id = "{env.BLOG_KV_ID}"
+
+# D1 数据库（已取代 KV 成为主存储；KV 绑定保留作备用/回滚）
+# database_id 用 {env.BLOG_D1_ID} 占位 → 部署时由 Actions 替换为真实 Secret
+# 表结构见 migrations/0001_init.sql（CI 部署前自动执行）
+[[d1_databases]]
+binding = "DB"
+database_name = "blog"
+database_id = "{env.BLOG_D1_ID}"

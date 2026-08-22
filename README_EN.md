@@ -78,7 +78,11 @@ After deploying to Cloudflare, the editor's button becomes "🚀 Publish to Clou
 - With a GitHub account: **Fork** this repo (or use "Use this template").
 - For privacy, set your repo to **Private** (sensitive values go through Secrets, never into the repo).
 
-### Step 1: Create a KV namespace (the data store)
+### Step 1: Create storage — KV (backup) + D1 (primary)
+
+Data is now stored primarily in **D1** (SQLite). The original KV namespace is kept as a backup/rollback path, so create both:
+
+**① KV namespace (backup)**
 
 1. Log in at [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** in the left menu
 2. Top-right **Create application** → switch to the **KV** tab
@@ -87,14 +91,23 @@ After deploying to Cloudflare, the editor's button becomes "🚀 Publish to Clou
 
 > CLI alternative: `npx wrangler kv namespace create BLOG`
 
+**② D1 database (primary)**
+
+1. Dashboard → **Workers & Pages → D1 SQL Database → Create**, name it **`blog`** (must match the config)
+2. Copy the **database ID** (32-character hex)
+3. No manual table creation needed — CI runs `migrations/0001_init.sql` on every deploy (idempotent)
+
+> CLI alternative: `npx wrangler d1 create blog`
+
 ### Step 2: Configure GitHub Secrets (sensitive data never lands in the repo)
 
 In your GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**, add:
 
 | Secret name | Value | Required |
 | --- | --- | --- |
-| `BLOG_KV_ID` | The KV namespace ID from Step 1 | ✅ |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API Token (permissions: Workers / KV edit) | ✅ |
+| `BLOG_KV_ID` | The KV namespace ID from Step 1① (backup binding) | ✅ |
+| `BLOG_D1_ID` | The D1 database ID from Step 1② (primary store) | ✅ |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API Token (permissions: Workers / KV / D1 edit) | ✅ |
 | `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare Account ID (the string in the Dashboard URL) | ✅ |
 | `PAGES_PROJECT_NAME` | (optional) Custom worker name; **unset = the name in the config file** | optional |
 | `BLOG_ADMIN_SETUP_KEY` | (recommended) One-time admin password setup key, prevents squatting | recommended |
@@ -104,7 +117,7 @@ API Token: Cloudflare Dashboard → **My Profile → API Tokens → Create Token
 
 ### Step 3: Push & auto-deploy
 
-Push to the `main` branch → GitHub Actions runs "Deploy to Cloudflare Workers": validates the required Secrets → injects the KV ID → `wrangler deploy` → writes optional runtime secrets.
+Push to the `main` branch → GitHub Actions runs "Deploy to Cloudflare Workers": validates the required Secrets → injects KV / D1 IDs → applies the D1 schema (idempotent) → `wrangler deploy` → writes optional runtime secrets.
 
 > Watch progress in the repo's **Actions** tab (about 1–3 minutes per run; green ✓ means success).
 >
@@ -122,7 +135,25 @@ https://<your-domain>/api/posts
 ```
 
 - Returns `{"ok":true,"posts":[...]}` → ✅ success, continue to Step 5
-- Returns `{"error":"KV 未配置…"}` → ❌ KV binding failed; check the ID in `BLOG_KV_ID`
+- Returns `{"error":"数据库未配置…"}` → ❌ D1 binding failed; check the database ID from Step 1② in `BLOG_D1_ID`
+
+### Step 4.5: Migrate old KV data to D1 (only when upgrading from an older version)
+
+After switching to D1, existing posts/comments/stats still live in KV. Run the bundled one-time script (idempotent):
+
+```bash
+# Dry-run first to preview generated SQL (no writes)
+CLOUDFLARE_ACCOUNT_ID=your-account-id \
+CLOUDFLARE_API_TOKEN=your-token \
+BLOG_KV_ID=old-kv-namespace-id \
+node scripts/migrate-kv-to-d1.mjs --dry-run
+
+# Then run for real (add BLOG_D1_ID)
+CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... BLOG_KV_ID=... BLOG_D1_ID=... \
+node scripts/migrate-kv-to-d1.mjs
+```
+
+Refresh the homepage afterwards — old posts are there. The admin password migrates too; original KV data is left untouched so you can always roll back.
 
 ### Step 5: Set the admin password (one-time)
 

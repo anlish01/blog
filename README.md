@@ -78,7 +78,11 @@
 - 有 GitHub 账号：**Fork** 本仓库到你的名下（或 `Use this template` 建新仓库）。
 - 隐私考虑：仓库建议设为 **Private**（敏感配置全走 Secrets，不落仓库也行）。
 
-### 第 1 步：创建 KV 命名空间（存数据的地方）
+### 第 1 步：创建存储 —— KV（备用）+ D1（主存储）
+
+数据现在主存 **D1**（SQLite），原 KV 命名空间保留作备用/回滚，两者都建：
+
+**① KV 命名空间（备用）**
 
 1. 登录 [dash.cloudflare.com](https://dash.cloudflare.com) → 左侧 **Workers & Pages**
 2. 右上角 **Create application** → 切到 **KV** 标签页
@@ -87,14 +91,23 @@
 
 > 也可以用命令行创建：`npx wrangler kv namespace create BLOG`
 
+**② D1 数据库（主存储）**
+
+1. Dashboard → **Workers & Pages → D1 SQL Database → Create**，名字填 **`blog`**（与配置文件一致）
+2. 记下 **database ID**（32 位十六进制）
+3. 建表不用手动做——CI 部署时会自动执行 `migrations/0001_init.sql`（幂等，可重复跑）
+
+> 命令行方式：`npx wrangler d1 create blog`
+
 ### 第 2 步：配置 GitHub Secrets（敏感数据不进仓库）
 
 GitHub 仓库 → **Settings → Secrets and variables → Actions → New repository secret**，添加：
 
 | Secret 名称 | 值 | 必填 |
 | --- | --- | --- |
-| `BLOG_KV_ID` | 第 1 步记下的 KV 命名空间 ID | ✅ |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API Token（权限：Workers / KV 编辑） | ✅ |
+| `BLOG_KV_ID` | 第 1 步①记下的 KV 命名空间 ID（备用绑定） | ✅ |
+| `BLOG_D1_ID` | 第 1 步②记下的 D1 database ID（主存储） | ✅ |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API Token（权限：Workers / KV / D1 编辑） | ✅ |
 | `CLOUDFLARE_ACCOUNT_ID` | 你的 Cloudflare 账户 ID（Dashboard 右上角 URL 里那串） | ✅ |
 | `PAGES_PROJECT_NAME` | （可选）自定义 worker 名；**不设置 = 用配置文件里的名字** | 可选 |
 | `BLOG_ADMIN_SETUP_KEY` | （建议）一次性管理员密码设置密钥，防抢注 | 建议 |
@@ -104,7 +117,7 @@ GitHub 仓库 → **Settings → Secrets and variables → Actions → New repos
 
 ### 第 3 步：推送，自动部署
 
-推送到 `main` 分支 → GitHub Actions 自动运行「Deploy to Cloudflare Workers」：检查 Secrets 齐全 → 替换 KV ID → `wrangler deploy` → 把可选密钥写入运行时 Secret。
+推送到 `main` 分支 → GitHub Actions 自动运行「Deploy to Cloudflare Workers」：检查 Secrets 齐全 → 替换 KV / D1 ID → 应用 D1 表结构（幂等）→ `wrangler deploy` → 把可选密钥写入运行时 Secret。
 
 > 部署进度看：仓库 **Actions** 标签页（每次约 1–3 分钟，绿色 ✓ 即成功）。
 >
@@ -122,7 +135,25 @@ https://<你的域名>/api/posts
 ```
 
 - 返回 `{"ok":true,"posts":[...]}` → ✅ 成功，继续下一步
-- 返回 `{"error":"KV 未配置…"}` → ❌ KV 绑定没生效，检查第 1 步 ID 是否正确填进 `BLOG_KV_ID`
+- 返回 `{"error":"数据库未配置…"}` → ❌ D1 绑定没生效，检查第 1 步② 的 database ID 是否正确填进 `BLOG_D1_ID`
+
+### 第 4.5 步：把旧 KV 数据迁到 D1（仅从旧版本升级时需要）
+
+首次切到 D1 后，线上旧文章/评论/统计还在 KV 里。用仓库自带脚本一次性搬过来（幂等，可重复执行）：
+
+```bash
+# 先 dry-run 预览生成的 SQL（不写库）
+CLOUDFLARE_ACCOUNT_ID=你的账户ID \
+CLOUDFLARE_API_TOKEN=你的Token \
+BLOG_KV_ID=旧KV命名空间ID \
+node scripts/migrate-kv-to-d1.mjs --dry-run
+
+# 确认无误后正式迁移（需再加 BLOG_D1_ID）
+CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... BLOG_KV_ID=... BLOG_D1_ID=... \
+node scripts/migrate-kv-to-d1.mjs
+```
+
+迁完刷新首页即可看到旧文章。管理员密码也会一并迁移；KV 原数据保留不动，随时可回滚。
 
 ### 第 5 步：首次设置管理员密码（一次性）
 

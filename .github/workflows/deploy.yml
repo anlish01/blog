@@ -37,11 +37,12 @@ jobs:
       - name: Check required secrets
         env:
           BLOG_KV_ID: ${{ secrets.BLOG_KV_ID }}
+          BLOG_D1_ID: ${{ secrets.BLOG_D1_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           MISSING=""
-          for v in BLOG_KV_ID CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+          for v in BLOG_KV_ID BLOG_D1_ID CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
             if [ -z "${!v}" ]; then MISSING="$MISSING $v"; fi
           done
           if [ -n "$MISSING" ]; then
@@ -65,6 +66,7 @@ jobs:
       - name: Prepare deploy config with real KV id
         env:
           BLOG_KV_ID: ${{ secrets.BLOG_KV_ID }}
+          BLOG_D1_ID: ${{ secrets.BLOG_D1_ID }}
         run: |
           python3 - <<'PY'
           import os
@@ -74,9 +76,24 @@ jobs:
               raise SystemExit(1)
           src = open('wrangler.workers.toml', encoding='utf-8').read()
           dst = src.replace('{env.BLOG_KV_ID}', kv_id)
+          d1_id = os.environ['BLOG_D1_ID'].strip()
+          if not d1_id or len(d1_id) != 32 or not all(c in '0123456789abcdef' for c in d1_id.lower()):
+              print('::error::BLOG_D1_ID 不是有效的 32 位十六进制 D1 database_id（去除多余空格/换行后重试）')
+              raise SystemExit(1)
+          dst = dst.replace('{env.BLOG_D1_ID}', d1_id)
           open('wrangler.workers.ci.toml', 'w', encoding='utf-8').write(dst)
-          print('✅ 部署配置已生成（含真实 KV id，不会打印）')
+          print('✅ 部署配置已生成（含真实 KV id 与 D1 id，不会打印）')
           PY
+
+      # 部署前应用 D1 表结构（幂等：CREATE TABLE IF NOT EXISTS）。
+      # 需先在 Cloudflare 创建名为 blog 的 D1 数据库，并把其 database_id 填入 Secret BLOG_D1_ID。
+      - name: Apply D1 schema (migrations/0001_init.sql)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BLOG_D1_ID: ${{ secrets.BLOG_D1_ID }}
+        run: |
+          npx --yes wrangler@3.90.0 d1 execute blog --remote --config wrangler.workers.ci.toml --file=migrations/0001_init.sql
 
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3
