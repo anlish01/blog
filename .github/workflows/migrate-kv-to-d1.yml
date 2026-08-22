@@ -1,0 +1,53 @@
+# ============================================================
+# 一次性数据迁移：KV → D1（手动触发，不会自动运行）
+# ------------------------------------------------------------
+# 用法：仓库 Actions 标签页 → 左侧选本工作流 → Run workflow →
+#       选择运行模式 → Run。
+#   · dry-run  ：只预览将生成的 SQL，不写库（默认，建议先跑这个）
+#   · migrate  ：正式把文章/评论/统计/管理员密码从 KV 写入 D1
+#
+# 说明：
+#   · 脚本幂等（INSERT OR REPLACE），重复执行安全，可放心多跑几次；
+#   · 全部使用仓库 Secrets，无需本地配置任何环境变量；
+#   · 迁移完成后此工作流不会再被触发；可永久保留备用，也可删除文件。
+# ============================================================
+name: Migrate KV to D1 (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: '运行模式'
+        required: true
+        default: 'dry-run'
+        type: choice
+        options:
+          - dry-run
+          - migrate
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run migration (KV -> D1)
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          BLOG_KV_ID: ${{ secrets.BLOG_KV_ID }}
+          BLOG_D1_ID: ${{ secrets.BLOG_D1_ID }}
+        run: |
+          if [ "${{ inputs.mode }}" = "dry-run" ]; then
+            echo "▶ dry-run 模式：只预览 SQL，不写库"
+            node scripts/migrate-kv-to-d1.mjs --dry-run
+          else
+            echo "▶ migrate 模式：正式写入 D1"
+            node scripts/migrate-kv-to-d1.mjs
+          fi
