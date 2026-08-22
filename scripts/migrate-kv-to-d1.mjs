@@ -122,14 +122,17 @@ async function main() {
     return;
   }
 
-  // 写入临时 SQL 文件并通过 wrangler 执行到远程 D1
+  // 写入临时 SQL 文件并通过 wrangler 执行到远程 D1。
+  // 注意：① Windows 下 spawn 必须用 npx.cmd；② 在临时目录里执行，
+  // 避免加载项目内含 {env.*} 占位符的 wrangler 配置导致报错。认证走环境变量。
   const dir = mkdtempSync(join(tmpdir(), 'qy-migrate-'));
   const file = join(dir, 'migrate.sql');
   writeFileSync(file, sql, 'utf8');
   console.log('▶ 写入 D1（blog）...');
-  execFileSync('npx', ['--yes', 'wrangler@3.90.0', 'd1', 'execute', 'blog', '--remote', '--file=' + file], {
-    stdio: 'inherit'
-  });
+  const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+  execFileSync(npxCmd,
+    ['--yes', 'wrangler@3.90.0', 'd1', 'execute', 'blog', '--remote', '--file=' + file],
+    { stdio: 'inherit', cwd: dir });
   console.log('✅ 迁移完成：' + posts.length + ' 篇文章及其评论/统计' + (authRaw ? ' + 管理员认证' : ''));
 }
 

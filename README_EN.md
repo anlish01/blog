@@ -155,6 +155,18 @@ CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... BLOG_KV_ID=... BLOG_D1_ID=...
 node scripts/migrate-kv-to-d1.mjs
 ```
 
+**Windows (PowerShell)** — run line by line, replace the four values:
+
+```powershell
+cd C:\path\to\blog
+$env:CLOUDFLARE_ACCOUNT_ID = "your-account-id"
+$env:CLOUDFLARE_API_TOKEN  = "your-api-token"
+$env:BLOG_KV_ID            = "old-kv-namespace-id"
+$env:BLOG_D1_ID            = "d1-database-uuid"
+node scripts/migrate-kv-to-d1.mjs --dry-run   # preview first
+node scripts/migrate-kv-to-d1.mjs             # migrate for real
+```
+
 Refresh the homepage afterwards — old posts are there. The admin password migrates too; original KV data is left untouched so you can always roll back.
 
 ### Step 5: Set the admin password (one-time)

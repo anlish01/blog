@@ -155,6 +155,22 @@ CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... BLOG_KV_ID=... BLOG_D1_ID=...
 node scripts/migrate-kv-to-d1.mjs
 ```
 
+**Windows（PowerShell）写法**——逐行执行，四个值换成你自己的：
+
+```powershell
+cd C:\path\to\博客
+$env:CLOUDFLARE_ACCOUNT_ID = "你的账户ID"
+$env:CLOUDFLARE_API_TOKEN  = "你的API Token"
+$env:BLOG_KV_ID            = "旧KV命名空间ID"
+$env:BLOG_D1_ID            = "D1的database_id(UUID)"
+node scripts/migrate-kv-to-d1.mjs --dry-run   # 先预览
+node scripts/migrate-kv-to-d1.mjs             # 正式迁移
+```
+
+> 四个值的获取：账户ID 在 Dashboard 概述页右侧；Token 是你创建的 API Token；
+> KV ID 在 Workers & Pages → KV → `BLOG` 命名空间详情；D1 UUID 在 D1 数据库详情页。
+> 迁移完可关闭该终端窗口（环境变量只在当前窗口有效）。
+
 迁完刷新首页即可看到旧文章。管理员密码也会一并迁移；KV 原数据保留不动，随时可回滚。
 
 ### 第 5 步：首次设置管理员密码（一次性）
