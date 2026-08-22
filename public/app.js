@@ -1192,7 +1192,7 @@ function renderWrite() {
     + '</div>';
   html += '<div class="card editor-meta"><div class="editor-grid">'
     + '<div class="field"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div>'
-    + '<div class="field"><label>日期（可精确到时间）</label><input type="datetime-local" id="dateInput"></div>'
+    + '<div class="field"><label>日期（可精确到时间）</label><div style="display:flex;gap:8px;align-items:center;"><input type="datetime-local" id="dateInput" style="flex:1;"><button class="btn btn-sm btn-ghost" id="btnToday" title="设为当前时间" style="flex-shrink:0;padding:5px 10px;font-size:12px;">今天</button></div></div>'
     + '<div class="field"><label>摘要（可选，不填则自动截取）</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
     + '<div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div>'
     + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' 置顶</label></div>'
@@ -1215,6 +1215,7 @@ function renderWrite() {
     + '<button class="btn" id="btnRss">' + svgIcon('rss', 15) + ' RSS</button>'
     + '<button class="btn" id="btnSitemap">' + svgIcon('sitemap', 15) + ' Sitemap</button>'
     + '<span class="actions-right"><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span>'
+    + '<button class="btn btn-outline-danger btn-logout" id="btnClearData" title="清除所有本地数据并重置站点">' + svgIcon('trash', 14) + ' 清理数据</button>'
     + '<button class="btn btn-ghost btn-logout" id="btnLogout">' + svgIcon('logout', 15) + ' 退出登录</button></span>'
     + '</div>';
   html += '<p class="keys-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> 存草稿 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 保存文章</p>';
@@ -1422,6 +1423,42 @@ function bindWriteEvents() {
     await adminLogout();
     route();
   });
+
+  var btnClearData = document.querySelector('#btnClearData');
+  if (btnClearData) btnClearData.addEventListener('click', function () {
+    if (confirm('确定要清理所有本地数据吗？\n这将清除：会话、草稿、设置、缓存等本地存储内容（不影响云端已发布的文章）。')) {
+      var keys = Object.keys(localStorage);
+      var removed = 0;
+      keys.forEach(function (k) {
+        if (/^(qingyu\.|blog_|BLOG_)/.test(k)) {
+          localStorage.removeItem(k);
+          removed++;
+        }
+      });
+      alert('已清理 ' + removed + ' 项本地数据，页面将刷新回到首页。');
+      localStorage.removeItem('qingyu.token');
+      localStorage.removeItem('qingyu.admin.ok');
+      localStorage.removeItem('qingyu.admin.pwd');
+      location.href = '/';
+    }
+  });
+
+  var btnToday = document.querySelector('#btnToday');
+  if (btnToday) {
+    btnToday.addEventListener('click', function () {
+      var input = document.querySelector('#dateInput');
+      if (!input) return;
+      var now = new Date();
+      var year = now.getFullYear();
+      var month = String(now.getMonth() + 1).padStart(2, '0');
+      var day = String(now.getDate()).padStart(2, '0');
+      var hours = String(now.getHours()).padStart(2, '0');
+      var minutes = String(now.getMinutes()).padStart(2, '0');
+      input.value = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
+      // 同步触发预览更新（如果有）
+      if (typeof previewContent === 'function') previewContent();
+    });
+  }
 
   var btnDraft = document.querySelector('#btnSaveDraft');
   if (btnDraft) btnDraft.addEventListener('click', function () { saveDraft(); });

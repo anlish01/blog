@@ -75,7 +75,7 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 .container {
-  max-width: 760px;
+  max-width: 1160px;
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -499,7 +499,12 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
 @keyframes qy-spin { to { transform: rotate(360deg); } }
 
 /* ---------- 文章详情 ---------- */
-.post-body { max-width: 760px; }
+/* 文章详情页：正文居中且保持舒适阅读宽度 */
+.post-body {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
 
 .post-header { margin-bottom: 26px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
 .post-header h1 { margin: 0 0 10px; font-size: 28px; line-height: 1.35; }
@@ -639,7 +644,7 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
   margin-bottom: 6px;
   font-weight: 600;
 }
-.field input[type="text"], .field input[type="date"], .field textarea {
+.field input[type="text"], .field input[type="date"], .field input[type="datetime-local"], .field textarea {
   width: 100%;
   border: 1px solid var(--border);
   background: var(--bg);
@@ -956,8 +961,14 @@ kbd {
   align-items: baseline;
   gap: 14px;
   padding: 6px 0;
-  border-bottom: 1px dashed var(--border);
   font-size: 14.5px;
+  border-bottom: 1px dashed rgba(128, 128, 128, 0.2); /* 弱化虚线，几乎透明 */
+}
+.archive-month li:last-child {
+  border-bottom: 1px dashed rgba(128, 128, 128, 0.2); /* 最后一篇也用弱化虚线，保持一致 */
+}
+.archive-month li:only-child {
+  border-bottom: 1px dashed rgba(128, 128, 128, 0.2); /* 单篇也一致 */
 }
 .archive-month li .ad {
   color: var(--muted);
