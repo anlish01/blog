@@ -1119,7 +1119,7 @@ function getEditIdFromRoute() {
 
 function renderAdminSidebar(active) {
   return '<aside class="admin-sidebar">'
-    + '<div class="admin-sidebar-brand">📋 管理</div>'
+    + '<div class="admin-sidebar-brand">📋 管理 <span style="font-size:11px;font-weight:400;color:var(--muted);">v2.2.0</span></div>'
     + '<nav class="admin-sidebar-nav">'
     + '<a href="' + esc(href('/admin/write')) + '" class="admin-nav-item' + (active === 'write' ? ' active' : '') + '">✏️ 写作</a>'
     + '<a href="' + esc(href('/admin/posts')) + '" class="admin-nav-item' + (active === 'posts' || active === 'edit' ? ' active' : '') + '">📄 文章</a>'
