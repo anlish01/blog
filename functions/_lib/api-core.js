@@ -170,8 +170,31 @@ export async function handleFeed(request, env) {
 /* ---------- 文章读写 ---------- */
 
 async function readPosts(env) {
-  const rows = await dbAll(env.DB, 'SELECT * FROM posts');
+  let rows = [];
+  try { rows = await dbAll(env.DB, 'SELECT * FROM posts'); } catch (e) { rows = []; }
+  if (rows.length) return rows.map(postFromRow);
+  // D1 空表（未迁移 / 尚未发布文章）时，回退到静态 public/posts.js 的默认文章，
+  // 保证 RSS / Sitemap 始终有内容、首页等列表不至于完全空白。
+  const staticPosts = await readStaticPosts(env);
+  if (staticPosts.length) return staticPosts;
   return rows.map(postFromRow);
+}
+
+/** 从静态资源目录读取 posts.js 并解析出文章数组（D1 空表时的兜底数据源） */
+async function readStaticPosts(env) {
+  if (!env || !env.ASSETS) return [];
+  try {
+    // ASSETS.fetch 按 pathname 取静态文件，host 无关（Pages/Workers 均注入 env.ASSETS）
+    const res = await env.ASSETS.fetch(new Request('https://assets.local/posts.js'));
+    if (!res.ok) return [];
+    const src = await res.text();
+    // posts.js 由 JSON.stringify 生成，是标准 JSON 数组：window.BLOG_POSTS = [ ... ];
+    // 贪婪匹配到最后（避免嵌套数组 ["a","b"] 的首个 ] 提前截断）
+    const m = /window\.BLOG_POSTS\s*=\s*(\[[\s\S]*\])\s*;?/.exec(src);
+    if (!m) return [];
+    const arr = JSON.parse(m[1]);
+    return Array.isArray(arr) ? arr.map(normalizePost) : [];
+  } catch (e) { return []; }
 }
 
 /** GET /api/posts（列表） · POST /api/posts（新建） */
