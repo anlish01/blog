@@ -767,6 +767,48 @@ tests.push(['API：评论 POST / GET / 校验 / 删除（需令牌）', async ()
   assert.strictEqual(after.comments.length, 2, '删除后剩 2 条');
 }]);
 
+tests.push(['后端：评论安全加固（控制字符清洗 / 频率限制 / 来源校验）', async () => {
+  const core = await import('./functions/_lib/api-core.js');
+  const env = mockEnv();
+  const kv = new Map();
+  env.BLOG = { get: async (k) => kv.get(k) || null, put: async (k, v) => { kv.set(k, String(v)); } };
+  const post = (headers, body) => core.handleComments(new Request('http://t/api/posts/p1/comments', {
+    method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, headers || {}),
+    body: JSON.stringify(body || { author: 'a', content: 'c' })
+  }), env, 'p1');
+  // 频率限制：同一 IP 每分钟 5 条，第 6 条 429
+  for (let i = 0; i < 5; i++) {
+    const r = await post({ 'CF-Connecting-IP': '1.2.3.4' }, { author: 'u' + i, content: '内容' + i });
+    assert.strictEqual(r.status, 201, '第 ' + (i + 1) + ' 条评论成功');
+  }
+  const r6 = await post({ 'CF-Connecting-IP': '1.2.3.4' }, { author: 'u6', content: '第6条' });
+  assert.strictEqual(r6.status, 429, '同 IP 第 6 条被限流');
+  const r6b = await r6.json();
+  assert.ok(String(r6b.error || '').includes('频繁'), '限流提示语');
+  // 不同 IP 不受影响
+  const rok = await post({ 'CF-Connecting-IP': '5.6.7.8' }, { author: 'x', content: 'ok' });
+  assert.strictEqual(rok.status, 201, '不同 IP 可评论');
+  // 控制字符清洗（\u0001 等被清除，\n 保留）
+  const rclean = await post({ 'CF-Connecting-IP': '9.9.9.9' }, { author: 'ab\u0001cd', content: 'ok\u0007内容\n第二行' });
+  const clean = await rclean.json();
+  assert.strictEqual(clean.comment.author, 'abcd', '昵称控制字符被清除');
+  assert.strictEqual(clean.comment.content, 'ok内容\n第二行', '内容控制字符被清除、换行保留');
+  // 来源校验：跨源 Origin 拒绝、同源放行、无 Origin 放行
+  const rbad = await post({ Origin: 'https://evil.example' }, { author: 'x', content: 'y' });
+  assert.strictEqual(rbad.status, 403, '跨源 Origin 被拒绝');
+  const rok2 = await post({ Origin: 'http://t' }, { author: 'x', content: 'y' });
+  assert.strictEqual(rok2.status, 201, '同源 Origin 放行');
+  const rno = await post({}, { author: 'x', content: 'y' });
+  assert.strictEqual(rno.status, 201, '无 Origin（curl/服务端）放行');
+}]);
+
+tests.push(['评论表单：昵称/内容前端长度限制（maxlength）', async () => {
+  const b = await boot({}, '/posts/hello-qingyu/');
+  const html = b.ctx.document.querySelector('#app').innerHTML;
+  assert.ok(/id="commentAuthor"[^>]*maxlength="30"/.test(html), '昵称输入框 maxlength=30');
+  assert.ok(/id="commentContent"[^>]*maxlength="1000"/.test(html), '评论内容 maxlength=1000');
+}]);
+
 tests.push(['评论（静态模式）：保存在本浏览器并渲染', async () => {
   const { ctx } = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } });
   assert.strictEqual((await ctx.loadComments('hello-qingyu')).length, 0, '初始无评论');

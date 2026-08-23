@@ -268,7 +268,12 @@ export async function handlePostId(request, env, id) {
  * 评论（D1 表 comments；GET 列表 / POST 发表 / DELETE 单条）
  * ============================================================ */
 
-const COMMENT_CAPS = { author: 30, content: 1000, perPost: 300 };
+const COMMENT_CAPS = { author: 30, content: 1000, perPost: 300, perMin: 5 };
+
+/** 清除字符串中的 ASCII 控制字符（保留 \n \t）：防注入 / 干扰渲染的隐形字符 */
+function sanitizeText(s) {
+  return String(s || '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+}
 
 /** GET /api/posts/:id/comments · POST /api/posts/:id/comments（公开发表） */
 export async function handleComments(request, env, postId) {
@@ -283,9 +288,26 @@ export async function handleComments(request, env, postId) {
   }
 
   if (method === 'POST') {
+    // 来源校验：浏览器跨站脚本/垃圾站外提交会带异源 Origin → 拒绝
+    const origin = request.headers.get('Origin');
+    if (origin) {
+      let self = '', site = '';
+      try { self = new URL(request.url).origin; } catch (e) {}
+      if (env.SITE_URL) site = String(env.SITE_URL).replace(/\/+$/, '');
+      if (origin !== self && origin !== site) return json({ error: '来源校验失败' }, 403);
+    }
+    // 频率限制：同一 IP 每分钟最多 perMin 条（KV 计数，60s 窗口）
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const win = Math.floor(Date.now() / 60000);
+    const rk = 'rate:cmt:' + ip + ':' + win;
+    let cnt = 0;
+    if (env.BLOG) {
+      try { cnt = Number((await env.BLOG.get(rk)) || 0); } catch (e) {}
+      if (cnt >= COMMENT_CAPS.perMin) return json({ error: '评论太频繁，请稍后再试' }, 429);
+    }
     const body = await request.json().catch(() => null);
-    const author = String((body && body.author) || '').trim().slice(0, COMMENT_CAPS.author);
-    const content = String((body && body.content) || '').trim().slice(0, COMMENT_CAPS.content);
+    const author = sanitizeText(String((body && body.author) || '').trim()).slice(0, COMMENT_CAPS.author);
+    const content = sanitizeText(String((body && body.content) || '').trim()).slice(0, COMMENT_CAPS.content);
     if (!author) return json({ error: '请填写昵称' }, 400);
     if (!content) return json({ error: '评论内容不能为空' }, 400);
     const count = await dbFirst(env.DB, 'SELECT COUNT(*) AS c FROM comments WHERE post_id = ?', postId);
@@ -299,6 +321,10 @@ export async function handleComments(request, env, postId) {
     await dbRun(env.DB,
       'INSERT INTO comments (id,post_id,author,content,date) VALUES (?,?,?,?,?)',
       comment.id, postId, comment.author, comment.content, comment.date);
+    // 入库成功才计数（防刷屏）
+    if (env.BLOG) {
+      try { await env.BLOG.put(rk, String(cnt + 1), { expirationTtl: 120 }); } catch (e) {}
+    }
     return json({ ok: true, comment }, 201);
   }
 

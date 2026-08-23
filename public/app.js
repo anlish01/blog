@@ -1169,7 +1169,7 @@ async function renderPost(id) {
   // comments
   html += '<div class="comments"><h3>评论 <span class="comment-count" id="commentCount">' + '0' + '</span></h3>';
   html += '<p class="comment-hint">在此输入昵称与内容发表评论</p>';
-  html += '<div class="comment-form"><input type="text" id="commentAuthor" placeholder="昵称"><textarea id="commentContent" rows="2" placeholder="说点什么…"></textarea><div class="comment-submit-row"><button class="btn btn-primary" id="commentSubmit">发表评论</button><span class="c-status" id="commentStatus"></span></div></div>';
+  html += '<div class="comment-form"><input type="text" id="commentAuthor" maxlength="30" placeholder="昵称"><textarea id="commentContent" rows="2" maxlength="1000" placeholder="说点什么…"></textarea><div class="comment-submit-row"><button class="btn btn-primary" id="commentSubmit">发表评论</button><span class="c-status" id="commentStatus"></span></div></div>';
   html += '<ul class="comment-list" id="commentList"></ul></div>';
 
   var adCfg = getConfig().ads || {};
@@ -1229,10 +1229,16 @@ async function renderPost(id) {
     var st = document.querySelector('#commentStatus');
     if (!a || !c) return;
     if (!a.value.trim() || !c.value.trim()) { if (st) st.textContent = '请填写昵称和内容'; return; }
-    await saveComment(post.id, a.value, c.value);
-    if (st) st.textContent = '✓ 已发表';
-    if (c) c.value = '';
-    loadComments(post.id).then(renderCommentsList);
+    // 防连点重复提交：提交期间禁用按钮
+    submit.disabled = true;
+    try {
+      await saveComment(post.id, a.value, c.value);
+      if (st) st.textContent = '✓ 已发表';
+      if (c) c.value = '';
+      loadComments(post.id).then(renderCommentsList);
+    } finally {
+      submit.disabled = false;
+    }
   });
 
   function renderCommentsList(list) {
