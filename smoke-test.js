@@ -1458,6 +1458,48 @@ tests.push(['admin 列表：云端模式置顶切换走 PUT 全字段（保留�
   assert.strictEqual(b.win.BLOG_POSTS[0].pinned, true, '本地同步置顶');
 }]);
 
+tests.push(['云端详情：首次拉取存缓存，再次进入缓存秒开，内容更新后重新拉取', async () => {
+  let detailContent = '正文V1';
+  const fetchStub = async (url) => {
+    const u = String(url);
+    if (u.endsWith('/api/posts')) return { ok: true, status: 200, json: async () => ({ ok: true, posts: [] }) };
+    if (u.endsWith('/api/posts/c1')) return { ok: true, status: 200, json: async () => ({ post: { id: 'c1', title: '缓存文', date: '2025-01-01', content: detailContent, tags: [] } }) };
+    return { ok: true, status: 200, json: async () => ({ ok: true }) };
+  };
+  const b = await boot({ 'window.BLOG_CONFIG': { mode: 'api', adminPwd: '' }, fetch: fetchStub, alert: () => {}, prompt: () => null });
+  b.ctx._setSessionToken('SES-1');
+  b.ctx._setAdminSession(true);
+  b.win.BLOG_POSTS = [{ id: 'c1', title: '缓存文', date: '2025-01-01', content: '', tags: [] }];
+  const loc = b.ctx.location;
+  loc.pathname = '/posts/c1/'; loc.search = ''; loc.hash = '';
+  const readCache = () => b.ctx.localStorage.getItem('qingyu.postCache.c1') || '';
+
+  // —— 首次点击：无缓存 → 拉取正文 V1 并写入缓存 ——
+  await b.ctx.route();
+  await new Promise((r) => setTimeout(r, 30));
+  let html = b.ctx.document.querySelector('#app').innerHTML;
+  assert.ok(html.includes('正文V1'), '首次点击渲染正文 V1');
+  assert.ok(readCache().includes('正文V1'), '正文 V1 已写入本地缓存');
+
+  // —— 内容更新为 V2：再次进入缓存秒开（无加载中），后台拉取后重渲染 V2 ——
+  detailContent = '正文V2';
+  await b.ctx.route();
+  html = b.ctx.document.querySelector('#app').innerHTML;
+  assert.ok(!html.includes('加载中'), '有缓存时不显示加载中（秒开）');
+  await new Promise((r) => setTimeout(r, 30));
+  html = b.ctx.document.querySelector('#app').innerHTML;
+  assert.ok(html.includes('正文V2'), '后台拉取后重渲染为新正文 V2');
+  assert.ok(readCache().includes('正文V2'), '缓存已更新为 V2');
+
+  // —— 内容未更新：再次进入保持 V2，不闪加载中 ——
+  await b.ctx.route();
+  html = b.ctx.document.querySelector('#app').innerHTML;
+  assert.ok(!html.includes('加载中'), '内容未更新时秒开');
+  await new Promise((r) => setTimeout(r, 30));
+  html = b.ctx.document.querySelector('#app').innerHTML;
+  assert.ok(html.includes('正文V2'), '内容未更新保持 V2');
+}]);
+
 /* ---------- 运行 ---------- */
 (async () => {
   let passed = 0, failed = 0;

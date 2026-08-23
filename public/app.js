@@ -1046,6 +1046,28 @@ function firstImageFrom(content) {
   return m2 ? m2[1] : '';
 }
 
+/* ---------- 文章详情本地缓存 ----------
+ * 云端正文（content）缓存到 localStorage：首次点击拉取后存入；
+ * 再次点击先显示缓存（秒开），同时后台重新拉取最新数据（SWR），
+ * 内容有更新则刷新缓存并自动重渲染为最新正文。 */
+function postCacheKey(id) { return 'qingyu.postCache.' + id; }
+function readPostCache(id) {
+  try {
+    var raw = localStorage.getItem(postCacheKey(id));
+    if (!raw) return null;
+    var o = JSON.parse(raw);
+    return (o && o.post && typeof o.post.content === 'string') ? o.post : null;
+  } catch (e) { return null; }
+}
+function writePostCache(id, post) {
+  try {
+    localStorage.setItem(postCacheKey(id), JSON.stringify({ post: { content: post.content || '' }, ts: Date.now() }));
+  } catch (e) { /* 容量满/不可用：忽略，下次重新拉取 */ }
+}
+function clearPostCache(id) {
+  try { localStorage.removeItem(postCacheKey(id)); } catch (e) {}
+}
+
 async function renderPost(id) {
   var cur = currentRoute();
   var html = renderNav(cur.path);
@@ -1073,28 +1095,48 @@ async function renderPost(id) {
     });
     return;
   }
-  if (_cloudOn() && !post.protected && !post.content && !post._fullLoaded) {
-    html += '<div class="empty"><div class="big">' + svgIcon('spinner', 26) + '</div><p>加载中…</p></div>';
-    html += '</div></main>' + renderFooter();
-    app().innerHTML = html;
+  if (_cloudOn() && !post.protected) {
+    // 正文加载：优先本地缓存（首次拉取后存入，再次进入秒开）；
+    // 每次进入都后台重新拉取最新正文（SWR），有更新则刷新缓存并重渲染
+    var hasContent = !!post.content;
+    var fromCache = false;
+    if (!hasContent) {
+      var cachedPost = readPostCache(post.id);
+      if (cachedPost && cachedPost.content) {
+        post.content = cachedPost.content;
+        post._fullLoaded = true;
+        fromCache = true;
+      }
+    }
+    if (!hasContent && !post.content) {
+      html += '<div class="empty"><div class="big">' + svgIcon('spinner', 26) + '</div><p>加载中…</p></div>';
+      html += '</div></main>' + renderFooter();
+      app().innerHTML = html;
+    }
     // 超时保护：10 秒拿不到正文就放弃加载态，避免“一直加载中”
     var settled = false;
     function finish(data) {
       if (settled) return;
       settled = true;
       var full = (data && data.post) || null;
-      if (full) {
-        if (full.content !== undefined) post.content = full.content;
-        if (full.enc !== undefined) post.enc = full.enc;
+      if (!full) {
+        post._fullLoaded = true;
+        if (!hasContent && !fromCache) route();   // 无缓存且拉取失败：结束加载态
+        return;
       }
+      var changed = full.content !== undefined && full.content !== post.content;
+      if (full.content !== undefined) post.content = full.content;
+      if (full.enc !== undefined) post.enc = full.enc;
+      if (full.content) writePostCache(post.id, full);
       post._fullLoaded = true;
-      route();
+      if (changed || (!hasContent && !fromCache)) route();
     }
     apiFetch('api/posts/' + encodeURIComponent(post.id))
       .then(function (data) { finish(data); })
       .catch(function () { finish(null); });
     setTimeout(function () { finish(null); }, 10000);
-    return;
+    if (!post.content) return;   // 无内容（含无缓存）：等待拉取后重渲染
+    // 有内容（缓存或已加载）：继续渲染正文，后台拉取完成后若有更新会重渲染
   }
   var content = post.protected ? _unlocked[post.id] : post.content;
   var bodyHtml = renderMarkdown(content || '');
@@ -1472,6 +1514,7 @@ async function toggleLockFromList(id) {
     try {
       await savePostToCloud(post);
       upsertLocalPost(post, false);
+      clearPostCache(post.id);   // 加密状态/正文已变：清除详情缓存
       alert(post.protected ? '已加密（云端已更新）' : '已取消加密（云端已更新）');
       syncSiteFilesToCloud().catch(function () {});
     } catch (e) {
@@ -2078,6 +2121,7 @@ function renderAdmin() {
         apiFetch('api/posts/' + encodeURIComponent(id), { method: 'DELETE', body: '{}' }).then(function (res) {
           if (res && res.ok) {
             // 同步移除本地列表项，删除后列表立即生效（无需刷新）
+            clearPostCache(id);   // 已删除：清除详情缓存
             var arr = window.BLOG_POSTS;
             if (Array.isArray(arr)) {
               window.BLOG_POSTS = arr.filter(function (p) { return p && p.id !== id; });
@@ -2097,6 +2141,7 @@ function renderAdmin() {
         var idx = posts.findIndex(function (p) { return p.id === id; });
         if (idx >= 0) {
           posts.splice(idx, 1);
+          clearPostCache(id);   // 已删除：清除详情缓存
           var blob = new Blob(['window.BLOG_POSTS=' + JSON.stringify(posts, null, 2) + ';'], { type: 'application/javascript' });
           var a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
@@ -2268,6 +2313,7 @@ async function cloudPublish() {
       body: JSON.stringify(d)
     });
     // 发布成功后回填文章并同步本地列表（首页立即可见）
+    clearPostCache(d.id);   // 内容已更新：清掉旧缓存，下次进入直接拉新
     saveDraftToStore('__new', d);
     var arr = (Array.isArray(window.BLOG_POSTS) ? window.BLOG_POSTS : []).slice();
     var idx = arr.findIndex(function (p) { return p && p.id === d.id; });
