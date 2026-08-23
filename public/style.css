@@ -1043,7 +1043,27 @@ kbd {
   cursor: pointer;
   user-select: none;
 }
-.check-label input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+.check-label input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+
+/* 加密密码框：与编辑器表单输入框统一主题（边框 / 圆角 / 背景 / 聚焦） */
+.protect-pwd {
+  width: 220px;
+  margin-left: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.protect-pwd:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.protect-pwd::placeholder { color: var(--muted); }
 
 /* ---------- 加密解锁卡 ---------- */
 .lock-card {
@@ -1615,4 +1635,6 @@ kbd {
   .admin-stat { padding: 10px 12px; }
   .admin-stat-num { font-size: 18px; }
   .admin-posts-table { display: block; overflow-x: auto; }
+  .field-protect { flex-wrap: wrap; }
+  .field-protect .protect-pwd { width: 100%; margin-left: 0; }
 }

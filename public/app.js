@@ -1330,7 +1330,7 @@ function renderEditorBody() {
     + '<div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div>'
     + '<div class="field field-full"><label>摘要（可选，不填则自动截取）</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
     + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' 置顶</label></div>'
-    + '<div class="field check-label" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" placeholder="文章访问密码（勾选加密后设置）" style="display:none;width:220px;margin-left:8px"></div>'
+    + '<div class="field check-label field-protect" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" class="protect-pwd" placeholder="文章访问密码（勾选加密后设置）" style="display:none"></div>'
     + '</div></div>';
   body += '<div class="editor-wrap">'
     + '<section class="editor-pane"><div class="pane-head">' + svgIcon('pen', 13) + ' 编辑<span class="pane-note">Markdown</span></div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" class="md-input" rows="18" placeholder="用 Markdown 写作…"></textarea></section>'
@@ -1453,7 +1453,7 @@ function renderWrite() {
     + '<div class="field"><label>摘要（可选，不填则自动截取）</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
     + '<div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div>'
     + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' 置顶</label></div>'
-    + '<div class="field check-label" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" placeholder="文章访问密码（勾选加密后设置）" style="display:none;width:220px;margin-left:8px"></div>'
+    + '<div class="field check-label field-protect" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" class="protect-pwd" placeholder="文章访问密码（勾选加密后设置）" style="display:none"></div>'
     + '</div></div>';
   html += '<div class="editor-wrap">'
     + '<section class="editor-pane"><div class="pane-head">' + svgIcon('pen', 13) + ' 编辑<span class="pane-note">Markdown</span></div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" class="md-input" rows="18" placeholder="用 Markdown 写作…"></textarea></section>'
