@@ -427,29 +427,39 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 0;
-  padding: 16px 18px;
+  padding: 0;
+  min-height: 190px;
   box-shadow: var(--shadow);
   cursor: pointer;
   transition: transform 0.15s ease, border-color 0.15s ease;
   display: flex;
-  align-items: center;
-  gap: 18px;
+  align-items: stretch;
+  gap: 0;
   color: inherit;
+  overflow: hidden;
 }
 .post-card:hover { transform: translateY(-2px); border-color: var(--accent); text-decoration: none; }
 
-/* 卡片左侧内容区（标题 / 摘要 / 元信息） */
-.post-card-main { flex: 1; min-width: 0; }
+/* 卡片左侧内容区（标题 / 摘要 / 元信息）：自带内边距、垂直居中，与右侧缩略图平衡 */
+.post-card-main {
+  flex: 1;
+  min-width: 0;
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 
-/* 卡片右侧缩略图：有图显示图，无图/加载失败显示主题渐变占位（标题首字） */
+/* 卡片右侧缩略图：贴卡片右缘、无独立边框/圆角，高度铺满卡片（stretch），
+   与卡片边缘自然融合；有图显示图，无图显示主题渐变占位（标题首字） */
 .post-thumb {
   position: relative;
   flex-shrink: 0;
-  width: 248px;
-  height: 150px;
-  border-radius: 12px;
+  width: 300px;
+  height: auto;
+  border-radius: 0;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: none;
   background: linear-gradient(135deg, var(--accent-soft), var(--bg-soft));
   display: flex;
   align-items: center;
@@ -482,13 +492,20 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
   flex-wrap: wrap;
 }
 .post-card .meta .date { letter-spacing: 0.3px; }
-.post-card .mini-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.post-card .mini-tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 0; justify-content: flex-start; align-self: flex-start; }
 .post-card .mini-tags span {
   font-size: 11.5px;
   background: var(--bg-soft);
   color: var(--muted);
   padding: 1px 8px;
   border-radius: 999px;
+}
+/* 深色主题：标签用暖棕底 + 主题橙文字 + 细边框，与卡片底色（#211e1a）明显区分 */
+html[data-theme="dark"] .post-card .mini-tags span {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid rgba(224, 138, 99, 0.28);
+  padding: 0 7px;
 }
 
 .post-card h2 { margin: 0 0 6px; font-size: 18.5px; line-height: 1.4; }
@@ -1673,16 +1690,18 @@ kbd {
   .admin-posts-table { display: block; overflow-x: auto; }
   .field-protect { flex-wrap: wrap; }
   .field-protect .protect-pwd { width: 100%; margin-left: 0; }
-  .post-card { gap: 14px; padding: 14px 14px; }
-  .post-thumb { width: 156px; height: 104px; border-radius: 10px; }
+  .post-card { gap: 0; padding: 0; min-height: 160px; }
+  .post-card-main { padding: 14px 16px; }
+  .post-thumb { width: 190px; height: auto; border-radius: 0; }
   .post-thumb-ph { font-size: 30px; }
 }
 
 /* iPhone 17（约 393px）/ iPhone 17 Pro Max（约 440px）等窄屏：
-   缩略图保持较高，同时保证左侧内容区有足够宽度（标题/摘要不被挤爆） */
+   缩略图保持较高、贴边融合，同时保证左侧内容区有足够宽度（标题/摘要不被挤爆） */
 @media (max-width: 480px) {
-  .post-card { gap: 12px; padding: 12px 12px; }
-  .post-thumb { width: 140px; height: 96px; border-radius: 10px; }
+  .post-card { gap: 0; padding: 0; min-height: 140px; }
+  .post-card-main { padding: 12px 14px; }
+  .post-thumb { width: 160px; height: auto; border-radius: 0; }
   .post-thumb-ph { font-size: 26px; }
   .post-card h2 { font-size: 17px; }
   .post-card .excerpt { font-size: 13.5px; }
