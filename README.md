@@ -68,9 +68,9 @@
 | --- | --- | --- |
 | ![首页](screenshots/home.png) | ![文章详情](screenshots/detail.png) | ![写作台](screenshots/write.png) |
 
-| 首页（手机端） | 管理后台（登录门禁） |
-| --- | --- |
-| ![手机端](screenshots/mobile.png) | ![管理后台](screenshots/admin.png) |
+| 管理后台（写作界面） | 管理后台（登录门禁） | 首页（手机端） |
+| --- | --- | --- |
+| ![管理后台](screenshots/admin-list.png) | ![管理登录](screenshots/admin.png) | ![手机端](screenshots/mobile.png) |
 
 > 以上为站点真实截图。想亲手体验？直接访问 <https://kejiland.azhz.workers.dev>，或按下方「快速开始」30 秒本地跑起来。
 

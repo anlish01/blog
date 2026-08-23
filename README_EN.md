@@ -68,9 +68,9 @@ Most blogging tools require Node + build steps (Hexo / Hugo) or a server + datab
 | --- | --- | --- |
 | ![Home](screenshots/home.png) | ![Article](screenshots/detail.png) | ![Editor](screenshots/write.png) |
 
-| Home (mobile) | Admin (login gate) |
-| --- | --- |
-| ![Mobile](screenshots/mobile.png) | ![Admin](screenshots/admin.png) |
+| Admin (editor view) | Admin (login gate) | Home (mobile) |
+| --- | --- | --- |
+| ![Admin](screenshots/admin-list.png) | ![Login](screenshots/admin.png) | ![Mobile](screenshots/mobile.png) |
 
 > Real screenshots of the site. Try it now: <https://kejiland.azhz.workers.dev>
 
