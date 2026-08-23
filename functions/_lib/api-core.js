@@ -163,7 +163,7 @@ export async function handleFeed(request, env) {
   const xml = buildFeedXml(await readPosts(env), siteUrl);
   return new Response(xml, {
     status: 200,
-    headers: { 'Content-Type': 'application/rss+xml; charset=utf-8', ...CORS }
+    headers: { 'Content-Type': 'application/rss+xml; charset=utf-8', 'Cache-Control': 'no-cache, no-store, must-revalidate', ...CORS }
   });
 }
 
@@ -349,7 +349,7 @@ export async function handleSitemap(request, env) {
   const xml = buildSitemapXml(posts, siteUrl);
   return new Response(xml, {
     status: 200,
-    headers: { 'Content-Type': 'application/xml; charset=utf-8', ...CORS }
+    headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'no-cache, no-store, must-revalidate', ...CORS }
   });
 }
 
@@ -369,7 +369,7 @@ export async function handleSiteFiles(request, env, name) {
       const isXml = /\.xml$/i.test(name);
       return new Response(row.content, {
         status: 200,
-        headers: { 'Content-Type': (isXml ? 'application/xml' : 'text/plain') + '; charset=utf-8', ...CORS }
+        headers: { 'Content-Type': (isXml ? 'application/xml' : 'text/plain') + '; charset=utf-8', 'Cache-Control': 'no-cache, no-store, must-revalidate', ...CORS }
       });
     }
     const rows = await dbAll(env.DB, 'SELECT name, updated_at FROM site_files').catch(() => []);

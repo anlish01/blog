@@ -2296,6 +2296,10 @@ function bindNavClicks() {
       // 外链 / 带 target / 静态资源（feed.xml 等）不拦截
       if (a.target || /^https?:|^\/\//i.test(hrefAttr)) return;
       if (/^(feed\.xml|sitemap\.xml|posts\.js|config\.js|app\.js|style\.css|favicon)/.test(hrefAttr)) return;
+      // API 路径（/api/feed.xml、/api/sitemap.xml、/api/...）与带文件扩展名的路径
+      // （/feed.xml、/robots.txt、图片等）不拦截：交给浏览器直接请求，SPA 路由不接管
+      var hrefNoQuery = String(hrefAttr).split('?')[0];
+      if (/^\/api\//.test(hrefNoQuery) || /\.[a-zA-Z0-9]{1,8}$/.test(hrefNoQuery)) return;
       // 纯 '#' 或站内锚点（#toc-1）不拦截，留给默认滚动
       if (hrefAttr.charAt(0) === '#' && hrefAttr.charAt(1) !== '/') return;
       e.preventDefault();
