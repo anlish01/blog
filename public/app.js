@@ -401,7 +401,20 @@ async function apiFetch(url, opts) {
   if (method !== 'GET' && method !== 'HEAD' || (opts && opts.body)) {
     headers['Content-Type'] = headers['Content-Type'] || 'application/json';
   }
-  var res = await fetch(full, Object.assign({}, opts, { headers: headers }));
+  // 超时兜底：网络慢/挂起时（如 Workers 冷启动、弱网）8s 后 abort，
+  // 避免页面无限等待（boot 探测失败会回退静态模式）
+  var ac = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var timer = ac ? setTimeout(function () { ac.abort(); }, 8000) : null;
+  var merged = Object.assign({}, opts, { headers: headers });
+  if (ac) merged.signal = ac.signal;
+  var res;
+  try {
+    res = await fetch(full, merged);
+  } catch (e) {
+    if (timer) clearTimeout(timer);
+    throw e;
+  }
+  if (timer) clearTimeout(timer);
   if (!res.ok) throw new Error('HTTP ' + res.status);
   return res.json();
 }
@@ -2449,14 +2462,24 @@ function renderSearchPanel(query) {
   panel.classList.add('open');
 }
 
-/* ---------- 启动引导 ---------- */
+/* ---------- 启动引导 ----------
+ * 首屏渲染不等待网络：先用静态/本地数据立即渲染，云端探测（/api/posts）
+ * 异步完成后再合并数据并重渲染一次，切换为云端模式 UI。
+ * 避免 API 慢（Workers 冷启动 / 弱网）时整页白屏等待。 */
 window.__bootPromise = (async function () {
   var cfg = getConfig();
+  applyTheme(getTheme());
+  bindNavClicks();
+  route();
+  window.addEventListener('hashchange', function () { route(); });
+  window.addEventListener('popstate', function () { route(); });
+
   if (cfg.mode === 'api' || cfg.mode === 'auto') {
     try {
       var resp = await apiFetch('api/posts');
       var data = resp || {};
       if (data && Array.isArray(data.posts)) {
+        var wasCloud = _cloudDetected;
         _cloudDetected = true;   // 云端在线：后续登录用 /api/admin/*
         if (data.posts.length) {
           var existing = (Array.isArray(window.BLOG_POSTS) ? window.BLOG_POSTS : []);
@@ -2476,12 +2499,9 @@ window.__bootPromise = (async function () {
           });
           window.BLOG_POSTS = Object.keys(byId).map(function (k) { return byId[k]; });
         }
+        // 探测成功：模式或数据有变化则重渲染一次（切换云端 UI、刷新列表数据）
+        if (!wasCloud || data.posts.length) route();
       }
-    } catch (e) { /* fall back to static */ }
+    } catch (e) { /* 超时/失败 → 保持静态模式 */ }
   }
-  applyTheme(getTheme());
-  bindNavClicks();
-  route();
-  window.addEventListener('hashchange', function () { route(); });
-  window.addEventListener('popstate', function () { route(); });
 })();
