@@ -931,10 +931,10 @@ footer { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--
 .footer-icp { margin-left: 8px; }
 .footer-icp:hover { color: var(--accent); }
 
-/* 移动端：仅保留导航行与版权行，隐藏声明/联系方式/友链/RSS/备案；内容整体居中 */
+/* 移动端：仅保留导航行与版权行，隐藏声明/联系方式/友链/备案；内容整体居中。
+   RSS 保留显示（普通用户的订阅入口，管理员显示写作后台代替） */
 @media (max-width: 640px) {
   .footer-extra { display: none; }
-  .footer-rss { display: none; }
   .footer-icp { display: none; }
   .footer-inner { align-items: center; }                  /* 手机端居中 */
   .footer-nav, .footer-copy { justify-content: center; text-align: center; }

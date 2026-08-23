@@ -1128,8 +1128,8 @@ tests.push(['页脚：可配置友链与文字，无「本地」字样、贴底�
   assert.ok(b.html.includes('footer-nav') && b.html.includes('>RSS<'), '页脚导航行含 RSS');
 }]);
 
-tests.push(['页脚新版式：导航行含写作后台+RSS，声明/邮箱/友链/版权区间正确', async () => {
-  const b = await boot({ 'window.BLOG_CONFIG': { mode: 'static', footer: {
+tests.push(['页脚新版式：非管理员显示 RSS 不显示写作后台，管理员相反；声明/邮箱/友链/版权正确', async () => {
+  const b = await boot({ 'window.BLOG_CONFIG': { mode: 'static', adminPwd: 'admin-999', footer: {
     decl: '本站部分内容转载自网络，作品版权归原作者及来源网站所有。',
     email: 'admin@cloumail.com',
     icp: '京ICP备12345678号',
@@ -1137,15 +1137,23 @@ tests.push(['页脚新版式：导航行含写作后台+RSS，声明/邮箱/友�
     startYear: 2019,
     copyrightName: "Qingyu'Blog"
   } } });
-  const f = b.html.slice(b.html.indexOf('<footer>'));
-  ['首页', '标签', '归档', '关于', '写作后台'].forEach((t) => assert.ok(f.includes('>' + t + '<'), '页脚导航含「' + t + '」'));
-  assert.ok(f.includes('>RSS<'), '电脑端导航行含 RSS');
+  // —— 非管理员（未登录）——
+  let f = b.html.slice(b.html.indexOf('<footer>'));
+  ['首页', '标签', '归档', '关于'].forEach((t) => assert.ok(f.includes('>' + t + '<'), '页脚导航含「' + t + '」'));
+  assert.ok(!f.includes('写作后台'), '非管理员不显示写作后台');
+  assert.ok(f.includes('>RSS<'), '非管理员显示 RSS');
   assert.ok(f.includes('footer-extra') && f.includes('站点声明：本站部分内容转载自网络'), '站点声明渲染（含前缀）');
   assert.ok(f.includes('admin@cloumail.com'), '联系邮箱渲染');
   assert.ok(f.includes('友情链接：') && f.includes('>雨幕<'), '友情链接渲染');
   const y = String(new Date().getFullYear());
   assert.ok(f.includes('Copyright ©2019-' + y + ' Qingyu&#39;Blog'), '版权为「起始年-当前年 署名」');
   assert.ok(f.includes('京ICP备12345678号'), '备案号渲染');
+  // —— 管理员（登录后重渲染）——
+  assert.strictEqual(b.ctx.tryAdmin('admin-999'), true, '管理员密码放行');
+  await b.ctx.route();
+  f = b.ctx.document.querySelector('#app').innerHTML.slice(b.ctx.document.querySelector('#app').innerHTML.indexOf('<footer>'));
+  assert.ok(f.includes('写作后台'), '管理员显示写作后台');
+  assert.ok(!f.includes('>RSS<'), '管理员不显示 RSS');
 }]);
 
 tests.push(['返回顶部悬浮按钮：首页与详情页都有，点击仅滚动不跳页', async () => {

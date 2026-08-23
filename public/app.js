@@ -880,14 +880,14 @@ function renderFooter() {
   var startYear = Number(f.startYear) || 2019;
   var copyRange = (startYear && startYear < year) ? (startYear + '-' + year) : ('' + year);
   var site = f.copyrightName || cfg.title || 'Qingyu\'Blog';
-  // 页脚导航行（含写作后台；RSS 仅在电脑端显示，移动端隐藏）
+  // 页脚导航行：写作后台仅管理员显示；RSS 仅普通用户显示（互斥，避免导航过长）
   var nav = [
     { text: '首页', url: '/' },
     { text: '标签', url: '/tags' },
     { text: '归档', url: '/archive' },
-    { text: '关于', url: '/about' },
-    { text: '写作后台', url: '/admin' }
+    { text: '关于', url: '/about' }
   ];
+  if (adminOk()) nav.push({ text: '写作后台', url: '/admin' });
   function l(x) {
     var u = x.url || '/';
     if (/^#\//.test(u)) u = href(u.slice(1));
@@ -895,10 +895,13 @@ function renderFooter() {
     return '<a href="' + esc(u) + '">' + esc(x.text || '') + '</a>';
   }
   var navHtml = nav.map(l).join('<span class="footer-dot">·</span>');
-  // RSS：云端模式指向动态 /api/feed.xml（含全部云端文章、自动取站点域名）；
-  // file:// 直开时同目录；其余静态托管用根路径 feed.xml
-  var rssHref = _cloudOn() ? '/api/feed.xml' : (useHashMode() ? 'feed.xml' : '/feed.xml');
-  navHtml += '<span class="footer-dot footer-rss">·</span><a class="footer-rss" href="' + esc(rssHref) + '">RSS</a>';
+  // RSS：仅非管理员显示（管理员有写作后台入口）。云端模式指向动态
+  // /api/feed.xml（含全部云端文章、自动取站点域名）；file:// 直开时同目录；
+  // 其余静态托管用根路径 feed.xml
+  if (!adminOk()) {
+    var rssHref = _cloudOn() ? '/api/feed.xml' : (useHashMode() ? 'feed.xml' : '/feed.xml');
+    navHtml += '<span class="footer-dot footer-rss">·</span><a class="footer-rss" href="' + esc(rssHref) + '">RSS</a>';
+  }
   // 电脑端专属区块：自定义文字 / 站点声明 / 联系方式 / 友情链接
   var extra = '';
   if (f.text) extra += '<p class="footer-text">' + esc(f.text) + '</p>';
