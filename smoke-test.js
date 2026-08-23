@@ -85,6 +85,9 @@ async function boot(extra, route) {
   const { ctx, appEl, win } = makeCtx(extra);
   setRoute(ctx, route || '/');
   vm.runInContext(fs.readFileSync(path.join(PUB, 'posts.js'), 'utf8'), ctx, { filename: 'posts.js' });
+  // 测试文章集：默认注入 TEST_POSTS 夹具；extra 显式提供 'window.BLOG_POSTS' 时优先
+  if (extra && extra['window.BLOG_POSTS']) win.BLOG_POSTS = extra['window.BLOG_POSTS'];
+  else win.BLOG_POSTS = TEST_POSTS;
   vm.runInContext(fs.readFileSync(path.join(PUB, 'app.js'), 'utf8'), ctx, { filename: 'app.js' });
   await win.__bootPromise;
   return { ctx, html: appEl.innerHTML, title: docTitle(ctx), win };
@@ -103,6 +106,25 @@ async function bootWrite(extra, route, pwd) {
   return b;
 }
 function docTitle(ctx) { return ctx.document.title; }
+
+/* ---------- 测试夹具 ----------
+ * 模拟旧示例文章集（id/日期/标签对齐历史数据），供依赖具体文章的测试注入；
+ * 真实 posts.js 现只保留 2 篇（简介 + 云端复制的 Markdown语法）。 */
+const TEST_POSTS = [
+  { id: 'hello-qingyu', title: '你好，Qingyu\'Blog', date: '2025-01-06', tags: ['随笔', '写作'], pinned: true,
+    content: '欢迎来到**Qingyu\'Blog**。你好，这是第一篇示例文章。\n\n## 从这里开始\n\n双击 index.html 即可阅读。' },
+  { id: 'write-your-first-post', title: '写一篇自己的文章', date: '2025-01-10', tags: ['教程', '写作'],
+    content: '用写作台写你的第一篇文章。\n\n## 步骤\n\n- 打开写作台\n- 输入 Markdown' },
+  { id: 'markdown-cheatsheet', title: 'Markdown 语法速览', date: '2025-01-08', tags: ['教程'],
+    content: '## 标题\n\n**粗体**、*斜体*、`代码`\n\n## 列表\n\n- 甲\n- 乙' },
+  { id: 'secret-note', title: '一封加密的信', date: '2025-01-12', tags: ['私密'], protected: true, content: '' },
+  { id: '2026市面主流ai大模型完整对比', title: '2026市面主流AI大模型完整对比', date: '2026-08-20', tags: ['技术'],
+    content: '主流 AI 大模型完整对比。' },
+  { id: 'deepseek-harness-重新定义ai-agent的开源运行底座', title: 'DeepSeek Harness：重新定义AI Agent的开源运行底座', date: '2026-08-20', tags: ['技术'],
+    content: 'DeepSeek Harness 开源运行底座介绍。' },
+  { id: 'qingyu-blog-intro', title: 'Qingyu\'Blog：一个可以双击打开的原生 JS 博客', date: '2026-08-21', tags: ['随笔', '关于'],
+    content: '零框架、零构建、双击即开。\n\n## 技术栈\n\n| 层 | 技术 |\n|---|---|\n| 前端 | 原生 JS |' }
+];
 
 /* ---------- 测试集合 ---------- */
 const tests = [];
@@ -839,6 +861,10 @@ tests.push(['加密文章：详情页锁屏 + 解锁阅读', async () => {
   assert.ok(d.html.includes('lock-card') && d.html.includes('访问密码'), '锁屏存在');
   assert.ok(!d.html.includes('这是一篇**加密内容**'.slice(0, 9)), '密文不输出');
   const { ctx } = d;
+  // 动态生成真实密文（密码 qingyu123）挂到夹具文章上，模拟已发布的加密文章
+  const enc = await ctx.encryptText('这是一篇**加密内容**，需要密码阅读。', 'qingyu123');
+  const sn = ctx.window.BLOG_POSTS.find((p) => p.id === 'secret-note');
+  sn.enc = enc;
   const freshHtml = () => ctx.document.querySelector('#app').innerHTML;
   const wrong = await ctx.tryUnlock('secret-note', 'wrong');
   assert.strictEqual(wrong, false, '错误密码不解锁');
