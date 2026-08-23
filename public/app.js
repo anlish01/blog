@@ -1014,15 +1014,14 @@ function renderCard(p) {
     + '</a>';
 }
 
-/** 文章缩略图：优先 cover 字段，其次正文第一张图；都没有则用主题渐变占位（中性图片图标，无文字） */
+/** 文章缩略图：优先 cover 字段，其次正文第一张图；有图仅显示图，无图显示主题渐变占位（中性图片图标） */
 function renderPostThumb(p) {
   var url = String((p && p.cover) || '').trim() || firstImageFrom(p && p.content);
   var title = (p && p.title) || '';
-  var icon = svgIcon('image', 26);
   if (url) {
-    return '<span class="post-thumb has-img"><img src="' + esc(url) + '" alt="' + esc(title || '文章缩略图') + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"><span class="post-thumb-ph">' + icon + '</span></span>';
+    return '<span class="post-thumb has-img"><img src="' + esc(url) + '" alt="' + esc(title || '文章缩略图') + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"></span>';
   }
-  return '<span class="post-thumb ph"><span class="post-thumb-ph">' + icon + '</span></span>';
+  return '<span class="post-thumb ph"><span class="post-thumb-ph">' + svgIcon('image', 26) + '</span></span>';
 }
 
 /** 从正文 Markdown 提取第一张图片 URL（![alt](url) 或 <img src="url">） */
