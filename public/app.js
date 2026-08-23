@@ -1237,10 +1237,10 @@ function getEditIdFromRoute() {
 
 function renderAdminSidebar(active) {
   return '<aside class="admin-sidebar">'
-    + '<div class="admin-sidebar-brand">📋 管理 <span style="font-size:11px;font-weight:400;color:var(--muted);">v2.2.0</span></div>'
+    + '<div class="admin-sidebar-brand">' + svgIcon('pen', 15) + ' 管理后台 <span class="admin-sidebar-ver">v' + esc(BLOG_VERSION) + '</span></div>'
     + '<nav class="admin-sidebar-nav">'
-    + '<a href="' + esc(href('/admin/write')) + '" class="admin-nav-item' + (active === 'write' ? ' active' : '') + '">✏️ 写作</a>'
-    + '<a href="' + esc(href('/admin/posts')) + '" class="admin-nav-item' + (active === 'posts' || active === 'edit' ? ' active' : '') + '">📄 文章</a>'
+    + '<a href="' + esc(href('/admin/write')) + '" class="admin-nav-item' + (active === 'write' ? ' active' : '') + '">' + svgIcon('pen', 14) + ' 文章写作台</a>'
+    + '<a href="' + esc(href('/admin/posts')) + '" class="admin-nav-item' + (active === 'posts' || active === 'edit' ? ' active' : '') + '">' + svgIcon('doc', 14) + ' 文章</a>'
     + '</nav>'
     + '<div class="admin-sidebar-footer">'
     + '<button class="btn btn-ghost btn-logout" id="btnLogoutSidebar">' + svgIcon('logout', 14) + ' 退出</button>'
