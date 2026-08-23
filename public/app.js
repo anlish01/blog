@@ -1462,6 +1462,10 @@ function renderWrite() {
         if (post.protected) {
           md.value = _unlocked[post.id] || '';
           if (!_unlocked[post.id]) md.placeholder = '这是一篇加密文章，请先在详情页解锁后编辑';
+        } else if (!post.content && _cloudOn()) {
+          // 云端列表是摘要：占位提示，随后异步拉取全文
+          md.value = '';
+          md.placeholder = '正在从云端加载正文…';
         } else {
           md.value = post.content || '';
         }
@@ -1470,6 +1474,7 @@ function renderWrite() {
       // also update page title for tests
       var hTitle = document.querySelector('#writeTitleHint'); if (hTitle) hTitle.textContent = '正在编辑：' + (post.title || '');
       updatePreview();
+      loadEditContent(post, editId);
     }
   } else {
     // restore draft
@@ -1518,6 +1523,28 @@ function updatePreview() {
   pv.innerHTML = renderMarkdown(md.value || '');
   var wc = document.querySelector('#wordCount');
   if (wc) wc.textContent = stripMd(md.value || '').length + ' 字';
+}
+
+/** 云端模式编辑：/api/posts 列表只返回摘要（无 content），编辑时须按 id 拉取全文回填编辑器 */
+function loadEditContent(post, editId) {
+  if (!post || !_cloudOn() || post.protected || post.content) return;
+  var st = document.querySelector('#saveStatus');
+  if (st) st.textContent = '正在加载正文…';
+  apiFetch('api/posts/' + encodeURIComponent(editId))
+    .then(function (data) {
+      var full = (data && data.post) || null;
+      if (full) {
+        if (full.content !== undefined) post.content = full.content;
+        if (full.enc !== undefined) post.enc = full.enc;
+      }
+      var md = document.querySelector('#mdInput');
+      if (md) { md.value = post.content || ''; md.placeholder = ''; }
+      updatePreview();
+      if (st) st.textContent = '正在编辑：' + (post.title || '');
+    })
+    .catch(function () {
+      if (st) st.textContent = '正文加载失败，请检查网络';
+    });
 }
 
 function bindWriteEvents() {
@@ -1585,43 +1612,7 @@ function bindWriteEvents() {
   if (btnSave) btnSave.addEventListener('click', function () { saveStaticArticle(); });
 
   var btnCloud = document.querySelector('#btnCloud');
-  if (btnCloud) btnCloud.addEventListener('click', async function () {
-    var d = await applyEncryption(collectEditor());
-    if (!d) return;
-    if (d._encErr) {
-      var st = document.querySelector('#saveStatus');
-      if (st) st.textContent = '发布失败：' + d._encErr;
-      delete d._encErr;
-      return;
-    }
-    var editId = currentEditId();
-    var id = editId || (d.title ? slugify(d.title) : 'draft');
-    d.id = id;
-    var st = document.querySelector('#saveStatus');
-    if (st) st.textContent = '发布中…';
-    try {
-      // 新建用 POST，编辑用 PUT（幂等）
-      var method = editId ? 'PUT' : 'POST';
-      await apiFetch('api/posts' + (editId ? '/' + encodeURIComponent(editId) : ''), {
-        method: method,
-        body: JSON.stringify(d)
-      });
-      // 发布成功后回填文章（编辑态已在窗口内显示）
-      saveDraftToStore('__new', d);
-      if (st) st.textContent = '✅ 已发布到云端';
-    } catch (e) {
-      var em = (e && e.message) || '未知错误';
-      // 会话过期/无效：清掉本地旧 token，跳回登录页重新拿新令牌
-      if (/401/.test(em)) {
-        _setSessionToken('');
-        _setAdminSession(false);
-        if (st) st.textContent = '登录已过期，正在前往重新登录…';
-        setTimeout(function () { route(); }, 900);
-        return;
-      }
-      if (st) st.textContent = '发布失败：' + em;
-    }
-  });
+  if (btnCloud) btnCloud.addEventListener('click', function () { cloudPublish(); });
 
   var btnExport = document.querySelector('#btnExport');
   if (btnExport) btnExport.addEventListener('click', function () {
@@ -1853,8 +1844,14 @@ function renderAdmin() {
       var title = btn.dataset.postTitle || '未命名';
       if (!confirm('确定要删除文章「' + title + '」吗？此操作不可恢复！')) return;
       if (_cloudOn()) {
-        apiFetch('api/admin/posts/' + encodeURIComponent(id), { method: 'DELETE' }).then(function (res) {
+        // 删除走 /api/posts/:id 的 DELETE（携带会话 token；旧代码误用 /api/admin/posts/:id 返回 404）
+        apiFetch('api/posts/' + encodeURIComponent(id), { method: 'DELETE', body: '{}' }).then(function (res) {
           if (res && res.ok) {
+            // 同步移除本地列表项，删除后列表立即生效（无需刷新）
+            var arr = window.BLOG_POSTS;
+            if (Array.isArray(arr)) {
+              window.BLOG_POSTS = arr.filter(function (p) { return p && p.id !== id; });
+            }
             alert('已删除');
             route();
           } else {
@@ -1899,6 +1896,9 @@ function renderAdmin() {
         if (post.protected) {
           md.value = _unlocked[post.id] || '';
           if (!_unlocked[post.id]) md.placeholder = '这是一篇加密文章，请先在详情页解锁后编辑';
+        } else if (!post.content && _cloudOn()) {
+          md.value = '';
+          md.placeholder = '正在从云端加载正文…';
         } else {
           md.value = post.content || '';
         }
@@ -1906,6 +1906,7 @@ function renderAdmin() {
       var st = document.querySelector('#saveStatus'); if (st) st.textContent = '正在编辑：' + (post.title || '');
       var hTitle = document.querySelector('#writeTitleHint'); if (hTitle) hTitle.textContent = '正在编辑：' + (post.title || '');
       updatePreview();
+      loadEditContent(post, editId);
     }
   } else {
     var draft = loadDraftFromStore('__new');
@@ -2008,6 +2009,51 @@ async function saveStaticArticle() {
   saveDraftToStore('__new', d);
   var st2 = document.querySelector('#saveStatus');
   if (st2) st2.textContent = '已保存，点击「导出 posts.js」发布';
+}
+
+/** 云端发布（新建 POST / 编辑 PUT），成功后同步本地列表（首页无需刷新即可见）。
+ *  /write、/posts/:id/edit、/admin、/admin/posts/:id/edit 共用。 */
+async function cloudPublish() {
+  var d = await applyEncryption(collectEditor());
+  if (!d) return;
+  if (d._encErr) {
+    var st = document.querySelector('#saveStatus');
+    if (st) st.textContent = '发布失败：' + d._encErr;
+    delete d._encErr;
+    return;
+  }
+  // /admin/posts/:id/edit 下 currentEditId() 解析不到，需 getEditIdFromRoute 兜底，否则误用 POST 报 409
+  var editId = currentEditId() || getEditIdFromRoute();
+  var id = editId || (d.title ? slugify(d.title) : 'draft');
+  d.id = id;
+  var st = document.querySelector('#saveStatus');
+  if (st) st.textContent = '发布中…';
+  try {
+    // 新建用 POST，编辑用 PUT（幂等）
+    var method = editId ? 'PUT' : 'POST';
+    await apiFetch('api/posts' + (editId ? '/' + encodeURIComponent(editId) : ''), {
+      method: method,
+      body: JSON.stringify(d)
+    });
+    // 发布成功后回填文章并同步本地列表（首页立即可见）
+    saveDraftToStore('__new', d);
+    var arr = (Array.isArray(window.BLOG_POSTS) ? window.BLOG_POSTS : []).slice();
+    var idx = arr.findIndex(function (p) { return p && p.id === d.id; });
+    if (idx >= 0) arr[idx] = d; else arr.push(d);
+    window.BLOG_POSTS = arr;
+    if (st) st.textContent = '✅ 已发布到云端';
+  } catch (e) {
+    var em = (e && e.message) || '未知错误';
+    // 会话过期/无效：清掉本地旧 token，跳回登录页重新拿新令牌
+    if (/401/.test(em)) {
+      _setSessionToken('');
+      _setAdminSession(false);
+      if (st) st.textContent = '登录已过期，正在前往重新登录…';
+      setTimeout(function () { route(); }, 900);
+      return;
+    }
+    if (st) st.textContent = '发布失败：' + em;
+  }
 }
 
 function buildSitemapClient() {
