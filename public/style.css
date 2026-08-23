@@ -427,14 +427,50 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 0;
-  padding: 18px 20px;
+  padding: 16px 18px;
   box-shadow: var(--shadow);
   cursor: pointer;
   transition: transform 0.15s ease, border-color 0.15s ease;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 18px;
   color: inherit;
 }
 .post-card:hover { transform: translateY(-2px); border-color: var(--accent); text-decoration: none; }
+
+/* 卡片左侧内容区（标题 / 摘要 / 元信息） */
+.post-card-main { flex: 1; min-width: 0; }
+
+/* 卡片右侧缩略图：有图显示图，无图/加载失败显示主题渐变占位（标题首字） */
+.post-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 132px;
+  height: 88px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--accent-soft), var(--bg-soft));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.post-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.post-thumb-ph {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--accent);
+  opacity: 0.85;
+  line-height: 1;
+  user-select: none;
+}
 
 .post-card .meta {
   display: flex;
@@ -1637,4 +1673,7 @@ kbd {
   .admin-posts-table { display: block; overflow-x: auto; }
   .field-protect { flex-wrap: wrap; }
   .field-protect .protect-pwd { width: 100%; margin-left: 0; }
+  .post-card { gap: 12px; padding: 14px 14px; }
+  .post-thumb { width: 92px; height: 64px; border-radius: 8px; }
+  .post-thumb-ph { font-size: 22px; }
 }

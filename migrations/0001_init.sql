@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS posts (
   date     TEXT DEFAULT '',
   excerpt  TEXT DEFAULT '',
   content  TEXT DEFAULT '',
+  cover    TEXT DEFAULT '',       -- 封面图 URL（列表卡片右侧缩略图）
   pinned   INTEGER DEFAULT 0,
   protected INTEGER DEFAULT 0,
   enc      TEXT,            -- 加密文章：JSON({salt,iv,data})；明文文章为 NULL

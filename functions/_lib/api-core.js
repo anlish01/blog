@@ -52,6 +52,7 @@ export function normalizePost(p) {
     title: String(out.title || '').trim(),
     date: String(out.date || ''),
     excerpt: String(out.excerpt || '').trim(),
+    cover: String(out.cover || '').trim(),
     // 加密文章：正文存于 enc（AES-GCM 密文），content 恒为空，避免明文外泄
     content: protectedPost ? '' : String(out.content || ''),
     pinned: !!out.pinned,
@@ -75,6 +76,7 @@ function postFromRow(r) {
     title: String(r.title || ''),
     date: String(r.date || ''),
     excerpt: String(r.excerpt || ''),
+    cover: String(r.cover || ''),
     content: String(r.content || ''),
     pinned: !!r.pinned,
     protected: !!r.protected,
@@ -87,6 +89,7 @@ function postFromRow(r) {
 function postToParams(p) {
   return [
     p.id, p.title, p.date, p.excerpt, p.content,
+    p.cover || '',
     p.pinned ? 1 : 0, p.protected ? 1 : 0,
     p.enc ? JSON.stringify(p.enc) : null,
     JSON.stringify(p.tags || [])
@@ -220,7 +223,7 @@ export async function handlePosts(request, env) {
     const exist = await dbFirst(env.DB, 'SELECT 1 FROM posts WHERE id = ?', p.id);
     if (exist) return json({ error: '已存在相同 id（' + p.id + '），请用 PUT 更新' }, 409);
     await dbRun(env.DB,
-      'INSERT INTO posts (id,title,date,excerpt,content,pinned,protected,enc,tags) VALUES (?,?,?,?,?,?,?,?,?)',
+      'INSERT INTO posts (id,title,date,excerpt,content,cover,pinned,protected,enc,tags) VALUES (?,?,?,?,?,?,?,?,?,?)',
       ...postToParams(p));
     return json({ ok: true, post: p }, 201);
   }
@@ -247,7 +250,7 @@ export async function handlePostId(request, env, id) {
     p.id = id;
     if (!p.title) return json({ error: '缺少 title' }, 400);
     await dbRun(env.DB,
-      'INSERT OR REPLACE INTO posts (id,title,date,excerpt,content,pinned,protected,enc,tags) VALUES (?,?,?,?,?,?,?,?,?)',
+      'INSERT OR REPLACE INTO posts (id,title,date,excerpt,content,cover,pinned,protected,enc,tags) VALUES (?,?,?,?,?,?,?,?,?,?)',
       ...postToParams(p));
     return json({ ok: true, post: p });
   }

@@ -1001,7 +1001,35 @@ function renderCard(p) {
   var badge = p.pinned ? '<span class="pin">' + svgIcon('pin', 13) + ' 置顶</span>' : '';
   var tags = normalizeTags(p).map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('');
   var excerpt = p.excerpt || stripMd(p.content || '').slice(0, 100);
-  return '<a class="post-card" href="' + esc(href(postUrl(p.id))) + '"><div class="meta"><span class="date">' + esc(p.date || '') + '</span>' + badge + '</div><h2>' + esc(p.title || '') + '</h2>' + (tags ? '<div class="mini-tags">' + tags + '</div>' : '') + '<div class="excerpt">' + esc(excerpt) + '</div></a>';
+  return '<a class="post-card" href="' + esc(href(postUrl(p.id))) + '">'
+    + '<div class="post-card-main">'
+    + '<div class="meta"><span class="date">' + esc(p.date || '') + '</span>' + badge + '</div>'
+    + '<h2>' + esc(p.title || '') + '</h2>'
+    + (tags ? '<div class="mini-tags">' + tags + '</div>' : '')
+    + '<div class="excerpt">' + esc(excerpt) + '</div>'
+    + '</div>'
+    + renderPostThumb(p)
+    + '</a>';
+}
+
+/** 文章缩略图：优先 cover 字段，其次正文第一张图；都没有则用主题渐变占位（标题首字） */
+function renderPostThumb(p) {
+  var url = String((p && p.cover) || '').trim() || firstImageFrom(p && p.content);
+  var title = (p && p.title) || '';
+  var ch = esc(title ? title.trim().charAt(0) : '文');
+  if (url) {
+    return '<span class="post-thumb has-img"><img src="' + esc(url) + '" alt="' + esc(title || '文章缩略图') + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"><span class="post-thumb-ph">' + ch + '</span></span>';
+  }
+  return '<span class="post-thumb ph"><span class="post-thumb-ph">' + ch + '</span></span>';
+}
+
+/** 从正文 Markdown 提取第一张图片 URL（![alt](url) 或 <img src="url">） */
+function firstImageFrom(content) {
+  var s = String(content || '');
+  var m = s.match(/!\[[^\]]*\]\(\s*(https?:[^)\s]+)\s*\)/i);
+  if (m) return m[1];
+  var m2 = s.match(/<img[^>]+src=["'](https?:[^"']+)["']/i);
+  return m2 ? m2[1] : '';
 }
 
 async function renderPost(id) {
@@ -1329,6 +1357,7 @@ function renderEditorBody() {
     + '<div class="field"><label>日期（可精确到时间）</label><div style="display:flex;gap:8px;align-items:center;"><input type="datetime-local" id="dateInput" style="flex:1;"><button class="btn btn-sm btn-ghost" id="btnToday" title="设为当前时间" style="flex-shrink:0;padding:5px 10px;font-size:12px;">今天</button></div></div>'
     + '<div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div>'
     + '<div class="field field-full"><label>摘要（可选，不填则自动截取）</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
+    + '<div class="field field-full"><label>封面图 URL（可选，列表卡片右侧缩略图）</label><input type="text" id="coverInput" placeholder="https://… 未填写则自动取正文第一张图"></div>'
     + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' 置顶</label></div>'
     + '<div class="field check-label field-protect" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" class="protect-pwd" placeholder="文章访问密码（勾选加密后设置）" style="display:none"></div>'
     + '</div></div>';
@@ -1451,6 +1480,7 @@ function renderWrite() {
     + '<div class="field"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div>'
     + '<div class="field"><label>日期（可精确到时间）</label><div style="display:flex;gap:8px;align-items:center;"><input type="datetime-local" id="dateInput" style="flex:1;"><button class="btn btn-sm btn-ghost" id="btnToday" title="设为当前时间" style="flex-shrink:0;padding:5px 10px;font-size:12px;">今天</button></div></div>'
     + '<div class="field"><label>摘要（可选，不填则自动截取）</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
+    + '<div class="field field-full"><label>封面图 URL（可选，列表卡片右侧缩略图）</label><input type="text" id="coverInput" placeholder="https://… 未填写则自动取正文第一张图"></div>'
     + '<div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div>'
     + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' 置顶</label></div>'
     + '<div class="field check-label field-protect" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" class="protect-pwd" placeholder="文章访问密码（勾选加密后设置）" style="display:none"></div>'
@@ -1489,6 +1519,7 @@ function renderWrite() {
       var date = document.querySelector('#dateInput'); if (date) date.value = toDateTimeLocal(post.date || '');
       var tags = document.querySelector('#tagInput'); if (tags) tags.value = (post.tags || []).join(', ');
       var excerpt = document.querySelector('#excerptInput'); if (excerpt) excerpt.value = post.excerpt || '';
+      var cover = document.querySelector('#coverInput'); if (cover) cover.value = post.cover || '';
       var pin = document.querySelector('#pinnedInput'); if (pin) pin.checked = !!post.pinned;
       var protect = document.querySelector('#protectInput'); if (protect) protect.checked = !!post.protected;
       var pwdBox = document.querySelector('#protectPwdInput');
@@ -1935,6 +1966,7 @@ function renderAdmin() {
       var date = document.querySelector('#dateInput'); if (date) date.value = toDateTimeLocal(post.date || '');
       var tags = document.querySelector('#tagInput'); if (tags) tags.value = (post.tags || []).join(', ');
       var excerpt = document.querySelector('#excerptInput'); if (excerpt) excerpt.value = post.excerpt || '';
+      var cover = document.querySelector('#coverInput'); if (cover) cover.value = post.cover || '';
       var pin = document.querySelector('#pinnedInput'); if (pin) pin.checked = !!post.pinned;
       var protect = document.querySelector('#protectInput'); if (protect) protect.checked = !!post.protected;
       var pwdBox = document.querySelector('#protectPwdInput');
@@ -1977,6 +2009,7 @@ function collectEditor() {
   var date = document.querySelector('#dateInput');
   var tags = document.querySelector('#tagInput');
   var excerpt = document.querySelector('#excerptInput');
+  var cover = document.querySelector('#coverInput');
   var pin = document.querySelector('#pinnedInput');
   var md = document.querySelector('#mdInput');
   var protect = document.querySelector('#protectInput');
@@ -1995,6 +2028,7 @@ function collectEditor() {
     date: dv,
     tags: String((tags && tags.value) || '').split(/[,，]/).map(function (t) { return t.trim(); }).filter(Boolean),
     excerpt: (excerpt && excerpt.value) || '',
+    cover: String((cover && cover.value) || '').trim(),
     pinned: !!(pin && pin.checked),
     content: md ? md.value : '',
     // 加密意图：_wantProtect 勾选、_protectPwd 密码（异步加密在保存/发布时执行）

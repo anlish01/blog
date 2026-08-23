@@ -97,7 +97,15 @@ jobs:
         run: |
           for f in migrations/*.sql; do
             echo "Applying $f"
-            npx --yes wrangler@3.90.0 d1 execute blog --remote --config wrangler.workers.ci.toml --file="$f"
+            out=$(npx --yes wrangler@3.90.0 d1 execute blog --remote --config wrangler.workers.ci.toml --file="$f" 2>&1)
+            code=$?
+            if [ $code -ne 0 ]; then
+              if [ "$(basename "$f")" = "0003_cover_column.sql" ] && echo "$out" | grep -qi "duplicate column"; then
+                echo "→ cover 列已存在，跳过（幂等）"
+              else
+                echo "$out"; exit 1
+              fi
+            fi
           done
 
       - name: Deploy Worker

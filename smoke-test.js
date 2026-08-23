@@ -184,7 +184,7 @@ tests.push(['首页分页：pageSize 控量 + 上一页/下一页 + 翻页切换
   assert.ok(html.includes('class="pager"'), '出现翻页器');
   assert.ok(html.includes('下一页'), '有「下一页」');
   assert.ok(!html.includes('上一页'), '第 1 页仅显示「下一页」（无上一页）');
-  assert.ok((html.match(/post-card/g) || []).length === 3, '第 1 页显示 3 篇');
+  assert.ok((html.match(/class="post-card"/g) || []).length === 3, '第 1 页显示 3 篇');
   const idsOf = (h) => (h.match(/posts\/(pg\d+)\//g) || []);
   const p1 = idsOf(html);
   // 翻到第 2 页（模拟 query ?page=2）
@@ -192,14 +192,14 @@ tests.push(['首页分页：pageSize 控量 + 上一页/下一页 + 翻页切换
   ctx.location.search = '?page=2';
   await ctx.route();
   html = ctx.document.querySelector('#app').innerHTML;
-  assert.ok((html.match(/post-card/g) || []).length === 3, '第 2 页显示 3 篇');
+  assert.ok((html.match(/class="post-card"/g) || []).length === 3, '第 2 页显示 3 篇');
   assert.ok(idsOf(html).join() !== p1.join(), '第 2 页文章与第 1 页不同');
   assert.ok(html.includes('上一页') && html.includes('下一页'), '中间页同时显示上/下一页');
   // 第 3 页（剩余 1 篇）
   ctx.location.search = '?page=3';
   await ctx.route();
   html = ctx.document.querySelector('#app').innerHTML;
-  assert.ok((html.match(/post-card/g) || []).length === 1, '第 3 页显示 1 篇');
+  assert.ok((html.match(/class="post-card"/g) || []).length === 1, '第 3 页显示 1 篇');
   assert.ok(html.includes('上一页'), '末页显示「上一页」');
   assert.ok(!html.includes('下一页'), '末页仅显示「上一页」（无下一页）');
   // pageSize=0 → 不分页，全部显示且无翻页器
@@ -207,7 +207,7 @@ tests.push(['首页分页：pageSize 控量 + 上一页/下一页 + 翻页切换
   c2.window.BLOG_POSTS = many;
   await c2.route();
   const html2 = c2.document.querySelector('#app').innerHTML;
-  assert.ok((html2.match(/post-card/g) || []).length === 7, 'pageSize=0 全部显示 7 篇');
+  assert.ok((html2.match(/class="post-card"/g) || []).length === 7, 'pageSize=0 全部显示 7 篇');
   assert.ok(!html2.includes('class="pager"'), 'pageSize=0 无翻页器');
 }]);
 
@@ -243,6 +243,22 @@ tests.push(['写作页（静态模式）：导出/草稿/导入齐全', async ()
   assert.ok(w.html.includes('mdInput') && w.html.includes('btnExport') && w.html.includes('btnSaveDraft'));
   const e = await bootWrite({ 'window.BLOG_CONFIG': { mode: 'static', adminPwd: 't' } }, '/posts/markdown-cheatsheet/edit');
   assert.ok(e.html.includes('正在编辑') || e.html.includes('编辑：Markdown'));
+}]);
+
+tests.push(['文章缩略图：封面优先 / 正文首图 / 无图占位首字，卡片左文右图', async () => {
+  const b = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } }, '/');
+  const h = b.html;
+  assert.ok(h.includes('post-card-main'), '卡片左侧内容区存在');
+  assert.ok(h.includes('post-thumb'), '卡片右侧缩略图存在');
+  // 每张卡片都有 post-thumb（有图或无图占位）
+  const cards = (h.match(/class="post-card"/g) || []).length;
+  const thumbs = (h.match(/class="post-thumb(?: |")/g) || []).length;
+  assert.strictEqual(thumbs, cards, '每张卡片一个缩略图');
+  // 无图文章有占位首字（示例文章均为纯文本 → ph 占位）
+  assert.ok(h.includes('post-thumb ph'), '无图文章显示占位缩略图');
+  // 编辑器含封面字段
+  const w = await bootWrite({ 'window.BLOG_CONFIG': { mode: 'static', adminPwd: 't' } });
+  assert.ok(w.html.includes('coverInput'), '编辑器含封面图 URL 字段');
 }]);
 
 tests.push(['写作入口：导航/正文无「写文章/编辑」按钮，/admin 进入后台', async () => {
@@ -358,7 +374,7 @@ function makeD1() {
     posts: new Map(), comments: new Map(), stats: new Map(),
     admin_auth: new Map(), admin_sessions: new Map(), admin_fails: new Map()
   };
-  const POST_COLS = ['id', 'title', 'date', 'excerpt', 'content', 'pinned', 'protected', 'enc', 'tags'];
+  const POST_COLS = ['id', 'title', 'date', 'excerpt', 'content', 'cover', 'pinned', 'protected', 'enc', 'tags'];
 
   function exec(sql, params) {
     const s = sql.replace(/\s+/g, ' ').trim();
