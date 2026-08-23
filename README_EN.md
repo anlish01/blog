@@ -64,15 +64,15 @@ Most blogging tools require Node + build steps (Hexo / Hugo) or a server + datab
 
 ## 🖼️ Screenshots
 
-| Home (desktop) | Article (desktop) |
-| --- | --- |
-| ![Home](screenshots/home.png) | ![Article](screenshots/detail.png) |
+| Home (desktop) | Article (desktop) | Editor |
+| --- | --- | --- |
+| ![Home](screenshots/home.png) | ![Article](screenshots/detail.png) | ![Editor](screenshots/write.png) |
 
 | Home (mobile) | Admin (login gate) |
 | --- | --- |
 | ![Mobile](screenshots/mobile.png) | ![Admin](screenshots/admin.png) |
 
-> Real screenshots of the live site. Try it now: <https://kejiland.azhz.workers.dev>
+> Real screenshots of the site. Try it now: <https://kejiland.azhz.workers.dev>
 
 ---
 

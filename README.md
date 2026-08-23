@@ -64,15 +64,15 @@
 
 ## 🖼️ 界面预览
 
-| 首页（桌面端） | 文章详情（桌面端） |
-| --- | --- |
-| ![首页](screenshots/home.png) | ![文章详情](screenshots/detail.png) |
+| 首页（桌面端） | 文章详情（桌面端） | 写作台 |
+| --- | --- | --- |
+| ![首页](screenshots/home.png) | ![文章详情](screenshots/detail.png) | ![写作台](screenshots/write.png) |
 
 | 首页（手机端） | 管理后台（登录门禁） |
 | --- | --- |
 | ![手机端](screenshots/mobile.png) | ![管理后台](screenshots/admin.png) |
 
-> 以上为线上站点的真实截图。想亲手体验？直接访问 <https://kejiland.azhz.workers.dev>，或按下方「快速开始」30 秒本地跑起来。
+> 以上为站点真实截图。想亲手体验？直接访问 <https://kejiland.azhz.workers.dev>，或按下方「快速开始」30 秒本地跑起来。
 
 ---
 
