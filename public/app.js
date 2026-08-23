@@ -1462,8 +1462,8 @@ function renderWrite() {
         if (post.protected) {
           md.value = _unlocked[post.id] || '';
           if (!_unlocked[post.id]) md.placeholder = '这是一篇加密文章，请先在详情页解锁后编辑';
-        } else if (!post.content && _cloudOn()) {
-          // 云端列表是摘要：占位提示，随后异步拉取全文
+        } else if (_cloudOn()) {
+          // 云端模式：始终以云端最新正文为准（本地静态旧正文不算数），先占位再由 loadEditContent 拉取覆盖
           md.value = '';
           md.placeholder = '正在从云端加载正文…';
         } else {
@@ -1525,9 +1525,10 @@ function updatePreview() {
   if (wc) wc.textContent = stripMd(md.value || '').length + ' 字';
 }
 
-/** 云端模式编辑：/api/posts 列表只返回摘要（无 content），编辑时须按 id 拉取全文回填编辑器 */
+/** 云端模式编辑：/api/posts 列表只返回摘要（无 content），编辑时须按 id 拉取云端全文。
+ *  云端是权威数据源：即使本地静态 posts.js 有旧正文，也一律用云端最新内容覆盖（拉取失败才保留本地）。 */
 function loadEditContent(post, editId) {
-  if (!post || !_cloudOn() || post.protected || post.content) return;
+  if (!post || !_cloudOn() || post.protected) return;
   var st = document.querySelector('#saveStatus');
   if (st) st.textContent = '正在加载正文…';
   apiFetch('api/posts/' + encodeURIComponent(editId))
@@ -1543,7 +1544,11 @@ function loadEditContent(post, editId) {
       if (st) st.textContent = '正在编辑：' + (post.title || '');
     })
     .catch(function () {
-      if (st) st.textContent = '正文加载失败，请检查网络';
+      // 拉取失败：回退到本地静态内容（如有），避免编辑器空白
+      var md = document.querySelector('#mdInput');
+      if (md && !md.value) { md.value = post.content || ''; md.placeholder = ''; }
+      updatePreview();
+      if (st) st.textContent = '正文加载失败，已显示本地内容（请检查网络）';
     });
 }
 
@@ -1852,7 +1857,7 @@ function renderAdmin() {
             if (Array.isArray(arr)) {
               window.BLOG_POSTS = arr.filter(function (p) { return p && p.id !== id; });
             }
-            alert('已删除');
+            alert('删除成功');
             route();
           } else {
             alert('删除失败，请重试');
@@ -1870,9 +1875,12 @@ function renderAdmin() {
           a.href = URL.createObjectURL(blob);
           a.download = 'posts.js';
           a.click();
-          URL.revokeObjectURL(a.href);
-          alert('已删除，请手动覆盖 posts.js 文件');
+          // 延迟释放 URL：立即 revoke 会让部分浏览器（尤其 file://）取消下载，导致「删了却导出不了」
+          setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (e) {} }, 3000);
+          alert('删除成功：请用下载的 posts.js 覆盖站点文件，刷新后删除生效');
           route();
+        } else {
+          alert('未找到该文章（可能已删除或不同步）');
         }
       }
     });
@@ -1896,7 +1904,8 @@ function renderAdmin() {
         if (post.protected) {
           md.value = _unlocked[post.id] || '';
           if (!_unlocked[post.id]) md.placeholder = '这是一篇加密文章，请先在详情页解锁后编辑';
-        } else if (!post.content && _cloudOn()) {
+        } else if (_cloudOn()) {
+          // 云端模式：始终以云端最新正文为准，先占位再由 loadEditContent 拉取覆盖
           md.value = '';
           md.placeholder = '正在从云端加载正文…';
         } else {
