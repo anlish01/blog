@@ -1,5 +1,5 @@
 /* ============================================================================
- * 轻语博客 · 前端逻辑（app.js）
+ * Qingyu'Blog · 前端逻辑（app.js）
  * ----------------------------------------------------------------------------
  * 包含：列表 / 详情 / 写作 / 搜索 / 标签 / 归档 / 评论 / 加密 / TOC / 代码高亮 / 统计
  * 版本 v2.1.0 ｜ 侧边导航已集成 ｜ 2026-08-22
@@ -744,7 +744,7 @@ function buildPostsJs() {
     if (idx >= 0) all[idx] = item; else all.push(item);
   });
   all.sort(sortPosts);
-  var out = '/* ============================================================\n * 轻语博客 · 文章数据（由「导出 posts.js」生成）\n * 下载本文件后覆盖博客目录下的 posts.js 即可发布。\n * ============================================================ */\nwindow.BLOG_POSTS = ' + JSON.stringify(all, null, 2) + ';\n';
+  var out = '/* ============================================================\n * Qingyu\'Blog · 文章数据（由「导出 posts.js」生成）\n * 下载本文件后覆盖博客目录下的 posts.js 即可发布。\n * ============================================================ */\nwindow.BLOG_POSTS = ' + JSON.stringify(all, null, 2) + ';\n';
   return out;
 }
 
@@ -787,7 +787,7 @@ function buildFeedXmlClient(posts, maxItems) {
     var content = renderMarkdown(p.content || '').replace(/\]\]>/g, ']]&gt;');
     return '<item>\n      <title>' + esc(p.title) + '</title>\n      <link>' + esc(link) + '</link>\n      <guid isPermaLink="false">' + esc(p.id) + '</guid>\n      <pubDate>' + rfc822(p.date) + '</pubDate>\n      <description><![CDATA[' + content + ']]></description>\n    </item>';
   }).join('\n    ');
-  return '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>' + esc(cfg.title || '轻语博客') + '</title>\n    <link>' + esc(base || 'https://blog.example') + '</link>\n    <description>' + esc(cfg.description || '一个零依赖的轻量博客') + '</description>\n    <language>zh-CN</language>\n    <lastBuildDate>' + new Date().toUTCString() + '</lastBuildDate>\n    ' + items + '\n  </channel>\n</rss>\n';
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>' + esc(cfg.title || 'Qingyu\'Blog') + '</title>\n    <link>' + esc(base || 'https://blog.example') + '</link>\n    <description>' + esc(cfg.description || '一个零依赖的轻量博客') + '</description>\n    <language>zh-CN</language>\n    <lastBuildDate>' + new Date().toUTCString() + '</lastBuildDate>\n    ' + items + '\n  </channel>\n</rss>\n';
 }
 function rfc822(dateStr) {
   try {
@@ -864,7 +864,7 @@ function renderNav(active) {
     + '</form>';
   return '<header class="topbar' + (active && _searchOpen ? ' searching' : '') + '">'
     + '<div class="container topbar-inner">'
-    + '<div class="topbar-left"><a class="brand" href="' + esc(href('/')) + '">轻语博客</a></div>'
+    + '<div class="topbar-left"><a class="brand" href="' + esc(href('/')) + '">Qingyu\'Blog</a></div>'
     + '<nav class="main-nav">' + links + '</nav>'
     + '<div class="topbar-actions">' + searchBtn + sup + '</div>'
     + searchForm
@@ -879,7 +879,7 @@ function renderFooter() {
   var year = new Date().getFullYear();
   var startYear = Number(f.startYear) || 2019;
   var copyRange = (startYear && startYear < year) ? (startYear + '-' + year) : ('' + year);
-  var site = f.copyrightName || cfg.title || '轻语博客';
+  var site = f.copyrightName || cfg.title || 'Qingyu\'Blog';
   // 页脚导航行（含写作后台；RSS 仅在电脑端显示，移动端隐藏）
   var nav = [
     { text: '首页', url: '/' },
@@ -1298,7 +1298,15 @@ function renderAbout() {
   });
   var cfg = getConfig();
   var html = renderNav(currentRoute().path);
-  html += '<main class="container page-fade"><h2 class="page-title">关于</h2><div class="about-card card"><h3>轻语博客</h3><p>一个零依赖、双击即开的轻量博客。</p>';
+  html += '<main class="container page-fade"><h2 class="page-title">关于</h2><div class="about-card card">';
+  // 站点简介：渲染「Qingyu'Blog：一个可以双击打开的原生 JS 博客」文章正文
+  var intro = (posts || []).find(function (p) { return p.id === 'qingyu-blog-intro'; });
+  if (intro && intro.content) {
+    html += '<div class="article about-intro">' + renderMarkdown(intro.content) + '</div>';
+  } else {
+    html += '<h3>Qingyu\'Blog</h3><p>一个零依赖、双击即开的轻量博客。</p>';
+  }
+  html += '<hr class="about-sep">';
   html += '<div class="stat-grid"><div class="stat"><b>' + posts.length + '</b><span>篇内容</span></div><div class="stat"><b>' + Object.keys(tags).length + '</b><span>个标签</span></div><div class="stat"><b>' + totalWords + '</b><span>总字数</span></div><div class="stat"><b>' + esc(latest || '-') + '</b><span>最新更新</span></div></div>';
   html += '<h3>版本</h3><p>v' + esc(BLOG_VERSION) + '</p><h3>数据模式</h3><p>' + (_cloudOn() ? '云端模式' : '静态模式') + '</p><h3>首次使用</h3><p>双击 index.html 即可开始。</p>';
   html += '</div></main>' + renderFooter();

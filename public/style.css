@@ -1,5 +1,5 @@
 /* ============================================================
- * 轻语博客 · 样式
+ * Qingyu'Blog · 样式
  * 纯 CSS 变量驱动，支持深色模式与移动端响应式。
  * ============================================================ */
 
@@ -450,10 +450,12 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
 }
 
 /* 卡片右侧缩略图：圆角独立块（固定尺寸，不随标题/摘要行数变高），
+   垂直居中于卡片（内容区 stretch 撑满，缩略图自身居中），
    有图显示图，无图显示主题渐变占位（中性图片图标） */
 .post-thumb {
   position: relative;
   flex-shrink: 0;
+  align-self: center;
   width: 260px;
   height: 160px;
   border-radius: 12px;
@@ -938,6 +940,8 @@ footer { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--
 .about-card h3:first-child { margin-top: 0; }
 .about-card ul { margin: 0.4em 0; padding-left: 1.4em; }
 .about-card p { margin: 0.5em 0; }
+/* 站点简介（Markdown 渲染）与统计信息之间的分隔 */
+.about-sep { border: none; border-top: 1px dashed var(--border); margin: 22px 0 18px; }
 
 /* ---------- 回到顶部 ---------- */
 /* ---------- 回到顶部（悬浮右下角，滚动后出现） ---------- */

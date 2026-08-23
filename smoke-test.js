@@ -1,5 +1,5 @@
 /* ============================================================
- * 轻语博客 · 冒烟测试（Node，模拟浏览器环境，无需浏览器）
+ * Qingyu'Blog · 冒烟测试（Node，模拟浏览器环境，无需浏览器）
  * 用法：node smoke-test.js
  * 覆盖：Markdown 渲染、frontmatter 导入、导出合并、异步引导（静态/云端）、
  *       云端 API（shared/api-core.js 增删改查 + KV）。
@@ -232,7 +232,7 @@ tests.push(['标签筛选：首页 /?tag=随笔 只渲染该标签文章（histo
 
 tests.push(['详情页 / 关于页 / 404 兜底渲染', async () => {
   const d = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } }, '/posts/hello-qingyu/');
-  assert.ok(d.html.includes('你好，轻语博客'), '详情正文渲染');
+  assert.ok(d.html.includes('你好，Qingyu&#39;Blog'), '详情正文渲染');
   assert.ok(!d.html.includes('✏️ 编辑'), '非管理员不显示编辑按钮');
   const a = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } }, '/about');
   assert.ok(a.html.includes('关于') && a.html.includes('数据模式'));
@@ -1135,7 +1135,7 @@ tests.push(['页脚新版式：导航行含写作后台+RSS，声明/邮箱/友�
     icp: '京ICP备12345678号',
     links: [{ text: '雨幕', url: 'https://rain.example' }],
     startYear: 2019,
-    copyrightName: '轻语'
+    copyrightName: "Qingyu'Blog"
   } } });
   const f = b.html.slice(b.html.indexOf('<footer>'));
   ['首页', '标签', '归档', '关于', '写作后台'].forEach((t) => assert.ok(f.includes('>' + t + '<'), '页脚导航含「' + t + '」'));
@@ -1144,7 +1144,7 @@ tests.push(['页脚新版式：导航行含写作后台+RSS，声明/邮箱/友�
   assert.ok(f.includes('admin@cloumail.com'), '联系邮箱渲染');
   assert.ok(f.includes('友情链接：') && f.includes('>雨幕<'), '友情链接渲染');
   const y = String(new Date().getFullYear());
-  assert.ok(f.includes('Copyright ©2019-' + y + ' 轻语'), '版权为「起始年-当前年 署名」');
+  assert.ok(f.includes('Copyright ©2019-' + y + ' Qingyu&#39;Blog'), '版权为「起始年-当前年 署名」');
   assert.ok(f.includes('京ICP备12345678号'), '备案号渲染');
 }]);
 
@@ -1164,7 +1164,7 @@ tests.push(['index.html：静态 base 在资源之前 + 首屏加载动画存在
   const loaderPos = html.indexOf('class="boot-load"');
   assert.ok(basePos > -1, '存在静态 <base href="/">');
   assert.ok(basePos > -1 && linkPos > -1 && basePos < linkPos, 'base 位于样式表之前');
-  assert.ok(loaderPos > -1 && html.indexOf('轻语 · 加载中') > -1, '首屏加载动画标记存在');
+  assert.ok(loaderPos > -1 && html.indexOf("Qingyu'Blog · 加载中") > -1, '首屏加载动画标记存在');
   assert.ok(!html.includes('id="dynBase"'), '旧的动态 base 脚本已移除');
 }]);
 
@@ -1172,8 +1172,8 @@ tests.push(['导航栏搜索：图标点击展开，实时命中并带摘要', a
   const { ctx } = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } });
   const hits = ctx.globalSearch('你好', 8);
   assert.ok(hits.length >= 1 && hits[0].id === 'hello-qingyu', '全局搜索命中正文');
-  const snip = ctx.searchSnippet(ctx.window.BLOG_POSTS.find((p) => p.id === 'hello-qingyu'), '轻语博客');
-  assert.ok(snip.length > 0 && snip.includes('轻语博客'), '搜索摘要包含关键词');
+  const snip = ctx.searchSnippet(ctx.window.BLOG_POSTS.find((p) => p.id === 'hello-qingyu'), "Qingyu'Blog");
+  assert.ok(snip.length > 0 && snip.includes("Qingyu'Blog"), '搜索摘要包含关键词');
   // 无关键词返回空
   assert.strictEqual(ctx.globalSearch('', 8).length, 0, '空关键词无结果');
 }]);
@@ -1545,7 +1545,7 @@ tests.push(['云端详情：首次拉取存缓存，再次进入缓存秒开，�
 /* ---------- 运行 ---------- */
 (async () => {
   let passed = 0, failed = 0;
-  console.log('== 轻语博客冒烟测试 ==');
+  console.log('== Qingyu\'Blog 冒烟测试 ==');
   for (const [name, fn] of tests) {
     try { await fn(); passed++; console.log('  ✅ ' + name); }
     catch (e) { failed++; console.log('  ❌ ' + name + '\n     ' + (e && e.stack ? e.message : e)); }

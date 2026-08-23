@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
-    <title>轻语博客</title>
+    <title>Qingyu'Blog</title>
     <link>https://kejiland.azhz.workers.dev</link>
     <description>一个零依赖的轻量博客</description>
     <language>zh-CN</language>
     <lastBuildDate>Sun, 23 Aug 2026 01:22:35 GMT</lastBuildDate>
-    <item><title>你好，轻语博客</title><link>https://kejiland.azhz.workers.dev/posts/hello-qingyu/</link><guid isPermaLink="false">hello-qingyu</guid><pubDate>Mon, 06 Jan 2025 00:00:00 GMT</pubDate><description><![CDATA[欢迎来到**轻语博客**——一个真正的「轻量版」博客。
+    <item><title>你好，Qingyu'Blog</title><link>https://kejiland.azhz.workers.dev/posts/hello-qingyu/</link><guid isPermaLink="false">hello-qingyu</guid><pubDate>Mon, 06 Jan 2025 00:00:00 GMT</pubDate><description><![CDATA[欢迎来到**Qingyu'Blog**——一个真正的「轻量版」博客。
 
 它没有框架、没有服务器、没有数据库，甚至不需要 `npm install`。整个博客只有这几个文件：
 

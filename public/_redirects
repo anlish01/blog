@@ -1,4 +1,4 @@
-# 轻语博客 · Cloudflare Pages 路由
+# Qingyu'Blog · Cloudflare Pages 路由
 # 优先级：functions/ 下的 API 函数先于 _redirects 匹配，因此 /api/* 不受影响。
 
 # 1) 老部署遗留：/public/ 前缀统一 301 到根（消除 /public）
