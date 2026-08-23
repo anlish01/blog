@@ -260,6 +260,39 @@ tests.push(['写作入口：导航/正文无「写文章/编辑」按钮，/admi
   assert.ok(w.ctx.document.querySelector('#app').innerHTML.includes('mdInput'), '/admin 放行后进入编辑器');
 }]);
 
+tests.push(['admin 后台：加密开关绑定密码框显隐 + 正文实时预览（bindWriteEvents 回归）', async () => {
+  const b = await boot({ 'window.BLOG_CONFIG': { mode: 'static', adminPwd: 'admin-999' } }, '/admin/write');
+  if (!b.ctx.adminOk()) b.ctx.tryAdmin('admin-999');
+  // 注入带缓存的 querySelector，捕捉渲染期间绑定的事件
+  const els = {};
+  const orig = b.ctx.document.querySelector;
+  b.ctx.document.querySelector = (sel) => {
+    if (sel === '#app') return orig(sel);
+    if (!els[sel]) {
+      els[sel] = Object.assign({}, stubEl(), {
+        checked: false, selectionStart: 0, selectionEnd: 0,
+        _l: {},
+        addEventListener(t, fn) { (this._l[t] = this._l[t] || []).push(fn); }
+      });
+    }
+    return els[sel];
+  };
+  b.ctx.route();
+  const protect = els['#protectInput'];
+  assert.ok(protect && protect._l['change'] && protect._l['change'].length > 0, '加密开关已绑定 change 事件');
+  protect.checked = true;
+  (protect._l['change'] || []).forEach((fn) => fn({ target: protect }));
+  assert.strictEqual(els['#protectPwdInput'].style.display, 'inline-block', '勾选加密后显示密码框');
+  protect.checked = false;
+  (protect._l['change'] || []).forEach((fn) => fn({ target: protect }));
+  assert.strictEqual(els['#protectPwdInput'].style.display, 'none', '取消勾选后隐藏密码框');
+  const md = els['#mdInput'];
+  assert.ok(md && md._l['input'] && md._l['input'].length > 0, '正文输入已绑定实时预览');
+  md.value = '# 标题';
+  (md._l['input'] || []).forEach((fn) => fn({ target: md }));
+  assert.strictEqual(els['#saveStatus'].textContent, '未保存', '输入后状态显示「未保存」');
+}]);
+
 tests.push(['写作入口（真实路径 /admin）：由 pathname 进入后台，URL 干净无 hash', async () => {
   // 模拟直接访问 https://xxx.workers.dev/admin（pathname=/admin，hash 为空）
   const g = await boot({ 'window.BLOG_CONFIG': { mode: 'static', adminPwd: 'admin-999' } }, '/admin');

@@ -1980,10 +1980,16 @@ function renderAdmin() {
       var tags = document.querySelector('#tagInput'); if (tags) tags.value = (draft.tags || []).join(', ');
       var excerpt = document.querySelector('#excerptInput'); if (excerpt) excerpt.value = draft.excerpt || '';
       var pin = document.querySelector('#pinnedInput'); if (pin) pin.checked = !!draft.pinned;
+      var protect = document.querySelector('#protectInput'); if (protect) protect.checked = !!draft.protected;
+      var pwdBox = document.querySelector('#protectPwdInput');
+      if (pwdBox) pwdBox.style.display = draft.protected ? 'inline-block' : 'none';
       var md = document.querySelector('#mdInput'); if (md) md.value = draft.content || '';
       updatePreview();
     }
   }
+  // 绑定编辑器交互：加密开关显隐密码框、正文实时预览、工具栏插入语法、官方编辑器按钮
+  // （renderWrite 在内部调用，这里必须补上，否则后台编辑器无响应）
+  bindWriteEvents();
 }
 
 /** 把库内日期（YYYY-MM-DD 或 YYYY-MM-DD HH:mm）转为 datetime-local 值（YYYY-MM-DDTHH:mm） */
