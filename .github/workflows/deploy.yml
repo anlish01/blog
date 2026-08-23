@@ -87,15 +87,18 @@ jobs:
           print('✅ 部署配置已生成（含真实 KV id 与 D1 id，不会打印）')
           PY
 
-      # 部署前应用 D1 表结构（幂等：CREATE TABLE IF NOT EXISTS）。
+      # 部署前应用 D1 表结构（幂等：CREATE TABLE IF NOT EXISTS，按序执行 migrations/*.sql）。
       # 需先在 Cloudflare 创建名为 blog 的 D1 数据库，并把其 database_id 填入 Secret BLOG_D1_ID。
-      - name: Apply D1 schema (migrations/0001_init.sql)
+      - name: Apply D1 schema (migrations/*.sql)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           BLOG_D1_ID: ${{ secrets.BLOG_D1_ID }}
         run: |
-          npx --yes wrangler@3.90.0 d1 execute blog --remote --config wrangler.workers.ci.toml --file=migrations/0001_init.sql
+          for f in migrations/*.sql; do
+            echo "Applying $f"
+            npx --yes wrangler@3.90.0 d1 execute blog --remote --config wrangler.workers.ci.toml --file="$f"
+          done
 
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3

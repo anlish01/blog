@@ -1327,6 +1327,7 @@ function renderEditorBody() {
     + '<button class="btn" id="btnOpenMdEditor">' + svgIcon('external', 15) + ' 官方编辑器</button>'
     + '<span class="action-sep"></span>'
     + '<button class="btn" id="btnExport">' + svgIcon('download', 15) + ' 导出 posts.js</button>'
+    + '<button class="btn" id="btnExportAll" title="同时导出 posts.js / feed.xml / sitemap.xml 三个文件，一次覆盖即可全部发布">' + svgIcon('save', 15) + ' 一键导出全部</button>'
     + '<button class="btn" id="btnRss">' + svgIcon('rss', 15) + ' RSS</button>'
     + '<button class="btn" id="btnSitemap">' + svgIcon('sitemap', 15) + ' Sitemap</button>'
     + '<span class="actions-right"><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span>'
@@ -1449,6 +1450,7 @@ function renderWrite() {
     + '<button class="btn" id="btnOpenMdEditor">' + svgIcon('external', 15) + ' 官方编辑器</button>'
     + '<span class="action-sep"></span>'
     + '<button class="btn" id="btnExport">' + svgIcon('download', 15) + ' 导出 posts.js</button>'
+    + '<button class="btn" id="btnExportAll" title="同时导出 posts.js / feed.xml / sitemap.xml 三个文件，一次覆盖即可全部发布">' + svgIcon('save', 15) + ' 一键导出全部</button>'
     + '<button class="btn" id="btnRss">' + svgIcon('rss', 15) + ' RSS</button>'
     + '<button class="btn" id="btnSitemap">' + svgIcon('sitemap', 15) + ' Sitemap</button>'
     + '<span class="actions-right"><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span>'
@@ -1650,6 +1652,14 @@ function bindWriteEvents() {
     saveFileFriendly('sitemap.xml', buildSitemapClient(), '已导出 sitemap.xml', '已下载 sitemap.xml');
   });
 
+  // 一键导出全部：posts.js + feed.xml + sitemap.xml 三件套一次导出（静态发布只需覆盖这三个文件）
+  var btnExportAll = document.querySelector('#btnExportAll');
+  if (btnExportAll) btnExportAll.addEventListener('click', function () {
+    saveFileFriendly('posts.js', buildPostsJs(), '已导出 posts.js', '已下载 posts.js');
+    saveFileFriendly('feed.xml', buildFeedXmlClient(getStaticPosts(), 20), '已导出 feed.xml', '已下载 feed.xml');
+    saveFileFriendly('sitemap.xml', buildSitemapClient(), '已导出 sitemap.xml', '已下载 sitemap.xml');
+  });
+
   // 退出登录：清除本地会话（云端同时撤销服务端 token），回到登录门
   var btnLogout = document.querySelector('#btnLogout');
   if (btnLogout) btnLogout.addEventListener('click', async function () {
@@ -1837,6 +1847,14 @@ function renderAdmin() {
     saveFileFriendly('sitemap.xml', buildSitemapClient(), '已导出 sitemap.xml', '已下载 sitemap.xml');
   });
 
+  // 一键导出全部：posts.js + feed.xml + sitemap.xml 三件套一次导出（静态发布只需覆盖这三个文件）
+  var btnExportAll = document.querySelector('#btnExportAll');
+  if (btnExportAll) btnExportAll.addEventListener('click', function () {
+    saveFileFriendly('posts.js', buildPostsJs(), '已导出 posts.js', '已下载 posts.js');
+    saveFileFriendly('feed.xml', buildFeedXmlClient(getStaticPosts(), 20), '已导出 feed.xml', '已下载 feed.xml');
+    saveFileFriendly('sitemap.xml', buildSitemapClient(), '已导出 sitemap.xml', '已下载 sitemap.xml');
+  });
+
   var btnLogout = document.querySelector('#btnLogout');
   if (btnLogout) btnLogout.addEventListener('click', async function () {
     await adminLogout();
@@ -1874,6 +1892,8 @@ function renderAdmin() {
               window.BLOG_POSTS = arr.filter(function (p) { return p && p.id !== id; });
             }
             alert('删除成功');
+            // 删除后同步最新 RSS/Sitemap 产物到云端（失败不阻断）
+            syncSiteFilesToCloud().catch(function () {});
             route();
           } else {
             alert('删除失败，请重试');
@@ -2067,6 +2087,8 @@ async function cloudPublish() {
     if (idx >= 0) arr[idx] = d; else arr.push(d);
     window.BLOG_POSTS = arr;
     if (st) st.innerHTML = svgIcon('check', 14) + ' 已发布到云端';
+    // 与文章一同把最新 RSS/Sitemap 产物上传到 D1 云端（失败不阻断发布）
+    syncSiteFilesToCloud().catch(function () {});
   } catch (e) {
     var em = (e && e.message) || '未知错误';
     // 会话过期/无效：清掉本地旧 token，跳回登录页重新拿新令牌
@@ -2079,6 +2101,18 @@ async function cloudPublish() {
     }
     if (st) st.textContent = '发布失败：' + em;
   }
+}
+
+/** 把最新生成的 feed.xml / sitemap.xml 产物上传到 D1（随文章发布/更新/删除自动同步） */
+async function syncSiteFilesToCloud() {
+  if (!_cloudOn()) return;
+  await apiFetch('api/site-files', {
+    method: 'POST',
+    body: JSON.stringify([
+      { name: 'feed.xml', content: buildFeedXmlClient(getStaticPosts(), 20) },
+      { name: 'sitemap.xml', content: buildSitemapClient() }
+    ])
+  });
 }
 
 function buildSitemapClient() {

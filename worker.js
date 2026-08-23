@@ -6,7 +6,7 @@
  *   · 其余请求 → 静态资源（由 wrangler.workers.toml [assets] 绑定提供）
  * 部署：npx wrangler deploy
  * ============================================================ */
-import { handlePosts, handlePostId, handleFeed, handleComments, handleCommentId, handleSitemap, handleStats, handleAdminSetup, handleAdminLogin, handleAdminLogout } from './functions/_lib/api-core.js';
+import { handlePosts, handlePostId, handleFeed, handleComments, handleCommentId, handleSitemap, handleSiteFiles, handleStats, handleAdminSetup, handleAdminLogin, handleAdminLogout } from './functions/_lib/api-core.js';
 
 export default {
   async fetch(request, env) {
@@ -62,6 +62,13 @@ export default {
     match = url.pathname.match(/^\/api\/posts\/([^/]+)$/);
     if (match) {
       return handlePostId(request, env, decodeURIComponent(match[1]));
+    }
+    match = url.pathname.match(/^\/api\/site-files\/([^/]+)$/);
+    if (match) {
+      return handleSiteFiles(request, env, decodeURIComponent(match[1]));
+    }
+    if (url.pathname === '/api/site-files') {
+      return handleSiteFiles(request, env);
     }
 
     // 未知 /api/* 路径：返回 JSON 404，绝不回退到 index.html（避免 API 调用方收到 HTML）

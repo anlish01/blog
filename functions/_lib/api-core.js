@@ -353,6 +353,49 @@ export async function handleSitemap(request, env) {
   });
 }
 
+/* ---------- 站点生成产物（RSS / Sitemap 云端副本） ---------- */
+
+/** POST /api/site-files — 保存站点产物（feed.xml / sitemap.xml 等），需写鉴权
+ *  GET  /api/site-files       — 列出全部产物名
+ *  GET  /api/site-files/:name — 下载指定产物内容 */
+export async function handleSiteFiles(request, env, name) {
+  if (!env || !env.DB) return json({ error: DB_ERR }, 500);
+  if (request.method === 'OPTIONS') return corsPreflight();
+
+  if (request.method === 'GET') {
+    if (name) {
+      const row = await dbFirst(env.DB, 'SELECT content FROM site_files WHERE name = ?', name).catch(() => null);
+      if (!row) return json({ error: '未找到该产物' }, 404);
+      const isXml = /\.xml$/i.test(name);
+      return new Response(row.content, {
+        status: 200,
+        headers: { 'Content-Type': (isXml ? 'application/xml' : 'text/plain') + '; charset=utf-8', ...CORS }
+      });
+    }
+    const rows = await dbAll(env.DB, 'SELECT name, updated_at FROM site_files').catch(() => []);
+    return json({ ok: true, files: rows });
+  }
+
+  if (request.method === 'POST') {
+    if (!(await isWriteAuthed(request, env))) return unauthorized();
+    const body = await request.json().catch(() => null);
+    const files = Array.isArray(body) ? body : (body && body.files ? body.files : null);
+    if (!Array.isArray(files) || !files.length) return json({ error: '缺少 files 数组' }, 400);
+    const now = new Date().toISOString();
+    for (const f of files) {
+      if (!f || typeof f.name !== 'string' || typeof f.content !== 'string') continue;
+      if (!/^[a-z0-9._-]+$/i.test(f.name)) continue;
+      await dbRun(env.DB,
+        'INSERT INTO site_files (name, content, updated_at) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET content = excluded.content, updated_at = excluded.updated_at',
+        f.name, f.content, now
+      ).catch(() => {});
+    }
+    return json({ ok: true });
+  }
+
+  return json({ error: '方法不允许' }, 405);
+}
+
 /* ============================================================
  * 阅读数 / 点赞（D1 表 stats）
  * ============================================================ */
