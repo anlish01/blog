@@ -1229,7 +1229,10 @@ function adminRoute() {
 function getEditIdFromRoute() {
   var path = currentRoute().path;
   var match = path.match(/^\/admin\/posts\/([^\/]+)\/edit$/);
-  return match ? match[1] : null;
+  if (!match) return null;
+  // location.pathname 对中文/特殊字符 id 是百分号编码形式，必须解码后
+  // 才能与 window.BLOG_POSTS 里的原始 id 匹配、并避免 apiFetch 二次编码 404
+  try { return decodeURIComponent(match[1]); } catch (e) { return match[1]; }
 }
 
 function renderAdminSidebar(active) {
