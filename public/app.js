@@ -998,15 +998,17 @@ function renderCardList(plist, ads, adsEnabled) {
 }
 
 function renderCard(p) {
-  var badge = p.pinned ? '<span class="pin">' + svgIcon('pin', 13) + ' 置顶</span>' : '';
+  var badges = '';
+  if (p.pinned) badges += '<span class="pin">' + svgIcon('pin', 13) + ' 置顶</span>';
+  if (p.protected) badges += '<span class="pin">' + svgIcon('lock', 13) + ' 加密</span>';
   var tags = normalizeTags(p).map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('');
   var excerpt = p.excerpt || stripMd(p.content || '').slice(0, 100);
   return '<a class="post-card" href="' + esc(href(postUrl(p.id))) + '">'
     + '<div class="post-card-main">'
-    + '<div class="meta"><span class="date">' + esc(p.date || '') + '</span>' + badge + '</div>'
+    + '<div class="meta"><span class="date">' + esc(p.date || '') + '</span>' + badges + '</div>'
     + '<h2>' + esc(p.title || '') + '</h2>'
-    + (tags ? '<div class="mini-tags">' + tags + '</div>' : '')
     + '<div class="excerpt">' + esc(excerpt) + '</div>'
+    + (tags ? '<div class="mini-tags">' + tags + '</div>' : '')
     + '</div>'
     + renderPostThumb(p)
     + '</a>';
