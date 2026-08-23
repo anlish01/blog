@@ -445,8 +445,8 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
 .post-thumb {
   position: relative;
   flex-shrink: 0;
-  width: 132px;
-  height: 88px;
+  width: 184px;
+  height: 112px;
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -1674,6 +1674,6 @@ kbd {
   .field-protect { flex-wrap: wrap; }
   .field-protect .protect-pwd { width: 100%; margin-left: 0; }
   .post-card { gap: 12px; padding: 14px 14px; }
-  .post-thumb { width: 92px; height: 64px; border-radius: 8px; }
-  .post-thumb-ph { font-size: 22px; }
+  .post-thumb { width: 124px; height: 82px; border-radius: 8px; }
+  .post-thumb-ph { font-size: 26px; }
 }
