@@ -1513,23 +1513,8 @@ function renderWrite() {
       updatePreview();
       loadEditContent(post, editId);
     }
-  } else {
-    // restore draft
-    var drafts = [];
-    try { drafts = JSON.parse(localStorage.getItem('qingyu.drafts') || '[]'); } catch (e) {}
-    var latest = drafts.length ? drafts[drafts.length - 1] : null;
-    if (latest && latest.id) {
-      var title2 = document.querySelector('#titleInput'); if (title2) title2.value = latest.title || '';
-      var date2 = document.querySelector('#dateInput'); if (date2) date2.value = toDateTimeLocal(latest.date || '');
-      var tags2 = document.querySelector('#tagInput'); if (tags2) tags2.value = (latest.tags || []).join(', ');
-      var excerpt2 = document.querySelector('#excerptInput'); if (excerpt2) excerpt2.value = latest.excerpt || '';
-      var pin2 = document.querySelector('#pinnedInput'); if (pin2) pin2.checked = !!latest.pinned;
-      var protect2 = document.querySelector('#protectInput'); if (protect2) protect2.checked = !!latest.protected;
-      var pwdBox2 = document.querySelector('#protectPwdInput');
-      if (pwdBox2) pwdBox2.style.display = latest.protected ? 'inline-block' : 'none';
-      var md2 = document.querySelector('#mdInput'); if (md2) md2.value = latest.content || '';
-    }
   }
+  // else：新建文章 —— 保持干净的空白页，不自动恢复历史草稿/上次发布内容
   updatePreview();
   bindWriteEvents();
 }
@@ -1972,21 +1957,8 @@ function renderAdmin() {
       updatePreview();
       loadEditContent(post, editId);
     }
-  } else {
-    var draft = loadDraftFromStore('__new');
-    if (draft) {
-      var title = document.querySelector('#titleInput'); if (title) title.value = draft.title || '';
-      var date = document.querySelector('#dateInput'); if (date) date.value = draft.date || '';
-      var tags = document.querySelector('#tagInput'); if (tags) tags.value = (draft.tags || []).join(', ');
-      var excerpt = document.querySelector('#excerptInput'); if (excerpt) excerpt.value = draft.excerpt || '';
-      var pin = document.querySelector('#pinnedInput'); if (pin) pin.checked = !!draft.pinned;
-      var protect = document.querySelector('#protectInput'); if (protect) protect.checked = !!draft.protected;
-      var pwdBox = document.querySelector('#protectPwdInput');
-      if (pwdBox) pwdBox.style.display = draft.protected ? 'inline-block' : 'none';
-      var md = document.querySelector('#mdInput'); if (md) md.value = draft.content || '';
-      updatePreview();
-    }
   }
+  // else：新建文章 —— 保持干净的空白页，不自动恢复历史草稿/上次发布内容
   // 绑定编辑器交互：加密开关显隐密码框、正文实时预览、工具栏插入语法、官方编辑器按钮
   // （renderWrite 在内部调用，这里必须补上，否则后台编辑器无响应）
   bindWriteEvents();
