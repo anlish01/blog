@@ -1249,13 +1249,21 @@ function getEditIdFromRoute() {
 }
 
 function renderAdminSidebar(active) {
+  var postCount = (getStaticPosts() || []).length;
+  var isEdit = active === 'edit';
   return '<aside class="admin-sidebar">'
-    + '<div class="admin-sidebar-brand">' + svgIcon('pen', 15) + ' 管理后台 <span class="admin-sidebar-ver">v' + esc(BLOG_VERSION) + '</span></div>'
+    + '<div class="admin-sidebar-brand">'
+    + '<span class="admin-brand-badge">' + svgIcon('pen', 15) + '</span>'
+    + '<span class="admin-brand-text">管理后台<span class="admin-sidebar-ver">v' + esc(BLOG_VERSION) + '</span></span>'
+    + '</div>'
     + '<nav class="admin-sidebar-nav">'
-    + '<a href="' + esc(href('/admin/write')) + '" class="admin-nav-item' + (active === 'write' ? ' active' : '') + '">' + svgIcon('pen', 14) + ' 文章写作台</a>'
-    + '<a href="' + esc(href('/admin/posts')) + '" class="admin-nav-item' + (active === 'posts' || active === 'edit' ? ' active' : '') + '">' + svgIcon('doc', 14) + ' 文章</a>'
+    + '<div class="admin-nav-group">' + svgIcon('doc', 12) + ' 内容</div>'
+    + '<a href="' + esc(href('/admin/posts')) + '" class="admin-nav-item' + (active === 'posts' || isEdit ? ' active' : '') + '">' + svgIcon('doc', 15) + '<span>文章</span><span class="admin-nav-count">' + postCount + '</span></a>'
+    + '<div class="admin-nav-group">' + svgIcon('pen', 12) + ' 创作</div>'
+    + '<a href="' + esc(href('/admin/write')) + '" class="admin-nav-item' + (active === 'write' ? ' active' : '') + '">' + svgIcon('pen', 15) + '<span>文章写作台</span></a>'
     + '</nav>'
     + '<div class="admin-sidebar-footer">'
+    + '<div class="admin-sidebar-mode">' + (_cloudOn() ? svgIcon('cloud', 12) + ' 云端模式' : svgIcon('file', 12) + ' 本地模式') + '</div>'
     + '<button class="btn btn-ghost btn-logout" id="btnLogoutSidebar">' + svgIcon('logout', 14) + ' 退出</button>'
     + '</div>'
     + '</aside>';
@@ -1264,17 +1272,28 @@ function renderAdminSidebar(active) {
 function renderPostList() {
   var posts = getStaticPosts();
   if (!posts || !posts.length) {
-    return '<div class="admin-posts-header"><h2>' + svgIcon('doc', 20) + ' 所有文章</h2></div>'
-      + '<p class="empty-state">还没有文章，去 <a href="' + esc(href('/admin/write')) + '">写一篇</a> 吧</p>';
+    return '<div class="admin-posts-header">'
+      + '<div class="admin-head-titles"><h2>' + svgIcon('doc', 20) + ' 所有文章</h2><p class="admin-head-sub">还没有文章，去 <a href="' + esc(href('/admin/write')) + '">写一篇</a> 吧。</p></div>'
+      + '</div>';
   }
-  var html = '<div class="admin-posts-header"><h2>' + svgIcon('doc', 20) + ' 所有文章</h2><span class="count">共 ' + posts.length + ' 篇</span></div>';
+  var pinnedCount = posts.filter(function (p) { return p.pinned; }).length;
+  var lockedCount = posts.filter(function (p) { return p.protected; }).length;
+  var html = '<div class="admin-posts-header">'
+    + '<div class="admin-head-titles"><h2>' + svgIcon('doc', 20) + ' 所有文章</h2><p class="admin-head-sub">管理已发布的内容：点击标题编辑正文，或删除不再需要的文章。</p></div>'
+    + '<a class="btn btn-primary btn-new-post" href="' + esc(href('/admin/write')) + '">' + svgIcon('pen', 14) + ' 写新文章</a>'
+    + '</div>';
+  html += '<div class="admin-stats">'
+    + '<div class="admin-stat"><span class="admin-stat-num">' + posts.length + '</span><span class="admin-stat-label">全部</span></div>'
+    + '<div class="admin-stat"><span class="admin-stat-num">' + pinnedCount + '</span><span class="admin-stat-label">置顶</span></div>'
+    + '<div class="admin-stat"><span class="admin-stat-num">' + lockedCount + '</span><span class="admin-stat-label">加密</span></div>'
+    + '</div>';
   html += '<table class="admin-posts-table"><thead><tr><th>标题</th><th>日期</th><th>状态</th><th>操作</th></tr></thead><tbody>';
   posts.forEach(function (p) {
     var status = p.pinned ? svgIcon('pin', 12) + ' 置顶' : (p.protected ? svgIcon('lock', 12) + ' 加密' : '已发布');
     var title = p.title || '未命名';
     html += '<tr>'
-      + '<td><a href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '">' + esc(title) + '</a></td>'
-      + '<td>' + esc(p.date || '') + '</td>'
+      + '<td class="post-title-cell"><a class="post-title-link" href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '">' + esc(title) + svgIcon('external', 12) + '</a></td>'
+      + '<td class="post-date-cell">' + esc(p.date || '') + '</td>'
       + '<td><span class="status-badge' + (p.pinned ? ' pinned' : '') + (p.protected ? ' protected' : '') + '">' + status + '</span></td>'
       + '<td><div class="post-actions">'
       + '<a href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '" class="btn btn-sm">' + svgIcon('pen', 13) + ' 编辑</a>'
@@ -1306,10 +1325,10 @@ function renderEditorBody() {
     + (_editId ? '<span class="mode-chip editing" id="writeTitleHint">' + (_editPost ? esc('编辑：' + (_editPost.title || '')) : '新文章') + '</span>' : '')
     + '</div>';
   body += '<div class="card editor-meta"><div class="editor-grid">'
-    + '<div class="field"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div>'
+    + '<div class="field field-full"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div>'
     + '<div class="field"><label>日期（可精确到时间）</label><div style="display:flex;gap:8px;align-items:center;"><input type="datetime-local" id="dateInput" style="flex:1;"><button class="btn btn-sm btn-ghost" id="btnToday" title="设为当前时间" style="flex-shrink:0;padding:5px 10px;font-size:12px;">今天</button></div></div>'
-    + '<div class="field"><label>摘要（可选，不填则自动截取）</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
     + '<div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div>'
+    + '<div class="field field-full"><label>摘要（可选，不填则自动截取）</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
     + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' 置顶</label></div>'
     + '<div class="field check-label" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" placeholder="文章访问密码（勾选加密后设置）" style="display:none;width:220px;margin-left:8px"></div>'
     + '</div></div>';
