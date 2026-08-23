@@ -50,6 +50,8 @@ function makeCtx(extra) {
       removeItem: (k) => { delete mem[k]; },
     },
     confirm: () => true,
+    alert: () => {},
+    prompt: () => null,
     setTimeout, clearTimeout,
     URLSearchParams, Blob: function () {},
     URL: { createObjectURL: () => 'blob:stub', revokeObjectURL() {} },
@@ -1356,6 +1358,104 @@ tests.push(['hash 模式翻页：file:// 下点击下一页能切换内容、URL
   assert.notStrictEqual(p1ids, p2ids, '点击下一页后文章列表变化');
   assert.ok(!/[?]page=2[?]/.test(loc2.hash), 'URL 未出现双重 ?（实际：' + loc2.hash + '）');
   assert.strictEqual(loc2.hash, '#/?page=2', 'hash 正确为 #/?page=2');
+}]);
+
+/* ---------- admin 列表：置顶 / 加密切换 ---------- */
+tests.push(['admin 列表：置顶/加密切换按钮渲染（激活态高亮）', async () => {
+  const b = await bootWrite({ 'window.BLOG_CONFIG': { mode: 'static', adminPwd: 't' } }, '/admin/posts');
+  b.win.BLOG_POSTS = [
+    { id: 'p1', title: '置顶文', date: '2025-01-01', content: '正文一', pinned: true, protected: false, tags: [] },
+    { id: 'p2', title: '密文', date: '2025-01-02', content: '', pinned: false, protected: true, enc: { salt: 'a', iv: 'b', data: 'c' }, tags: [] },
+    { id: 'p3', title: '普通文', date: '2025-01-03', content: '正文三', pinned: false, protected: false, tags: [] },
+  ];
+  await b.ctx.route();
+  const html = b.ctx.document.querySelector('#app').innerHTML;
+  assert.ok(html.includes('data-pin-id'), '行内含置顶切换按钮');
+  assert.ok(html.includes('data-lock-id'), '行内含加密切换按钮');
+  assert.ok(html.includes('取消置顶'), '置顶文章按钮为「取消置顶」（激活态）');
+  assert.ok(html.includes('取消加密'), '加密文章按钮为「取消加密」（激活态）');
+  assert.ok(html.includes('btn-on'), '激活态按钮带 btn-on 类');
+}]);
+
+tests.push(['admin 列表：置顶切换（静态模式，本地更新+导出）', async () => {
+  const b = await bootWrite({ 'window.BLOG_CONFIG': { mode: 'static', adminPwd: 't' } }, '/admin/posts');
+  b.win.BLOG_POSTS = [{ id: 'p1', title: '文', date: '2025-01-01', content: '正文', pinned: false, protected: false, tags: [] }];
+  await b.ctx.route();
+  await b.ctx.togglePinFromList('p1');
+  assert.strictEqual(b.win.BLOG_POSTS[0].pinned, true, '切换置顶为 true');
+  assert.ok(b.ctx.document.querySelector('#app').innerHTML.includes('取消置顶'), '列表重渲染为「取消置顶」');
+  await b.ctx.togglePinFromList('p1');
+  assert.strictEqual(b.win.BLOG_POSTS[0].pinned, false, '再次切换取消置顶');
+  assert.ok(b.ctx.document.querySelector('#app').innerHTML.includes(' 置顶</button>'), '列表重渲染回「置顶」');
+}]);
+
+tests.push(['admin 列表：添加加密 + 取消加密（原密码解密恢复明文，错误密码拒绝）', async () => {
+  const prompts = [];
+  const b = await bootWrite({
+    'window.BLOG_CONFIG': { mode: 'static', adminPwd: 't' },
+    prompt: () => { const v = prompts.shift(); return v === undefined ? null : v; },
+  }, '/admin/posts');
+  b.win.BLOG_POSTS = [{ id: 'p1', title: '文', date: '2025-01-01', content: '这是要加密的正文', pinned: false, protected: false, tags: [] }];
+  await b.ctx.route();
+  // —— 添加加密：两次密码一致 ——
+  prompts.push('pw1234', 'pw1234');
+  await b.ctx.toggleLockFromList('p1');
+  let p = b.win.BLOG_POSTS[0];
+  assert.strictEqual(p.protected, true, '已标记加密');
+  assert.ok(p.enc && p.enc.data, '正文加密存入 enc');
+  assert.strictEqual(p.content, '', '明文已清空');
+  assert.ok(b.ctx.document.querySelector('#app').innerHTML.includes('取消加密'), '列表重渲染为「取消加密」');
+  // —— 取消加密：原密码 → 明文恢复 ——
+  prompts.push('pw1234');
+  await b.ctx.toggleLockFromList('p1');
+  p = b.win.BLOG_POSTS[0];
+  assert.strictEqual(p.protected, false, '已取消加密');
+  assert.strictEqual(p.content, '这是要加密的正文', '明文已恢复');
+  assert.ok(!p.enc, '密文已清除');
+  // —— 错误密码不取消 ——
+  b.win.BLOG_POSTS[0].protected = true;
+  b.win.BLOG_POSTS[0].enc = await b.ctx.encryptText('再次加密内容', 'pw9999');
+  b.win.BLOG_POSTS[0].content = '';
+  prompts.push('wrong-pass');
+  await b.ctx.toggleLockFromList('p1');
+  p = b.win.BLOG_POSTS[0];
+  assert.strictEqual(p.protected, true, '错误密码不取消加密');
+  assert.ok(p.enc, '密文保留');
+  // —— 两次密码不一致不加密 ——
+  b.win.BLOG_POSTS[0].protected = false;
+  b.win.BLOG_POSTS[0].content = '新明文';
+  prompts.push('aaa111', 'bbb222');
+  await b.ctx.toggleLockFromList('p1');
+  p = b.win.BLOG_POSTS[0];
+  assert.strictEqual(p.protected, false, '两次密码不一致不加密');
+  assert.strictEqual(p.content, '新明文', '明文未动');
+}]);
+
+tests.push(['admin 列表：云端模式置顶切换走 PUT 全字段（保留内容/标签）', async () => {
+  const calls = [];
+  const fetchStub = async (url, opts) => {
+    calls.push({ url: String(url), opts });
+    const u = String(url);
+    if (u.endsWith('/api/posts/p1')) {
+      return { ok: true, status: 200, json: async () => ({ post: { id: 'p1', title: '文', date: '2025-01-01', content: '正文', pinned: false, protected: false, tags: ['a'], enc: null } }) };
+    }
+    if (u.includes('api/site-files')) return { ok: true, status: 200, json: async () => ({ ok: true }) };
+    return { ok: true, status: 200, json: async () => ({ ok: true, posts: [] }) };
+  };
+  const b = await boot({ 'window.BLOG_CONFIG': { mode: 'api', adminPwd: '' }, fetch: fetchStub, alert: () => {}, prompt: () => null });
+  b.ctx._setSessionToken('SES-1');
+  b.ctx._setAdminSession(true);
+  b.win.BLOG_POSTS = [{ id: 'p1', title: '文', date: '2025-01-01', content: '正文', pinned: false, protected: false, tags: ['a'] }];
+  await b.ctx.route();
+  await b.ctx.togglePinFromList('p1');
+  const put = calls.find((c) => c.opts && c.opts.method === 'PUT');
+  assert.ok(put, '发出 PUT 请求');
+  const body = JSON.parse(put.opts.body);
+  assert.strictEqual(body.pinned, true, 'PUT 带 pinned=true');
+  assert.strictEqual(body.content, '正文', 'PUT 保留 content');
+  assert.deepStrictEqual(body.tags, ['a'], 'PUT 保留 tags');
+  assert.strictEqual(body.enc, null, 'PUT 密文字段为 null');
+  assert.strictEqual(b.win.BLOG_POSTS[0].pinned, true, '本地同步置顶');
 }]);
 
 /* ---------- 运行 ---------- */

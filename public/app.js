@@ -1339,12 +1339,150 @@ function renderPostList() {
       + '<td><span class="status-badge' + (p.pinned ? ' pinned' : '') + (p.protected ? ' protected' : '') + '">' + status + '</span></td>'
       + '<td><div class="post-actions">'
       + '<a href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '" class="btn btn-sm">' + svgIcon('pen', 13) + ' 编辑</a>'
+      + '<button class="btn btn-sm' + (p.pinned ? ' btn-on' : '') + '" data-pin-id="' + esc(p.id) + '" title="' + (p.pinned ? '取消置顶' : '置顶') + '">' + svgIcon('pin', 13) + ' ' + (p.pinned ? '取消置顶' : '置顶') + '</button>'
+      + '<button class="btn btn-sm' + (p.protected ? ' btn-on' : '') + '" data-lock-id="' + esc(p.id) + '" title="' + (p.protected ? '取消加密（需原密码）' : '设置访问密码') + '">' + svgIcon('lock', 13) + ' ' + (p.protected ? '取消加密' : '加密') + '</button>'
       + '<button class="btn btn-sm btn-danger" data-post-id="' + esc(p.id) + '" data-post-title="' + esc(title) + '">' + svgIcon('trash', 13) + ' 删除</button>'
       + '</div></td>'
       + '</tr>';
   });
   html += '</tbody></table>';
   return html;
+}
+
+/* ---------- 文章列表：置顶 / 加密切换 ---------- */
+
+/** 从本地列表取文章对象（含完整数据/密文） */
+function findPostForUpdate(id) {
+  var arr = Array.isArray(window.BLOG_POSTS) ? window.BLOG_POSTS : [];
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i] && arr[i].id === id) return arr[i];
+  }
+  return null;
+}
+
+/** 云端：拉取文章详情（列表摘要不含 content/enc） */
+async function fetchPostDetail(id) {
+  var data = await apiFetch('api/posts/' + encodeURIComponent(id));
+  return (data && data.post) ? data.post : null;
+}
+
+/** 云端：PUT 更新单篇。必须带全字段，否则 PUT 会以缺省值覆盖内容/密文/标签 */
+async function savePostToCloud(post) {
+  var body = {
+    id: post.id,
+    title: post.title || '',
+    date: post.date || '',
+    excerpt: post.excerpt || '',
+    cover: post.cover || '',
+    tags: Array.isArray(post.tags) ? post.tags : [],
+    pinned: !!post.pinned,
+    protected: !!post.protected,
+    enc: post.enc || null,
+    content: post.protected ? '' : (post.content || '')
+  };
+  await apiFetch('api/posts/' + encodeURIComponent(post.id), { method: 'PUT', body: JSON.stringify(body) });
+}
+
+/** 更新本地列表项；静态模式导出新 posts.js 供覆盖发布 */
+function upsertLocalPost(post, exportStatic) {
+  var arr = (Array.isArray(window.BLOG_POSTS) ? window.BLOG_POSTS : []).slice();
+  var idx = arr.findIndex(function (p) { return p && p.id === post.id; });
+  if (idx >= 0) arr[idx] = post; else arr.push(post);
+  window.BLOG_POSTS = arr;
+  if (exportStatic) {
+    var blob = new Blob(['window.BLOG_POSTS=' + JSON.stringify(arr, null, 2) + ';'], { type: 'application/javascript' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'posts.js';
+    a.click();
+    setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (e) {} }, 3000);
+  }
+}
+
+/** 列表页：切换置顶（云端 PUT / 静态改本地并导出） */
+async function togglePinFromList(id) {
+  var post = findPostForUpdate(id);
+  if (!post) { alert('未找到该文章（可能已删除或不同步）'); return; }
+  var target = !post.pinned;
+  try {
+    if (_cloudOn()) {
+      var full = await fetchPostDetail(id);   // 以云端详情为准（含最新内容/密文）
+      if (full) post = full;
+    }
+  } catch (e) {
+    alert('操作失败，请检查网络或登录状态');
+    return;
+  }
+  post.pinned = target;
+  if (_cloudOn()) {
+    try {
+      await savePostToCloud(post);
+      upsertLocalPost(post, false);
+      alert(target ? '已置顶（云端已更新）' : '已取消置顶（云端已更新）');
+      syncSiteFilesToCloud().catch(function () {});
+    } catch (e) {
+      alert('操作失败，请检查网络或登录状态');
+      return;
+    }
+  } else {
+    upsertLocalPost(post, true);
+    alert(target ? '已置顶：请用下载的 posts.js 覆盖站点文件' : '已取消置顶：请用下载的 posts.js 覆盖站点文件');
+  }
+  route();
+}
+
+/** 列表页：添加加密（设密码，正文转密文）/ 取消加密（原密码解密恢复明文） */
+async function toggleLockFromList(id) {
+  var post = findPostForUpdate(id);
+  if (!post) { alert('未找到该文章（可能已删除或不同步）'); return; }
+  try {
+    if (_cloudOn()) {
+      var full = await fetchPostDetail(id);
+      if (full) post = full;
+    }
+  } catch (e) {
+    alert('操作失败，请检查网络或登录状态');
+    return;
+  }
+  if (!post.protected) {
+    // —— 添加加密 ——
+    var pwd = prompt('设置文章访问密码（至少 4 位）：');
+    if (pwd === null) return;
+    pwd = String(pwd || '').trim();
+    if (pwd.length < 4) { alert('密码至少 4 位'); return; }
+    var pwd2 = prompt('再次输入密码确认：');
+    if (String(pwd2 || '') !== pwd) { alert('两次密码不一致'); return; }
+    var content = post.content || '';
+    if (!content) { alert('文章正文为空，无法加密'); return; }
+    var enc = await encryptText(content, pwd);
+    post.protected = true;
+    post.enc = enc;
+    post.content = '';
+  } else {
+    // —— 取消加密：需原密码解密恢复明文 ——
+    var oldPwd = prompt('输入该文章的原密码以取消加密：');
+    if (oldPwd === null) return;
+    var plain = post.content ? post.content : (post.enc ? await decryptText(post.enc, String(oldPwd || '')) : null);
+    if (!plain) { alert('密码错误或无法解密'); return; }
+    post.protected = false;
+    post.enc = null;
+    post.content = plain;
+  }
+  if (_cloudOn()) {
+    try {
+      await savePostToCloud(post);
+      upsertLocalPost(post, false);
+      alert(post.protected ? '已加密（云端已更新）' : '已取消加密（云端已更新）');
+      syncSiteFilesToCloud().catch(function () {});
+    } catch (e) {
+      alert('操作失败，请检查网络或登录状态');
+      return;
+    }
+  } else {
+    upsertLocalPost(post, true);
+    alert(post.protected ? '已加密：请用下载的 posts.js 覆盖站点文件' : '已取消加密：请用下载的 posts.js 覆盖站点文件');
+  }
+  route();
 }
 
 function renderEditorBody() {
@@ -1922,10 +2060,14 @@ function renderAdmin() {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); saveStaticArticle(); }
   });
 
-  // 文章列表的删除按钮（事件委托）
+  // 文章列表操作按钮（事件委托）：置顶 / 加密 切换，删除
   var content = document.querySelector('.admin-content');
   if (content) {
     content.addEventListener('click', function (e) {
+      var pinBtn = e.target.closest('[data-pin-id]');
+      if (pinBtn) { togglePinFromList(pinBtn.dataset.pinId); return; }
+      var lockBtn = e.target.closest('[data-lock-id]');
+      if (lockBtn) { toggleLockFromList(lockBtn.dataset.lockId); return; }
       var btn = e.target.closest('.btn-danger[data-post-id]');
       if (!btn) return;
       var id = btn.dataset.postId;

@@ -1618,6 +1618,12 @@ kbd {
 }
 
 .post-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+/* 列表操作按钮激活态：置顶/加密已开启时高亮（accent 描边 + 浅底） */
+.post-actions .btn-on {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
 
 .empty-state { color: var(--muted); font-size: 14px; padding: 22px 0; }
 .empty-state a { color: var(--accent); }
