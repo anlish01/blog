@@ -427,39 +427,37 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 0;
-  padding: 0;
-  min-height: 190px;
+  padding: 16px 18px;
+  min-height: 200px;
   box-shadow: var(--shadow);
   cursor: pointer;
   transition: transform 0.15s ease, border-color 0.15s ease;
   display: flex;
-  align-items: stretch;
-  gap: 0;
+  align-items: center;
+  gap: 18px;
   color: inherit;
-  overflow: hidden;
 }
 .post-card:hover { transform: translateY(-2px); border-color: var(--accent); text-decoration: none; }
 
-/* 卡片左侧内容区（标题 / 摘要 / 元信息）：自带内边距、垂直居中，与右侧缩略图平衡 */
+/* 卡片左侧内容区（标题 / 摘要 / 元信息）：垂直居中，与右侧缩略图平衡 */
 .post-card-main {
   flex: 1;
   min-width: 0;
-  padding: 18px 22px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-/* 卡片右侧缩略图：贴卡片右缘、无独立边框/圆角，高度铺满卡片（stretch），
-   与卡片边缘自然融合；有图显示图，无图显示主题渐变占位（标题首字） */
+/* 卡片右侧缩略图：圆角独立块（固定尺寸，不随标题/摘要行数变高），
+   有图显示图，无图显示主题渐变占位（中性图片图标） */
 .post-thumb {
   position: relative;
   flex-shrink: 0;
-  width: 300px;
-  height: auto;
-  border-radius: 0;
+  width: 260px;
+  height: 160px;
+  border-radius: 12px;
   overflow: hidden;
-  border: none;
+  border: 1px solid var(--border);
   background: linear-gradient(135deg, var(--accent-soft), var(--bg-soft));
   display: flex;
   align-items: center;
@@ -715,6 +713,10 @@ html[data-theme="dark"] .post-card .mini-tags span {
 .editor-meta { margin-bottom: 16px; }
 /* 两行并排：标题+日期 / 摘要+标签（首列较宽），置顶+加密第三行；移动端媒体查询恢复单列 */
 .editor-grid { display: grid; grid-template-columns: 2.4fr 1fr; gap: 12px; }
+/* grid 内间距统一由 gap 控制：覆盖 .field 的 margin-bottom / .check-label 的 margin-top，
+   避免行距叠加不均（加密密码框显隐时日期/标签行不产生跳动感） */
+.editor-grid > .field { margin-bottom: 0; }
+.editor-grid > .check-label { margin-top: 0; }
 
 .editor-area {
   display: block;
@@ -1096,11 +1098,20 @@ kbd {
   cursor: pointer;
   user-select: none;
 }
-.check-label input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+/* label 内部（checkbox + 图标 + 文字）flex 垂直居中，确保与密码框同一行对齐 */
+.check-label label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.check-label svg { flex-shrink: 0; display: block; }
+.check-label input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
 
-/* 加密密码框：与编辑器表单输入框统一主题（边框 / 圆角 / 背景 / 聚焦） */
+/* 加密密码框：与编辑器表单输入框统一主题（边框 / 圆角 / 背景 / 聚焦）。
+   宽度取整数值，确保在 grid 1fr 列内显示不溢出、不挤压同行 */
 .protect-pwd {
-  width: 220px;
+  width: 190px;
   margin-left: 10px;
   border: 1px solid var(--border);
   background: var(--bg);
@@ -1111,6 +1122,7 @@ kbd {
   font-family: inherit;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
 }
 .protect-pwd:focus {
   border-color: var(--accent);
@@ -1690,19 +1702,19 @@ kbd {
   .admin-posts-table { display: block; overflow-x: auto; }
   .field-protect { flex-wrap: wrap; }
   .field-protect .protect-pwd { width: 100%; margin-left: 0; }
-  .post-card { gap: 0; padding: 0; min-height: 160px; }
-  .post-card-main { padding: 14px 16px; }
-  .post-thumb { width: 190px; height: auto; border-radius: 0; }
-  .post-thumb-ph { font-size: 30px; }
+  .post-card { gap: 14px; padding: 14px; min-height: 160px; }
+  .post-card-main { padding: 0; }
+  .post-thumb { width: 180px; height: 120px; border-radius: 10px; }
+  .post-thumb-ph svg { width: 22px; height: 22px; }
 }
 
 /* iPhone 17（约 393px）/ iPhone 17 Pro Max（约 440px）等窄屏：
-   缩略图保持较高、贴边融合，同时保证左侧内容区有足够宽度（标题/摘要不被挤爆） */
+   缩略图圆角固定尺寸，同时保证左侧内容区有足够宽度（标题/摘要不被挤爆） */
 @media (max-width: 480px) {
-  .post-card { gap: 0; padding: 0; min-height: 140px; }
-  .post-card-main { padding: 12px 14px; }
-  .post-thumb { width: 160px; height: auto; border-radius: 0; }
-  .post-thumb-ph { font-size: 26px; }
+  .post-card { gap: 12px; padding: 12px; min-height: 140px; }
+  .post-card-main { padding: 0; }
+  .post-thumb { width: 150px; height: 100px; border-radius: 10px; }
+  .post-thumb-ph svg { width: 20px; height: 20px; }
   .post-card h2 { font-size: 17px; }
   .post-card .excerpt { font-size: 13.5px; }
 }
