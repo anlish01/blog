@@ -107,12 +107,17 @@ function xmlEscape(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
-/** RFC 822 日期（兼容 "YYYY-MM-DD" 与 "YYYY-MM-DD HH:mm"） */
+/** RFC 822 日期（兼容 "YYYY-MM-DD" 与 "YYYY-MM-DD HH:mm"）
+ *  纯日期按 UTC 解析，避免 +8 时区把 pubDate 显示成前一天 */
 function rfc822(dateStr) {
   try {
     const s = String(dateStr || '').trim();
-    const iso = s.slice(0, 10) + 'T' + (s.slice(11, 16) || '00:00') + ':00';
-    const d = new Date(iso);
+    let d;
+    if (s.length <= 10) {
+      d = new Date(s.slice(0, 10) + 'T00:00:00Z');
+    } else {
+      d = new Date(s.slice(0, 10) + 'T' + (s.slice(11, 16) || '00:00') + ':00');
+    }
     return isNaN(d.getTime()) ? new Date().toUTCString() : d.toUTCString();
   } catch (e) { return new Date().toUTCString(); }
 }

@@ -808,7 +808,7 @@ tests.push(['代码高亮：常见语言分词 + 未知语言原样转义', asyn
 tests.push(['目录 TOC：由渲染 HTML 提取，锚点与正文对应', async () => {
   const { ctx } = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } });
   const toc = ctx.buildToc(ctx.renderMarkdown('## 第一部分\n\n正文\n\n### 1.1 子节\n\n更多\n\n## 第二部分'));
-  assert.ok(toc.html.includes('📑 目录'), 'TOC 标题');
+  assert.ok(toc.html.includes('目录'), 'TOC 标题');
   assert.ok(toc.html.includes('data-toc="toc-1"') && toc.html.includes('data-toc="toc-3"'), '锚点与渲染序号一致');
   assert.ok(toc.html.includes('第一部分') && toc.html.includes('子节'), '目录条目文本');
   assert.ok(toc.html.includes('padding-left:14px'), '三级标题缩进');
@@ -1135,7 +1135,7 @@ tests.push(['file:// 本地预览：顶部导航与页脚链接均为 hash 且�
 
 tests.push(['标签页：标签云 + 计数 + 点击进入筛选', async () => {
   const t = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } }, '/tags');
-  assert.ok(t.html.includes('🏷 标签'), '标签页标题');
+  assert.ok(t.html.includes('标签'), '标签页标题');
   assert.ok(t.html.includes('cloud-chip') && t.html.includes('cloud-count'), '标签云与计数');
   assert.ok(t.html.includes('/?tag=' + encodeURIComponent('随笔')), '点击进入标签筛选');
   assert.ok(t.html.includes('教程') && t.html.includes('写作'), '示例标签齐全');

@@ -55,7 +55,14 @@ function svgIcon(name, size) {
     doc: '<svg ' + s + ' ' + c + '><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M9.5 12h5M9.5 15h5"/></svg>',
     top: '<svg ' + s + ' ' + c + '><path d="M12 20V6"/><path d="M6 11.5 12 5.5l6 6"/></svg>',
     pen: '<svg ' + s + ' ' + c + '><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
-    logout: '<svg ' + s + ' ' + c + '><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>'
+    logout: '<svg ' + s + ' ' + c + '><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>',
+    trash: '<svg ' + s + ' ' + c + '><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6"/></svg>',
+    link: '<svg ' + s + ' ' + c + '><path d="M10 14a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 10a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>',
+    image: '<svg ' + s + ' ' + c + '><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L16 13l4 4"/></svg>',
+    quote: '<svg ' + s + ' ' + c + '><path d="M10 7H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2v-4H6"/><path d="M20 7h-4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2v-4h-2"/></svg>',
+    tag: '<svg ' + s + ' ' + c + '><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
+    list: '<svg ' + s + ' ' + c + '><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>',
+    check: '<svg ' + s + ' ' + c + '><path d="M4 12.5l5 5L20 6.5"/></svg>'
   };
   return I[name] || '';
 }
@@ -326,7 +333,7 @@ function buildToc(html) {
   }).join('');
   return {
     headings: sections,
-    html: '<details class="toc"><summary>📑 目录</summary><div class="toc-list">' + hs + '</div></details>'
+    html: '<details class="toc"><summary>' + svgIcon('list', 14) + ' 目录</summary><div class="toc-list">' + hs + '</div></details>'
   };
 }
 
@@ -763,7 +770,8 @@ function buildFeedXmlClient(posts, maxItems) {
   var list = (posts || []).slice().sort(sortPosts).filter(function (p) { return !p.protected; }).slice(0, maxItems || 20);
   var items = list.map(function (p) {
     var link = base + postUrl(p.id);
-    var content = esc(p.content || '').replace(/\]\]>/g, ']]&gt;');
+    // description 输出渲染后的 HTML（而非 Markdown 源码），阅读器直接显示富文本
+    var content = renderMarkdown(p.content || '').replace(/\]\]>/g, ']]&gt;');
     return '<item>\n      <title>' + esc(p.title) + '</title>\n      <link>' + esc(link) + '</link>\n      <guid isPermaLink="false">' + esc(p.id) + '</guid>\n      <pubDate>' + rfc822(p.date) + '</pubDate>\n      <description><![CDATA[' + content + ']]></description>\n    </item>';
   }).join('\n    ');
   return '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>' + esc(cfg.title || '轻语博客') + '</title>\n    <link>' + esc(base || 'https://blog.example') + '</link>\n    <description>' + esc(cfg.description || '一个零依赖的轻量博客') + '</description>\n    <language>zh-CN</language>\n    <lastBuildDate>' + new Date().toUTCString() + '</lastBuildDate>\n    ' + items + '\n  </channel>\n</rss>\n';
@@ -771,10 +779,14 @@ function buildFeedXmlClient(posts, maxItems) {
 function rfc822(dateStr) {
   try {
     var s = String(dateStr || '').trim();
-    // 兼容 "YYYY-MM-DD" 与 "YYYY-MM-DD HH:mm"（按本地时区解析为 UTC 输出）
-    var iso = s.slice(0, 10) + 'T' + (s.slice(11, 16) || '00:00') + ':00';
-    var d = new Date(iso);
-    if (isNaN(d.getTime())) d = new Date(s);
+    var d;
+    if (s.length <= 10) {
+      // 纯日期 "YYYY-MM-DD"：按 UTC 解析，pubDate 日期不跨天（避免 +8 时区显示前一天）
+      d = new Date(s.slice(0, 10) + 'T00:00:00Z');
+    } else {
+      // "YYYY-MM-DD HH:mm"：按本地时区解析为 UTC 输出
+      d = new Date(s.slice(0, 10) + 'T' + (s.slice(11, 16) || '00:00') + ':00');
+    }
     return isNaN(d.getTime()) ? new Date().toUTCString() : d.toUTCString();
   } catch (e) { return new Date().toUTCString(); }
 }
@@ -870,8 +882,9 @@ function renderFooter() {
     return '<a href="' + esc(u) + '">' + esc(x.text || '') + '</a>';
   }
   var navHtml = nav.map(l).join('<span class="footer-dot">·</span>');
-  // RSS：file:// 直开时在同目录，其余用根路径（避免在 /posts/<别名>/ 下相对解析成 404）
-  var rssHref = useHashMode() ? 'feed.xml' : '/feed.xml';
+  // RSS：云端模式指向动态 /api/feed.xml（含全部云端文章、自动取站点域名）；
+  // file:// 直开时同目录；其余静态托管用根路径 feed.xml
+  var rssHref = _cloudOn() ? '/api/feed.xml' : (useHashMode() ? 'feed.xml' : '/feed.xml');
   navHtml += '<span class="footer-dot footer-rss">·</span><a class="footer-rss" href="' + esc(rssHref) + '">RSS</a>';
   // 电脑端专属区块：自定义文字 / 站点声明 / 联系方式 / 友情链接
   var extra = '';
@@ -1057,7 +1070,7 @@ async function renderPost(id) {
   var afEdit = adminOk()
     ? '<a class="btn" href="' + esc(href(postUrl(post.id) + 'edit')) + '">' + svgIcon('pen', 13) + ' 编辑</a>'
     : '';
-  html += '<div class="article-footer"><div class="af-tags">' + (tags || '') + '</div><div class="af-actions">' + afEdit + '<button class="btn" id="btnCopyLink">🔗 复制链接</button></div></div>';
+  html += '<div class="article-footer"><div class="af-tags">' + (tags || '') + '</div><div class="af-actions">' + afEdit + '<button class="btn" id="btnCopyLink">' + svgIcon('link', 14) + ' 复制链接</button></div></div>';
 
   // prev / next
   var sorted = posts.slice().sort(sortPosts);
@@ -1209,7 +1222,7 @@ function renderTags() {
     normalizeTags(p).forEach(function (t) { counts[t] = (counts[t] || 0) + 1; });
   });
   var html = renderNav(currentRoute().path);
-  html += '<main class="container page-fade"><h2 class="page-title">🏷 标签</h2><div class="tag-cloud">';
+  html += '<main class="container page-fade"><h2 class="page-title">' + svgIcon('tag', 20) + ' 标签</h2><div class="tag-cloud">';
   Object.keys(counts).sort().forEach(function (t) {
     html += '<a class="cloud-chip" href="' + esc(href('/', { tag: t })) + '">' + esc(t) + '<span class="cloud-count">' + counts[t] + '</span></a>';
   });
@@ -1251,21 +1264,21 @@ function renderAdminSidebar(active) {
 function renderPostList() {
   var posts = getStaticPosts();
   if (!posts || !posts.length) {
-    return '<div class="admin-posts-header"><h2>📄 所有文章</h2></div>'
+    return '<div class="admin-posts-header"><h2>' + svgIcon('doc', 20) + ' 所有文章</h2></div>'
       + '<p class="empty-state">还没有文章，去 <a href="' + esc(href('/admin/write')) + '">写一篇</a> 吧</p>';
   }
-  var html = '<div class="admin-posts-header"><h2>📄 所有文章</h2><span class="count">共 ' + posts.length + ' 篇</span></div>';
+  var html = '<div class="admin-posts-header"><h2>' + svgIcon('doc', 20) + ' 所有文章</h2><span class="count">共 ' + posts.length + ' 篇</span></div>';
   html += '<table class="admin-posts-table"><thead><tr><th>标题</th><th>日期</th><th>状态</th><th>操作</th></tr></thead><tbody>';
   posts.forEach(function (p) {
-    var status = p.pinned ? '📌 置顶' : (p.protected ? '🔒 加密' : '已发布');
+    var status = p.pinned ? svgIcon('pin', 12) + ' 置顶' : (p.protected ? svgIcon('lock', 12) + ' 加密' : '已发布');
     var title = p.title || '未命名';
     html += '<tr>'
       + '<td><a href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '">' + esc(title) + '</a></td>'
       + '<td>' + esc(p.date || '') + '</td>'
       + '<td><span class="status-badge' + (p.pinned ? ' pinned' : '') + (p.protected ? ' protected' : '') + '">' + status + '</span></td>'
       + '<td><div class="post-actions">'
-      + '<a href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '" class="btn btn-sm">✏️ 编辑</a>'
-      + '<button class="btn btn-sm btn-danger" data-post-id="' + esc(p.id) + '" data-post-title="' + esc(title) + '">🗑️ 删除</button>'
+      + '<a href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '" class="btn btn-sm">' + svgIcon('pen', 13) + ' 编辑</a>'
+      + '<button class="btn btn-sm btn-danger" data-post-id="' + esc(p.id) + '" data-post-title="' + esc(title) + '">' + svgIcon('trash', 13) + ' 删除</button>'
       + '</div></td>'
       + '</tr>';
   });
@@ -1501,7 +1514,7 @@ function renderWrite() {
 }
 function toolbarHtml() {
   return ['bold', 'italic', 'code', 'h2', 'link', 'img', 'quote', 'ul', 'ol', 'fence'].map(function (cmd) {
-    var icons = { bold: 'B', italic: 'I', code: '<>', h2: 'H2', link: '🔗', img: '🖼', quote: '❝', ul: '•', ol: '1.', fence: '```' };
+    var icons = { bold: 'B', italic: 'I', code: '<>', h2: 'H2', link: svgIcon('link', 13), img: svgIcon('image', 13), quote: svgIcon('quote', 13), ul: '•', ol: '1.', fence: '```' };
     return '<button type="button" class="tb-btn" data-cmd="' + cmd + '" title="' + cmd + '">' + (icons[cmd] || cmd) + '</button>';
   }).join('');
 }
@@ -2053,7 +2066,7 @@ async function cloudPublish() {
     var idx = arr.findIndex(function (p) { return p && p.id === d.id; });
     if (idx >= 0) arr[idx] = d; else arr.push(d);
     window.BLOG_POSTS = arr;
-    if (st) st.textContent = '✅ 已发布到云端';
+    if (st) st.innerHTML = svgIcon('check', 14) + ' 已发布到云端';
   } catch (e) {
     var em = (e && e.message) || '未知错误';
     // 会话过期/无效：清掉本地旧 token，跳回登录页重新拿新令牌
