@@ -3,6 +3,13 @@
  * 纯 CSS 变量驱动，支持深色模式与移动端响应式。
  * ============================================================ */
 
+/* ---------- 字体方案（测试中，暂不推送；四款均开源可用） ----------
+ * 大标题   梦源宋体 W16      → 本地分片 fonts/dreamserif/result.css（cn-font-split 切分，OFL）
+ * 章节标题 源樣明體 SemiBold → GenYoMin2TC 分片 woff2（CDN，OFL）
+ * 引用装饰 朱雀仿宋         → Zhuque Fangsong 分片 woff2（CDN，OFL）
+ * 正文     Noto Serif SC     → 本机已装（OFL）
+ * ----------------------------------------------- */
+
 /* ---------- 主题变量 ---------- */
 :root {
   --bg: #faf9f7;
@@ -18,6 +25,16 @@
   --radius: 12px;
   --font: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
   --mono: "Cascadia Code", Consolas, "Courier New", monospace;
+  /* 四级字体栈：正文 / 章节标题 / 大标题 / 装饰引用（管理后台仍用 --font 无衬线） */
+  /* 正文跨平台回退栈：优先 webfont/系统思源宋体，再依次匹配各 OS 自带宋体，
+   末位 serif 保证任何设备都兜底到系统默认宋体（不存在“没字体”的情况）。
+   Android/Linux: Noto Serif CJK SC / Source Han Serif SC · macOS/iOS: Songti SC/华文宋体
+   Windows: SimSun/宋体 · 若日后把正文也 webfont 化，只需把对应族名加在最前即可 */
+--font-body: "Noto Serif SC", "Noto Serif CJK SC", "Source Han Serif SC", "Source Han Serif CN", "思源宋体",
+             "Songti SC", "STSong", "华文宋体", "SimSun", "宋体", serif;
+  --font-heading: "GenYoMin2TC", "源樣明體", var(--font-body);
+  --font-display: "QY-Display", "梦源宋体 W16", var(--font-heading);
+  --font-deco: "Zhuque Fangsong", "朱雀仿宋", var(--font-body);
   --tok-kw: #cf3a4f;
   --tok-str: #0a7d3f;
   --tok-com: #9aa0a6;
@@ -52,7 +69,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  font-family: var(--font);
+  font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.7;
   color: var(--fg);
@@ -60,6 +77,9 @@ body {
   -webkit-font-smoothing: antialiased;
   transition: background 0.25s ease, color 0.25s ease;
 }
+
+/* 管理后台不参与字体方案：写作/管理界面维持无衬线，前台阅读区才是宋体 */
+.admin-layout { font-family: var(--font); }
 
 /* 应用根节点：参与 body 的纵向 flex，既是 flex item（占满视口）
    又是 header/main/footer 的 flex 容器，保证任何页面页脚都贴底。 */
@@ -102,6 +122,7 @@ a:hover { text-decoration: underline; }
   justify-self: start;
   font-size: 19px;
   font-weight: 700;
+  font-family: var(--font-display);
   color: var(--fg);
   letter-spacing: 0.5px;
   display: flex;
@@ -250,6 +271,7 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
   font-size: 26px;
   margin: 0 0 6px;
   font-weight: 700;
+  font-family: var(--font-display);
 }
 .page-sub { color: var(--muted); margin: 0 0 22px; font-size: 14px; }
 
@@ -566,7 +588,7 @@ html[data-theme="dark"] .post-card .mini-tags span {
 }
 
 .post-header { margin-bottom: 26px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
-.post-header h1 { margin: 0 0 10px; font-size: 28px; line-height: 1.35; }
+.post-header h1 { margin: 0 0 10px; font-size: 28px; line-height: 1.35; font-family: var(--font-display); }
 .post-header .meta {
   color: var(--muted);
   font-size: 13.5px;
@@ -622,6 +644,10 @@ html[data-theme="dark"] .post-card .mini-tags span {
 .article h1 { font-size: 1.55em; }
 .article h2 { font-size: 1.35em; padding-bottom: 0.3em; border-bottom: 1px solid var(--border); }
 .article h3 { font-size: 1.15em; }
+/* 章节标题字体：源樣明體 SemiBold（卡片标题、正文 H2/H3 及写作台预览同步） */
+.post-card h2,
+.article h2, .article h3,
+.write-preview h2, .write-preview h3 { font-family: var(--font-heading); font-weight: 600; }
 /* 点击目录跳转时，让标题定位在吸顶导航下方、不被遮挡 */
 .article h1[id^="toc-"], .article h2[id^="toc-"], .article h3[id^="toc-"],
 .article h4[id^="toc-"], .article h5[id^="toc-"], .article h6[id^="toc-"] {
@@ -640,13 +666,16 @@ html[data-theme="dark"] .post-card .mini-tags span {
 .article ul, .article ol { padding-left: 1.5em; margin: 0.8em 0; }
 .article li { margin: 0.3em 0; }
 .article li > ul, .article li > ol { margin: 0.2em 0; }
-.article blockquote {
+/* 引用区块：装饰性字体（清刻本悦宋，缺文件时回退正文宋体），略大一号 */
+.article blockquote, .write-preview blockquote {
   margin: 1em 0;
   padding: 2px 16px;
   border-left: 3px solid var(--accent);
   background: var(--bg-soft);
   color: var(--muted);
   border-radius: 0 8px 8px 0;
+  font-family: var(--font-deco);
+  font-size: 1.06em;
 }
 .article blockquote p { margin: 0.5em 0; }
 .article code.inline-code, .write-preview code.inline-code {
