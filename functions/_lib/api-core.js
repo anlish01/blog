@@ -55,7 +55,7 @@ async function dbRun(db, sql, ...params) {
  *   · 若未配置 SITE_URL（如未设置的跨域部署），回退为「回显请求源」（等价于 *，但更精确），
  *     避免自定义域名 + workers.dev 这类合法跨域被误拦截。
  * 配合 Bearer Token（非凭据请求），即便回显源也不会泄露凭据。 */
-function getCorsHeaders(request, env) {
+export function getCorsHeaders(request, env) {
   const h = {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Setup-Key',
