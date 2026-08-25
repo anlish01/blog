@@ -346,7 +346,9 @@ export async function handleComments(request, env, postId) {
   if (method === 'GET') {
     // 按写入顺序返回（rowid 单调递增），与旧版 KV 行为一致
     const list = await dbAll(env.DB, 'SELECT * FROM comments WHERE post_id = ? ORDER BY rowid ASC', postId);
-    return json({ ok: true, postId, comments: list }, 200, request, env, { 'Cache-Control': READ_CACHE, 'Cache-Tag': 'comments:' + postId });
+    // 评论是用户实时互动内容、变化频繁，不进边缘缓存（no-store），
+    // 保证发表/删除后立即可见；否则命中 60s 缓存会导致删除"不刷新"。
+    return json({ ok: true, postId, comments: list }, 200, request, env, { 'Cache-Control': NO_CACHE });
   }
 
   if (method === 'POST') {
