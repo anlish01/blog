@@ -7,6 +7,8 @@
 --
 -- 说明：索引与查询均走 D1（SQLite），取代原 KV 单 key 存储。
 -- 文章表为「逐篇一行」；评论 / 统计 / 管理员认证各为其表。
+-- 新列（category / status 等）由 0004-0005 ALTER 迁移补加，
+-- 本文件保持原始最小结构，确保已有数据库重跑不报错。
 -- ============================================================
 
 -- 文章
@@ -21,8 +23,6 @@ CREATE TABLE IF NOT EXISTS posts (
   protected INTEGER DEFAULT 0,
   enc      TEXT,            -- 加密文章：JSON({salt,iv,data})；明文文章为 NULL
   tags     TEXT,            -- JSON 数组字符串，如 '["技术","随笔"]'
-  category TEXT DEFAULT '',  -- 分类（单分类，后台管理 UI 使用）
-  status   TEXT DEFAULT 'published', -- 发布状态：published（已发布）/ draft（草稿）
   created_at TEXT DEFAULT '',
   updated_at TEXT DEFAULT ''
 );
@@ -33,11 +33,9 @@ CREATE TABLE IF NOT EXISTS comments (
   post_id TEXT NOT NULL,
   author  TEXT DEFAULT '',
   content TEXT DEFAULT '',
-  date    TEXT DEFAULT '',
-  status  TEXT DEFAULT 'approved' -- 审核状态：approved（已通过）/ pending（待审核）
+  date    TEXT DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id);
-CREATE INDEX IF NOT EXISTS idx_comments_status ON comments(status);
 
 -- 阅读数 / 点赞
 CREATE TABLE IF NOT EXISTS stats (
