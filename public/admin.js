@@ -658,10 +658,10 @@
       else statusBadge = '<span class="ab-status ' + ((p.status || 'published') === 'draft' ? 'draft' : 'published') + '">' + ((p.status || 'published') === 'draft' ? '草稿' : '已发布') + '</span>';
       return '<tr>' +
         '<td><a class="ab-post-title" data-link="/admin/posts/' + enc(id) + '/edit">' + esc(p.title || '(无标题)') + '</a></td>' +
-        '<td>' + (p.category ? '<span class="ab-chip cat">' + esc(p.category) + '</span>' : '<span class="ab-muted">—</span>') + '</td>' +
-        '<td>' + (p.tags && p.tags.length ? '<div class="ab-tag-row">' + p.tags.map(function (t) { return '<span class="ab-chip">' + esc(t) + '</span>'; }).join('') + '</div>' : '<span class="ab-muted">—</span>') + '</td>' +
-        '<td>' + esc(fmtDate(p.date)) + '</td>' +
-        '<td>' + statusBadge + '</td>' +
+        '<td class="ab-td-cat">' + (p.category ? '<span class="ab-chip cat">' + esc(p.category) + '</span>' : '<span class="ab-muted">—</span>') + '</td>' +
+        '<td class="ab-td-tags">' + (p.tags && p.tags.length ? '<div class="ab-tag-row">' + p.tags.map(function (t) { return '<span class="ab-chip">' + esc(t) + '</span>'; }).join('') + '</div>' : '<span class="ab-muted">—</span>') + '</td>' +
+        '<td class="ab-td-date">' + esc(fmtDate(p.date)) + '</td>' +
+        '<td class="ab-td-status">' + statusBadge + '</td>' +
         '<td class="col-actions">' +
           '<button class="ab-btn sm" data-edit="' + enc(id) + '">' + icon('pen', 13) + ' 编辑</button> ' +
           '<button class="ab-btn sm" data-pin="' + enc(id) + '">' + icon('pin', 13) + ' ' + (p.pinned ? '取消置顶' : '置顶') + '</button> ' +
@@ -676,14 +676,15 @@
     body.querySelectorAll('[data-preview]').forEach(function (b) { b.addEventListener('click', function () { window.open(link('/posts/' + dec(b.getAttribute('data-preview')) + '/'), '_blank'); }); });
     body.querySelectorAll('[data-pin]').forEach(function (b) { b.addEventListener('click', async function () {
       var pid = dec(b.getAttribute('data-pin'));
-      var origText = b.innerHTML;
-      b.disabled = true; b.innerHTML = '<span class="ab-spin" style="width:13px;height:13px;border-width:2px"></span> 处理中…';
+      // 立即切换按钮文字（乐观更新），让用户即时看到反馈
+      var isPinned = b.innerHTML.indexOf('取消置顶') >= 0;
+      b.innerHTML = '<span class="ab-spin" style="width:13px;height:13px;border-width:2px"></span> ' + (isPinned ? '置顶中…' : '取消中…');
+      b.disabled = true;
       try {
         var post = await getPost(pid);
         if (!post) { toast('未找到文章', 'err'); return; }
         post.pinned = !post.pinned;
         if (cloudOn()) {
-          // 云端必须带全字段 PUT，否则会清空正文/密文
           await api('api/posts/' + enc(pid), { method: 'PUT', body: JSON.stringify(post) });
         } else {
           saveStaticPost(post);
@@ -691,34 +692,35 @@
         }
         toast(post.pinned ? '✓ 已置顶' : '✓ 已取消置顶', 'ok');
       } catch (e) { toast('操作失败：' + (e.message || e), 'err'); }
-      b.disabled = false; b.innerHTML = origText;
+      b.disabled = false;
       loadPosts(content, page);
     }); });
     body.querySelectorAll('[data-lock]').forEach(function (b) { b.addEventListener('click', async function () {
       var pid = dec(b.getAttribute('data-lock'));
-      var origText = b.innerHTML;
-      b.disabled = true; b.innerHTML = '<span class="ab-spin" style="width:13px;height:13px;border-width:2px"></span> 处理中…';
+      var isLocked = b.innerHTML.indexOf('取消加密') >= 0;
+      b.innerHTML = '<span class="ab-spin" style="width:13px;height:13px;border-width:2px"></span> ' + (isLocked ? '解密中…' : '加密中…');
+      b.disabled = true;
       try {
         var post = await getPost(pid);
         if (!post) { toast('未找到文章', 'err'); return; }
         if (!post.protected) {
           // —— 添加加密 ——
           var pwd = prompt('设置文章访问密码（至少 4 位）：');
-          if (pwd === null) { b.disabled = false; b.innerHTML = origText; return; }
+          if (pwd === null) { b.disabled = false; loadPosts(content, page); return; }
           pwd = String(pwd || '').trim();
-          if (pwd.length < 4) { toast('密码至少 4 位', 'err'); b.disabled = false; b.innerHTML = origText; return; }
+          if (pwd.length < 4) { toast('密码至少 4 位', 'err'); b.disabled = false; loadPosts(content, page); return; }
           var pwd2 = prompt('再次输入密码确认：');
-          if (String(pwd2 || '') !== pwd) { toast('两次密码不一致', 'err'); b.disabled = false; b.innerHTML = origText; return; }
+          if (String(pwd2 || '') !== pwd) { toast('两次密码不一致', 'err'); b.disabled = false; loadPosts(content, page); return; }
           var encContent = post.content || '';
-          if (!encContent) { toast('文章正文为空，无法加密', 'err'); b.disabled = false; b.innerHTML = origText; return; }
+          if (!encContent) { toast('文章正文为空，无法加密', 'err'); b.disabled = false; loadPosts(content, page); return; }
           var encObj = await encryptText(encContent, pwd);
           post.protected = true; post.enc = encObj; post.content = '';
         } else {
           // —— 取消加密 ——
           var oldPwd = prompt('输入该文章的原密码以取消加密：');
-          if (oldPwd === null) { b.disabled = false; b.innerHTML = origText; return; }
+          if (oldPwd === null) { b.disabled = false; loadPosts(content, page); return; }
           var plain = post.content ? post.content : (post.enc ? await decryptText(post.enc, String(oldPwd || '')) : null);
-          if (!plain) { toast('密码错误或无法解密', 'err'); b.disabled = false; b.innerHTML = origText; return; }
+          if (!plain) { toast('密码错误或无法解密', 'err'); b.disabled = false; loadPosts(content, page); return; }
           post.protected = false; post.enc = null; post.content = plain;
         }
         if (cloudOn()) {
@@ -729,7 +731,7 @@
         }
         toast(post.protected ? '✓ 已加密' : '✓ 已取消加密', 'ok');
       } catch (e) { toast('操作失败：' + (e.message || e), 'err'); }
-      b.disabled = false; b.innerHTML = origText;
+      b.disabled = false;
       loadPosts(content, page);
     }); });
     body.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () {
@@ -946,85 +948,16 @@
 
   /* ====================== 分类管理 ====================== */
   async function pageCategories(content) {
-    content.innerHTML = '<div class="ab-page-head"><div><h1 class="ab-page-title">分类管理</h1><p class="ab-page-sub">分类是对文章的归类（每篇文章一个分类），可新建 / 重命名 / 删除</p></div>' +
+    content.innerHTML = '<div class="ab-page-head"><div><h1 class="ab-page-title">分类管理</h1><p class="ab-page-sub">分类是对文章的归类（每篇文章一个分类），在编辑器中设置。可重命名 / 删除。</p></div>' +
       (cloudOn() ? '' : '<span class="ab-chip" style="background:var(--ab-primary-weak);color:var(--ab-primary)">静态模式只读</span>') + '</div>' +
-      (cloudOn() ?
-        '<div class="ab-card" style="margin-bottom:16px"><div class="ab-section-title">' + icon('plus', 15) + ' 新建分类</div>' +
-          '<div class="ab-row" style="gap:8px;flex-wrap:wrap;margin-top:8px">' +
-            '<input class="ab-input" id="abNewCatName" placeholder="分类名称" style="max-width:200px">' +
-            '<select class="ab-select" id="abNewCatArticle" style="max-width:260px"><option value="">选择应用到的文章（可选）</option></select>' +
-            '<button class="ab-btn primary sm" id="abAddCatBtn">' + icon('plus', 13) + ' 添加分类</button>' +
-          '</div><div class="ab-hint" style="margin-top:8px">分类用于文章归类（如「技术」「随笔」「生活」），每篇文章只能属于一个分类。</div>' +
-        '</div>' : '') +
       '<div class="ab-card"><div class="ab-table-wrap"><table class="ab-table"><thead><tr><th>分类</th><th>文章数</th><th class="col-actions">操作</th></tr></thead><tbody id="abCatBody"></tbody></table></div></div>';
     await loadTerms(content, 'category', '#abCatBody');
-    if (cloudOn()) bindAddTerm(content, 'category');
   }
   async function pageTags(content) {
-    content.innerHTML = '<div class="ab-page-head"><div><h1 class="ab-page-title">标签管理</h1><p class="ab-page-sub">标签是文章的关键词标记（每篇文章可有多个标签），可新建 / 重命名 / 删除</p></div>' +
+    content.innerHTML = '<div class="ab-page-head"><div><h1 class="ab-page-title">标签管理</h1><p class="ab-page-sub">标签是文章的关键词标记（每篇文章可多个），在编辑器中设置。可重命名 / 删除。</p></div>' +
       (cloudOn() ? '' : '<span class="ab-chip" style="background:var(--ab-primary-weak);color:var(--ab-primary)">静态模式只读</span>') + '</div>' +
-      (cloudOn() ?
-        '<div class="ab-card" style="margin-bottom:16px"><div class="ab-section-title">' + icon('plus', 15) + ' 新建标签</div>' +
-          '<div class="ab-row" style="gap:8px;flex-wrap:wrap;margin-top:8px">' +
-            '<input class="ab-input" id="abNewTagName" placeholder="标签名称" style="max-width:200px">' +
-            '<select class="ab-select" id="abNewTagArticle" style="max-width:260px"><option value="">选择应用到的文章（可选）</option></select>' +
-            '<button class="ab-btn primary sm" id="abAddTagBtn">' + icon('plus', 13) + ' 添加标签</button>' +
-          '</div><div class="ab-hint" style="margin-top:8px">标签是关键词标记（如「前端」「JavaScript」「感悟」），一篇文章可有多个标签，用逗号分隔。</div>' +
-        '</div>' : '') +
       '<div class="ab-card"><div class="ab-table-wrap"><table class="ab-table"><thead><tr><th>标签</th><th>使用次数</th><th class="col-actions">操作</th></tr></thead><tbody id="abTagBody"></tbody></table></div></div>';
     await loadTerms(content, 'tags', '#abTagBody');
-    if (cloudOn()) bindAddTerm(content, 'tags');
-  }
-  /** 绑定「添加分类/标签」表单：选择文章 + 输入名称 → 更新该文章 */
-  function bindAddTerm(content, field) {
-    var sel = content.querySelector(field === 'category' ? '#abNewCatArticle' : '#abNewTagArticle');
-    var nameInp = content.querySelector(field === 'category' ? '#abNewCatName' : '#abNewTagName');
-    var btn = content.querySelector(field === 'category' ? '#abAddCatBtn' : '#abAddTagBtn');
-    if (!sel || !btn) return;
-    // 填充文章下拉
-    listPosts().then(function (posts) {
-      posts.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
-      sel.innerHTML = '<option value="">选择应用到的文章（可选）</option>' +
-        posts.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.title || '(无标题)') + '</option>'; }).join('');
-    }).catch(function () {});
-    btn.addEventListener('click', async function () {
-      var name = (nameInp.value || '').trim();
-      if (!name) { toast('请输入' + (field === 'category' ? '分类' : '标签') + '名称', 'err'); return; }
-      var pid = sel.value;
-      if (!pid) {
-        // 无指定文章：创建一篇空草稿并赋值
-        toast('正在创建…', 'ok');
-        try {
-          var newPost = {
-            id: slug(name), title: name, date: new Date().toISOString().slice(0, 10),
-            excerpt: '', content: '', cover: '', pinned: false, protected: false, enc: null,
-            tags: field === 'tags' ? [name] : [],
-            category: field === 'category' ? name : '',
-            status: 'draft'
-          };
-          await savePost(newPost, true);
-          toast('已创建草稿「' + name + '」并添加' + (field === 'category' ? '分类' : '标签'), 'ok');
-        } catch (e) { toast('创建失败：' + (e.message || e), 'err'); return; }
-      } else {
-        // 指定文章：更新该文章的 category/tags
-        try {
-          var full = await getPost(pid);
-          if (!full) { toast('未找到文章', 'err'); return; }
-          if (field === 'category') {
-            full.category = name;
-          } else {
-            var tags = (full.tags || []).slice();
-            if (tags.indexOf(name) < 0) tags.push(name);
-            full.tags = tags;
-          }
-          await savePost(full, false);
-          toast('已将「' + name + '」添加到文章「' + (full.title || pid) + '」', 'ok');
-        } catch (e) { toast('操作失败：' + (e.message || e), 'err'); return; }
-      }
-      nameInp.value = ''; sel.value = '';
-      var bodySel = field === 'category' ? '#abCatBody' : '#abTagBody';
-      loadTerms(content, field, bodySel);
-    });
   }
   async function loadTerms(content, field, sel) {
     var body = content.querySelector(sel);

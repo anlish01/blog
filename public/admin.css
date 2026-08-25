@@ -249,9 +249,16 @@
 .ab-table tbody tr:last-child td { border-bottom: none; }
 .ab-table tbody tr:hover { background: var(--ab-hover); }
 .ab-table .col-actions { text-align: right; white-space: nowrap; }
+/* 文章列表：分类/标签/日期/状态列不换行，超长截断 */
+.ab-table .ab-td-cat,
+.ab-table .ab-td-tags,
+.ab-table .ab-td-date,
+.ab-table .ab-td-status { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
 .ab-post-title { font-weight: 600; color: var(--ab-text); }
 .ab-post-title:hover { color: var(--ab-primary); }
+.ab-table .ab-td-tags { max-width: 180px; }
 .ab-tag-row { display: flex; gap: 5px; flex-wrap: wrap; }
+.ab-table .ab-td-tags .ab-tag-row { flex-wrap: nowrap; overflow: hidden; }
 .ab-chip { display: inline-flex; align-items: center; font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--ab-hover); color: var(--ab-muted); }
 .ab-chip.cat { background: var(--ab-primary-weak); color: var(--ab-primary); }
 .ab-pagination { display: flex; gap: 6px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
