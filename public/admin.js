@@ -143,6 +143,7 @@
     var idx = -1;
     for (var i = 0; i < drafts.length; i++) if (drafts[i] && drafts[i].id === post.id) idx = i;
     var item = { id: post.id, title: post.title, date: post.date, tags: post.tags || [], excerpt: post.excerpt || '',
+      cover: post.cover || '', category: post.category || '', status: post.status || 'published',
       pinned: !!post.pinned, protected: !!post.protected, enc: post.enc || null, content: post.content || '' };
     if (idx >= 0) drafts[idx] = item; else drafts.push(item);
     localStorage.setItem('qingyu.drafts', JSON.stringify(drafts));
@@ -595,6 +596,10 @@
 
     bindPosts(content);
     loadPosts(content, 1);
+    // 绑定内容区内的导航链接（如「写新文章」按钮），bindShell 仅绑定挂载时已有的元素
+    content.querySelectorAll('[data-link]').forEach(function (a) {
+      a.addEventListener('click', function (e) { e.preventDefault(); go(a.getAttribute('data-link')); });
+    });
   }
 
   function bindPosts(content) {
@@ -671,6 +676,8 @@
     body.querySelectorAll('[data-preview]').forEach(function (b) { b.addEventListener('click', function () { window.open(link('/posts/' + dec(b.getAttribute('data-preview')) + '/'), '_blank'); }); });
     body.querySelectorAll('[data-pin]').forEach(function (b) { b.addEventListener('click', async function () {
       var pid = dec(b.getAttribute('data-pin'));
+      var origText = b.innerHTML;
+      b.disabled = true; b.innerHTML = '<span class="ab-spin" style="width:13px;height:13px;border-width:2px"></span> 处理中…';
       try {
         var post = await getPost(pid);
         if (!post) { toast('未找到文章', 'err'); return; }
@@ -682,32 +689,36 @@
           saveStaticPost(post);
           downloadPostsJs();
         }
-        toast(post.pinned ? '已置顶' : '已取消置顶', 'ok');
-        loadPosts(content, page);
+        toast(post.pinned ? '✓ 已置顶' : '✓ 已取消置顶', 'ok');
       } catch (e) { toast('操作失败：' + (e.message || e), 'err'); }
+      b.disabled = false; b.innerHTML = origText;
+      loadPosts(content, page);
     }); });
     body.querySelectorAll('[data-lock]').forEach(function (b) { b.addEventListener('click', async function () {
       var pid = dec(b.getAttribute('data-lock'));
+      var origText = b.innerHTML;
+      b.disabled = true; b.innerHTML = '<span class="ab-spin" style="width:13px;height:13px;border-width:2px"></span> 处理中…';
       try {
         var post = await getPost(pid);
         if (!post) { toast('未找到文章', 'err'); return; }
         if (!post.protected) {
           // —— 添加加密 ——
           var pwd = prompt('设置文章访问密码（至少 4 位）：');
-          if (pwd === null) return; pwd = String(pwd || '').trim();
-          if (pwd.length < 4) { toast('密码至少 4 位', 'err'); return; }
+          if (pwd === null) { b.disabled = false; b.innerHTML = origText; return; }
+          pwd = String(pwd || '').trim();
+          if (pwd.length < 4) { toast('密码至少 4 位', 'err'); b.disabled = false; b.innerHTML = origText; return; }
           var pwd2 = prompt('再次输入密码确认：');
-          if (String(pwd2 || '') !== pwd) { toast('两次密码不一致', 'err'); return; }
-          var content = post.content || '';
-          if (!content) { toast('文章正文为空，无法加密', 'err'); return; }
-          var encObj = await encryptText(content, pwd);
+          if (String(pwd2 || '') !== pwd) { toast('两次密码不一致', 'err'); b.disabled = false; b.innerHTML = origText; return; }
+          var encContent = post.content || '';
+          if (!encContent) { toast('文章正文为空，无法加密', 'err'); b.disabled = false; b.innerHTML = origText; return; }
+          var encObj = await encryptText(encContent, pwd);
           post.protected = true; post.enc = encObj; post.content = '';
         } else {
           // —— 取消加密 ——
           var oldPwd = prompt('输入该文章的原密码以取消加密：');
-          if (oldPwd === null) return;
+          if (oldPwd === null) { b.disabled = false; b.innerHTML = origText; return; }
           var plain = post.content ? post.content : (post.enc ? await decryptText(post.enc, String(oldPwd || '')) : null);
-          if (!plain) { toast('密码错误或无法解密', 'err'); return; }
+          if (!plain) { toast('密码错误或无法解密', 'err'); b.disabled = false; b.innerHTML = origText; return; }
           post.protected = false; post.enc = null; post.content = plain;
         }
         if (cloudOn()) {
@@ -716,9 +727,10 @@
           saveStaticPost(post);
           downloadPostsJs();
         }
-        toast(post.protected ? '已加密' : '已取消加密', 'ok');
-        loadPosts(content, page);
+        toast(post.protected ? '✓ 已加密' : '✓ 已取消加密', 'ok');
       } catch (e) { toast('操作失败：' + (e.message || e), 'err'); }
+      b.disabled = false; b.innerHTML = origText;
+      loadPosts(content, page);
     }); });
     body.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () {
       var pid = dec(b.getAttribute('data-del'));
@@ -934,16 +946,85 @@
 
   /* ====================== 分类管理 ====================== */
   async function pageCategories(content) {
-    content.innerHTML = '<div class="ab-page-head"><div><h1 class="ab-page-title">分类管理</h1><p class="ab-page-sub">分类来自文章字段，可重命名 / 删除（删除会将该分类从相关文章移除）</p></div>' +
+    content.innerHTML = '<div class="ab-page-head"><div><h1 class="ab-page-title">分类管理</h1><p class="ab-page-sub">分类是对文章的归类（每篇文章一个分类），可新建 / 重命名 / 删除</p></div>' +
       (cloudOn() ? '' : '<span class="ab-chip" style="background:var(--ab-primary-weak);color:var(--ab-primary)">静态模式只读</span>') + '</div>' +
+      (cloudOn() ?
+        '<div class="ab-card" style="margin-bottom:16px"><div class="ab-section-title">' + icon('plus', 15) + ' 新建分类</div>' +
+          '<div class="ab-row" style="gap:8px;flex-wrap:wrap;margin-top:8px">' +
+            '<input class="ab-input" id="abNewCatName" placeholder="分类名称" style="max-width:200px">' +
+            '<select class="ab-select" id="abNewCatArticle" style="max-width:260px"><option value="">选择应用到的文章（可选）</option></select>' +
+            '<button class="ab-btn primary sm" id="abAddCatBtn">' + icon('plus', 13) + ' 添加分类</button>' +
+          '</div><div class="ab-hint" style="margin-top:8px">分类用于文章归类（如「技术」「随笔」「生活」），每篇文章只能属于一个分类。</div>' +
+        '</div>' : '') +
       '<div class="ab-card"><div class="ab-table-wrap"><table class="ab-table"><thead><tr><th>分类</th><th>文章数</th><th class="col-actions">操作</th></tr></thead><tbody id="abCatBody"></tbody></table></div></div>';
     await loadTerms(content, 'category', '#abCatBody');
+    if (cloudOn()) bindAddTerm(content, 'category');
   }
   async function pageTags(content) {
-    content.innerHTML = '<div class="ab-page-head"><div><h1 class="ab-page-title">标签管理</h1><p class="ab-page-sub">标签来自文章字段，可重命名 / 删除（删除会将该标签从相关文章移除）</p></div>' +
+    content.innerHTML = '<div class="ab-page-head"><div><h1 class="ab-page-title">标签管理</h1><p class="ab-page-sub">标签是文章的关键词标记（每篇文章可有多个标签），可新建 / 重命名 / 删除</p></div>' +
       (cloudOn() ? '' : '<span class="ab-chip" style="background:var(--ab-primary-weak);color:var(--ab-primary)">静态模式只读</span>') + '</div>' +
+      (cloudOn() ?
+        '<div class="ab-card" style="margin-bottom:16px"><div class="ab-section-title">' + icon('plus', 15) + ' 新建标签</div>' +
+          '<div class="ab-row" style="gap:8px;flex-wrap:wrap;margin-top:8px">' +
+            '<input class="ab-input" id="abNewTagName" placeholder="标签名称" style="max-width:200px">' +
+            '<select class="ab-select" id="abNewTagArticle" style="max-width:260px"><option value="">选择应用到的文章（可选）</option></select>' +
+            '<button class="ab-btn primary sm" id="abAddTagBtn">' + icon('plus', 13) + ' 添加标签</button>' +
+          '</div><div class="ab-hint" style="margin-top:8px">标签是关键词标记（如「前端」「JavaScript」「感悟」），一篇文章可有多个标签，用逗号分隔。</div>' +
+        '</div>' : '') +
       '<div class="ab-card"><div class="ab-table-wrap"><table class="ab-table"><thead><tr><th>标签</th><th>使用次数</th><th class="col-actions">操作</th></tr></thead><tbody id="abTagBody"></tbody></table></div></div>';
     await loadTerms(content, 'tags', '#abTagBody');
+    if (cloudOn()) bindAddTerm(content, 'tags');
+  }
+  /** 绑定「添加分类/标签」表单：选择文章 + 输入名称 → 更新该文章 */
+  function bindAddTerm(content, field) {
+    var sel = content.querySelector(field === 'category' ? '#abNewCatArticle' : '#abNewTagArticle');
+    var nameInp = content.querySelector(field === 'category' ? '#abNewCatName' : '#abNewTagName');
+    var btn = content.querySelector(field === 'category' ? '#abAddCatBtn' : '#abAddTagBtn');
+    if (!sel || !btn) return;
+    // 填充文章下拉
+    listPosts().then(function (posts) {
+      posts.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+      sel.innerHTML = '<option value="">选择应用到的文章（可选）</option>' +
+        posts.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.title || '(无标题)') + '</option>'; }).join('');
+    }).catch(function () {});
+    btn.addEventListener('click', async function () {
+      var name = (nameInp.value || '').trim();
+      if (!name) { toast('请输入' + (field === 'category' ? '分类' : '标签') + '名称', 'err'); return; }
+      var pid = sel.value;
+      if (!pid) {
+        // 无指定文章：创建一篇空草稿并赋值
+        toast('正在创建…', 'ok');
+        try {
+          var newPost = {
+            id: slug(name), title: name, date: new Date().toISOString().slice(0, 10),
+            excerpt: '', content: '', cover: '', pinned: false, protected: false, enc: null,
+            tags: field === 'tags' ? [name] : [],
+            category: field === 'category' ? name : '',
+            status: 'draft'
+          };
+          await savePost(newPost, true);
+          toast('已创建草稿「' + name + '」并添加' + (field === 'category' ? '分类' : '标签'), 'ok');
+        } catch (e) { toast('创建失败：' + (e.message || e), 'err'); return; }
+      } else {
+        // 指定文章：更新该文章的 category/tags
+        try {
+          var full = await getPost(pid);
+          if (!full) { toast('未找到文章', 'err'); return; }
+          if (field === 'category') {
+            full.category = name;
+          } else {
+            var tags = (full.tags || []).slice();
+            if (tags.indexOf(name) < 0) tags.push(name);
+            full.tags = tags;
+          }
+          await savePost(full, false);
+          toast('已将「' + name + '」添加到文章「' + (full.title || pid) + '」', 'ok');
+        } catch (e) { toast('操作失败：' + (e.message || e), 'err'); return; }
+      }
+      nameInp.value = ''; sel.value = '';
+      var bodySel = field === 'category' ? '#abCatBody' : '#abTagBody';
+      loadTerms(content, field, bodySel);
+    });
   }
   async function loadTerms(content, field, sel) {
     var body = content.querySelector(sel);
@@ -1179,11 +1260,42 @@
       var pv = body.querySelector('#abProfPrev');
       pa.addEventListener('input', function () { pv.src = pa.value; });
     } else if (tab === 'nav') {
+      var defaultNav = [
+        { text: '首页', url: '/' },
+        { text: '归档', url: '/archive' },
+        { text: '关于', url: '/about' },
+        { text: '友链', url: '/links' }
+      ];
+      var exJson = JSON.stringify(settingsCache.nav ? (typeof settingsCache.nav === 'string' ? JSON.parse(settingsCache.nav || '[]') : settingsCache.nav) : (cfg().nav || defaultNav), null, 2);
       body.innerHTML = '<div class="ab-card" style="max-width:720px">' +
-        '<div class="ab-hint" style="margin-bottom:10px">导航菜单为 JSON 数组，每项：<code>{ "text":"首页", "url":"/" }</code>，可含 <code>children</code> 子菜单。</div>' +
-        '<textarea class="ab-textarea" id="abNavJson" style="min-height:220px;font-family:monospace"></textarea>' +
-        '<div class="ab-hint">当前默认：' + esc(JSON.stringify(cfg().nav || [])) + '</div>' +
+        '<div class="ab-section-title">' + icon('list', 15) + ' 可视化编辑</div>' +
+        '<div id="abNavVisual" class="ab-nav-editor"></div>' +
+        '<div class="ab-section-title" style="margin-top:16px">' + icon('doc', 15) + ' JSON 编辑（高级）</div>' +
+        '<div class="ab-hint" style="margin-bottom:8px">直接编辑 JSON。每项格式：<code>{ "text": "菜单名", "url": "/路径" }</code>。支持子菜单：<code>{ "text": "更多", "children": [ ... ] }</code>。</div>' +
+        '<textarea class="ab-textarea" id="abNavJson" style="min-height:180px;font-family:monospace;font-size:13px"></textarea>' +
+        '<div class="ab-row" style="margin-top:8px;gap:8px">' +
+          '<button class="ab-btn sm" id="abNavFormat">格式化 JSON</button>' +
+          '<button class="ab-btn sm" id="abNavReset">恢复默认示例</button>' +
+        '</div>' +
       '</div>';
+      renderNavVisual(content, exJson);
+      // JSON 格式化
+      var fmtBtn = content.querySelector('#abNavFormat');
+      if (fmtBtn) fmtBtn.addEventListener('click', function () {
+        var ta = content.querySelector('#abNavJson');
+        try { ta.value = JSON.stringify(JSON.parse(ta.value), null, 2); toast('已格式化', 'ok'); } catch (e) { toast('JSON 格式错误', 'err'); }
+      });
+      // 恢复默认
+      var rstBtn = content.querySelector('#abNavReset');
+      if (rstBtn) rstBtn.addEventListener('click', function () {
+        content.querySelector('#abNavJson').value = JSON.stringify(defaultNav, null, 2);
+        renderNavVisual(content, JSON.stringify(defaultNav, null, 2));
+        toast('已恢复默认示例', 'ok');
+      });
+      // 双向同步：JSON textarea → 可视化
+      content.querySelector('#abNavJson').addEventListener('input', debounce(function () {
+        renderNavVisual(content, content.querySelector('#abNavJson').value);
+      }, 400));
     }
     fillSettings(content);
   }
@@ -1208,6 +1320,113 @@
     } catch (e) { toast('保存失败：' + (e.message || e), 'err'); }
   }
   function val(content, sel) { var el = content.querySelector(sel); return el ? el.value : ''; }
+
+  /* ---------- 可视化导航编辑器 ---------- */
+  function renderNavVisual(content, jsonStr) {
+    var wrap = content.querySelector('#abNavVisual');
+    if (!wrap) return;
+    var items = [];
+    try { items = JSON.parse(jsonStr || '[]'); } catch (e) { wrap.innerHTML = '<div class="ab-hint">JSON 格式错误，请修正</div>'; return; }
+    if (!items.length) { wrap.innerHTML = '<div class="ab-hint">暂无导航项，可在下方 JSON 或点击「+添加」创建</div>'; }
+    else {
+      wrap.innerHTML = '<div class="ab-nav-list">' + items.map(function (it, i) {
+        var children = (it.children || []).map(function (ch, ci) {
+          return '<div class="ab-nav-row child">' +
+            '<span class="ab-nav-ico">└</span>' +
+            '<input class="ab-input ab-nav-text" data-idx="' + i + '" data-cidx="' + ci + '" value="' + esc(ch.text || '') + '" placeholder="子菜单名">' +
+            '<input class="ab-input ab-nav-url" data-idx="' + i + '" data-cidx="' + ci + '" value="' + esc(ch.url || '') + '" placeholder="/path">' +
+            '<button class="ab-btn-icon danger" data-rmchild="' + i + '-' + ci + '" title="删除子项">' + icon('trash', 14) + '</button>' +
+          '</div>';
+        }).join('');
+        return '<div class="ab-nav-row">' +
+          '<span class="ab-nav-ico">' + icon('list', 14) + '</span>' +
+          '<input class="ab-input ab-nav-text" data-idx="' + i + '" value="' + esc(it.text || '') + '" placeholder="菜单名">' +
+          '<input class="ab-input ab-nav-url" data-idx="' + i + '" value="' + esc(it.url || '') + '" placeholder="/path">' +
+          '<button class="ab-btn-icon" data-addchild="' + i + '" title="添加子菜单">' + icon('plus', 14) + '</button>' +
+          '<button class="ab-btn-icon danger" data-rmitem="' + i + '" title="删除">' + icon('trash', 14) + '</button>' +
+        '</div>' + children;
+      }).join('') + '</div>';
+    }
+    // 添加按钮
+    wrap.innerHTML += '<button class="ab-btn sm" id="abNavAddItem" style="margin-top:8px">' + icon('plus', 13) + ' 添加菜单项</button>';
+
+    // 事件：编辑文本 → 同步到 JSON
+    function syncToJSON() {
+      var rows = wrap.querySelectorAll('.ab-nav-row');
+      var newItems = [];
+      rows.forEach(function (row) {
+        if (row.classList.contains('child')) return; // 子项在父项循环中处理
+        var idx = parseInt(row.querySelector('[data-idx]').getAttribute('data-idx'), 10);
+        var text = (row.querySelector('.ab-nav-text') || {}).value || '';
+        var url = (row.querySelector('.ab-nav-url') || {}).value || '';
+        var children = [];
+        wrap.querySelectorAll('.ab-nav-row.child[data-idx="' + idx + '"]').forEach(function (cr) {
+          children.push({ text: (cr.querySelector('.ab-nav-text') || {}).value || '', url: (cr.querySelector('.ab-nav-url') || {}).value || '' });
+        });
+        var item = { text: text, url: url };
+        if (children.length) item.children = children;
+        newItems.push(item);
+      });
+      content.querySelector('#abNavJson').value = JSON.stringify(newItems, null, 2);
+    }
+    wrap.querySelectorAll('input').forEach(function (inp) { inp.addEventListener('input', debounce(syncToJSON, 300)); });
+
+    // 添加菜单项
+    wrap.querySelector('#abNavAddItem').addEventListener('click', function () {
+      var ta = content.querySelector('#abNavJson');
+      try {
+        var arr = JSON.parse(ta.value || '[]');
+        arr.push({ text: '新菜单', url: '/' });
+        ta.value = JSON.stringify(arr, null, 2);
+        renderNavVisual(content, ta.value);
+      } catch (e) { toast('JSON 格式错误，请先修正', 'err'); }
+    });
+
+    // 添加子菜单
+    wrap.querySelectorAll('[data-addchild]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var idx = parseInt(btn.getAttribute('data-addchild'), 10);
+        var ta = content.querySelector('#abNavJson');
+        try {
+          var arr = JSON.parse(ta.value || '[]');
+          if (!arr[idx]) return;
+          if (!arr[idx].children) arr[idx].children = [];
+          arr[idx].children.push({ text: '子菜单', url: '/' });
+          ta.value = JSON.stringify(arr, null, 2);
+          renderNavVisual(content, ta.value);
+        } catch (e) { toast('JSON 格式错误', 'err'); }
+      });
+    });
+
+    // 删除菜单项
+    wrap.querySelectorAll('[data-rmitem]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var idx = parseInt(btn.getAttribute('data-rmitem'), 10);
+        var ta = content.querySelector('#abNavJson');
+        try {
+          var arr = JSON.parse(ta.value || '[]');
+          arr.splice(idx, 1);
+          ta.value = JSON.stringify(arr, null, 2);
+          renderNavVisual(content, ta.value);
+        } catch (e) { toast('JSON 格式错误', 'err'); }
+      });
+    });
+
+    // 删除子菜单
+    wrap.querySelectorAll('[data-rmchild]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var parts = btn.getAttribute('data-rmchild').split('-');
+        var idx = parseInt(parts[0], 10), cidx = parseInt(parts[1], 10);
+        var ta = content.querySelector('#abNavJson');
+        try {
+          var arr = JSON.parse(ta.value || '[]');
+          if (arr[idx] && arr[idx].children) arr[idx].children.splice(cidx, 1);
+          ta.value = JSON.stringify(arr, null, 2);
+          renderNavVisual(content, ta.value);
+        } catch (e) { toast('JSON 格式错误', 'err'); }
+      });
+    });
+  }
 
   /* ====================== 修改密码 ====================== */
   function openPasswordModal() {
