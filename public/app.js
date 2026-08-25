@@ -682,7 +682,7 @@ async function getFeaturedPosts(excludeId, count) {
     var views = 0, likes = 0, comments = 0;
     try {
       if (_cloudOn()) {
-        var sd = await apiFetch('api/stats/' + encodeURIComponent(p.id));
+        var sd = await apiFetch('api/posts/' + encodeURIComponent(p.id) + '/stats');
         if (sd && sd.stats) { views = sd.stats.views || 0; likes = sd.stats.likes || 0; }
       } else {
         var raw = localStorage.getItem('qingyu.stats.' + p.id);
