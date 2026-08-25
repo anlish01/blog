@@ -720,21 +720,19 @@ function loadFeaturedPosts(excludeId) {
         + '<div class="featured-card-meta">' + svgIcon('eye', 12) + ' ' + p.views + ' · ' + svgIcon('heart', 12) + ' ' + p.likes + ' · ' + svgIcon('quote', 12) + ' ' + p.comments
         + '</div></div>';
     }).join('');
-    // 用 div + click 直接跳转，保存完整路径避免 SPA 路由干扰
+    // 用 div + click 直接跳转
     grid.querySelectorAll('.featured-card').forEach(function (card) {
       card.addEventListener('click', function () {
         var idx = parseInt(card.getAttribute('data-idx'), 10);
         if (!items[idx]) return;
         var targetId = items[idx].id;
-        var targetUrl = href(postUrl(targetId));
-        // 如果当前已经在该文章，直接滚动到顶部
-        var currentId = excludeId;
-        if (targetId === currentId) {
+        // 相同文章直接滚动到顶部
+        if (targetId === excludeId) {
           window.scrollTo({ top: 0, behavior: 'smooth' });
           return;
         }
-        // 不同文章：用 location 跳转确保页面完全刷新
-        window.location.href = targetUrl;
+        // SPA 路由跳转（兼容 file:// hash 模式和 http history 模式）
+        navigate(postUrl(targetId));
       });
     });
   }).catch(function () {
