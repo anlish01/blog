@@ -7,7 +7,7 @@
  * 大标题   梦源宋体 W16      → 本地分片 fonts/dreamserif/result.css（cn-font-split 切分，OFL）
  * 章节标题 源樣明體 SemiBold → GenYoMin2TC 分片 woff2（CDN，OFL）
  * 引用装饰 朱雀仿宋         → Zhuque Fangsong 分片 woff2（CDN，OFL）
- * 正文     Noto Serif SC     → 本机已装（OFL）
+ * 正文    思源宋体 VF / Noto Serif SC → cn-fontsource 分片 woff2（CDN，OFL）
  * ----------------------------------------------- */
 
 /* ---------- 主题变量 ---------- */
@@ -29,8 +29,8 @@
   /* 正文跨平台回退栈：优先 webfont/系统思源宋体，再依次匹配各 OS 自带宋体，
    末位 serif 保证任何设备都兜底到系统默认宋体（不存在“没字体”的情况）。
    Android/Linux: Noto Serif CJK SC / Source Han Serif SC · macOS/iOS: Songti SC/华文宋体
-   Windows: SimSun/宋体 · 若日后把正文也 webfont 化，只需把对应族名加在最前即可 */
---font-body: "Noto Serif SC", "Noto Serif CJK SC", "Source Han Serif SC", "Source Han Serif CN", "思源宋体",
+   Windows: SimSun/宋体 · 已把正文 webfont 化（思源宋体 VF 走 jsDelivr，每设备一致），此栈仅作回退 */
+--font-body: "Source Han Serif SC VF", "Noto Serif SC", "Noto Serif CJK SC", "Source Han Serif SC", "思源宋体",
              "Songti SC", "STSong", "华文宋体", "SimSun", "宋体", serif;
   --font-heading: "GenYoMin2TC", "源樣明體", var(--font-body);
   --font-display: "QY-Display", "梦源宋体 W16", var(--font-heading);
