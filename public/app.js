@@ -1271,8 +1271,17 @@ async function renderPost(id) {
   var prev = idx < sorted.length - 1 ? sorted[idx + 1] : null;
   var next = idx > 0 ? sorted[idx - 1] : null;
   html += '<div class="pn-nav">';
-  html += prev ? '<a class="pn-item" href="' + esc(href(postUrl(prev.id))) + '"><span class="pn-dir">← 上一篇</span><span class="pn-title">' + esc(prev.title || '') + '</span></a>' : '<span class="pn-item pn-empty"></span>';
-  html += next ? '<a class="pn-item" href="' + esc(href(postUrl(next.id))) + '"><span class="pn-dir">下一篇 →</span><span class="pn-title">' + esc(next.title || '') + '</span></a>' : '<span class="pn-item pn-empty"></span>';
+  if (prev && next) {
+    // 两个都有：左右排列
+    html += '<a class="pn-item" href="' + esc(href(postUrl(prev.id))) + '"><span class="pn-dir">← 上一篇</span><span class="pn-title">' + esc(prev.title || '') + '</span></a>';
+    html += '<a class="pn-item" href="' + esc(href(postUrl(next.id))) + '"><span class="pn-dir">下一篇 →</span><span class="pn-title">' + esc(next.title || '') + '</span></a>';
+  } else if (prev) {
+    // 只有上一篇：独占一行左对齐
+    html += '<a class="pn-item pn-single" href="' + esc(href(postUrl(prev.id))) + '"><span class="pn-dir">← 上一篇</span><span class="pn-title">' + esc(prev.title || '') + '</span></a>';
+  } else if (next) {
+    // 只有下一篇：独占一行右对齐
+    html += '<a class="pn-item pn-single" href="' + esc(href(postUrl(next.id))) + '"><span class="pn-dir">下一篇 →</span><span class="pn-title">' + esc(next.title || '') + '</span></a>';
+  }
   html += '</div>';
 
   // comments

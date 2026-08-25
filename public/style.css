@@ -1412,7 +1412,7 @@ kbd {
 .pn-item:hover { border-color: var(--accent); text-decoration: none; }
 .pn-item:hover .pn-title { color: var(--accent); }
 .pn-item:hover .pn-dir { color: var(--accent); opacity: 0.9; }
-.pn-item.pn-empty { opacity: 0.35; pointer-events: none; }
+.pn-item.pn-single { grid-column: 1 / -1; }
 .pn-dir { font-size: 11.5px; color: var(--muted); }
 .pn-title {
   font-size: 14px;
