@@ -1236,9 +1236,10 @@ kbd {
 
 /* ---------- 精选文章 ---------- */
 .featured-posts {
-  margin-top: 34px;
-  padding-top: 18px;
+  margin-top: 48px;
+  padding-top: 24px;
   border-top: 1px solid var(--border);
+  margin-bottom: 32px;
 }
 .featured-title {
   font-size: 16px;
