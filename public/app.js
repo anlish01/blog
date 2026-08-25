@@ -661,6 +661,69 @@ async function likePost(postId) {
   return s;
 }
 
+/* ---------- 精选文章 ----------
+ * 按 点赞×3 + 浏览×1 + 评论×5 综合得分排序，取前 2 篇。
+ * 云端模式：从 API 批量拉取；静态模式：从本地数据计算。
+ */
+var _featuredCache = null;
+async function getFeaturedPosts(excludeId, count) {
+  if (_featuredCache) return _featuredCache.filter(function (p) { return p.id !== excludeId; }).slice(0, count || 2);
+  var posts = (typeof getStaticPosts === 'function') ? getStaticPosts() : [];
+  if (_cloudOn()) {
+    try {
+      var d = await apiFetch('api/posts');
+      if (d && d.posts && d.posts.length) posts = d.posts;
+    } catch (e) {}
+  }
+  // 过滤：排除加密文章和当前文章
+  posts = posts.filter(function (p) { return !p.protected && p.id !== excludeId && (p.status || 'published') !== 'draft'; });
+  // 并行拉取每篇文章的统计和评论数
+  var scored = await Promise.all(posts.map(async function (p) {
+    var views = 0, likes = 0, comments = 0;
+    try {
+      if (_cloudOn()) {
+        var sd = await apiFetch('api/stats/' + encodeURIComponent(p.id));
+        if (sd && sd.stats) { views = sd.stats.views || 0; likes = sd.stats.likes || 0; }
+      } else {
+        var raw = localStorage.getItem('qingyu.stats.' + p.id);
+        if (raw) { var ps = JSON.parse(raw); views = ps.views || 0; likes = ps.likes || 0; }
+      }
+    } catch (e) {}
+    try {
+      if (_cloudOn()) {
+        var cd = await apiFetch('api/posts/' + encodeURIComponent(p.id) + '/comments');
+        if (cd && cd.comments) comments = cd.comments.length;
+      } else {
+        var cl = localStorage.getItem('qingyu.comments.' + p.id);
+        if (cl) comments = JSON.parse(cl).length;
+      }
+    } catch (e) {}
+    return { id: p.id, title: p.title || '(无标题)', score: likes * 3 + views + comments * 5, views: views, likes: likes, comments: comments };
+  }));
+  scored.sort(function (a, b) { return b.score - a.score; });
+  _featuredCache = scored;
+  return scored.filter(function (p) { return p.id !== excludeId; }).slice(0, count || 2);
+}
+function renderFeaturedHtml(excludeId) {
+  return '<div class="featured-posts" id="featuredPosts"><div class="featured-title">' + svgIcon('pin', 16) + ' 精选文章</div><div class="featured-grid" id="featuredGrid"><div class="featured-loading">加载中…</div></div></div>';
+}
+function loadFeaturedPosts(excludeId) {
+  getFeaturedPosts(excludeId, 2).then(function (items) {
+    var grid = document.querySelector('#featuredGrid');
+    if (!grid) return;
+    if (!items.length) { grid.innerHTML = '<div class="featured-empty">暂无精选文章</div>'; return; }
+    grid.innerHTML = items.map(function (p) {
+      return '<a class="featured-card" href="' + esc(href(postUrl(p.id))) + '">'
+        + '<div class="featured-card-title">' + esc(p.title) + '</div>'
+        + '<div class="featured-card-meta">' + svgIcon('eye', 12) + ' ' + p.views + ' · ' + svgIcon('heart', 12) + ' ' + p.likes + ' · ' + svgIcon('quote', 12) + ' ' + p.comments
+        + '</div></a>';
+    }).join('');
+  }).catch(function () {
+    var grid = document.querySelector('#featuredGrid');
+    if (grid) grid.innerHTML = '<div class="featured-empty">暂无精选文章</div>';
+  });
+}
+
 /* ---------- 管理员门禁 ----------
  * 云端模式（API 可用）：密码存 Cloudflare KV，前端只持有会话 token。
  *   登录 POST /api/admin/login → token 存 localStorage('qingyu.token')。
@@ -1201,6 +1264,9 @@ async function renderPost(id) {
   html += '<div class="comment-form"><input type="text" id="commentAuthor" maxlength="30" placeholder="昵称"><textarea id="commentContent" rows="2" maxlength="1000" placeholder="说点什么…"></textarea><div class="comment-submit-row"><button class="btn btn-primary" id="commentSubmit">发表评论</button><span class="c-status" id="commentStatus"></span></div></div>';
   html += '<ul class="comment-list" id="commentList"></ul></div>';
 
+  // 精选文章（评论区下方）
+  html += renderFeaturedHtml(post.id);
+
   var adCfg = getConfig().ads || {};
   if (adCfg.enabled && adCfg.content) html += '<div class="ad-slot"><span class="ad-label">广告</span>' + adCfg.content + '</div>';
 
@@ -1213,6 +1279,8 @@ async function renderPost(id) {
     var v = document.querySelector('#viewCount'); if (v) v.textContent = String(s.views);
     var l = document.querySelector('#likeCount'); if (l) l.textContent = String(s.likes);
   });
+  // 精选文章异步加载
+  loadFeaturedPosts(post.id);
   incView(post.id).then(function (s) {
     var v = document.querySelector('#viewCount'); if (v && s) v.textContent = String(s.views);
   });
