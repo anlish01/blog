@@ -201,11 +201,11 @@
   function renderGate(root) {
     var head = '', form = '', hint = '';
     if (cloudOn()) {
-      head = '<h2>登录后台</h2><p>使用云端管理员密码登录</p>';
+      head = '<h2>登录后台</h2><p>使用管理员密码登录</p>';
       form =
-        '<input class="ab-input" type="password" id="abGatePwd" placeholder="管理员密码" autocomplete="current-password">' +
-        '<button class="ab-btn primary" id="abGateBtn">登 录</button>' +
-        '<p class="ab-hint" style="margin-top:14px">首次部署请先按 README 用 <code>/api/admin/setup</code> 设置密码（需 BLOG_ADMIN_SETUP_KEY）。</p>';
+        '<input class="ab-input" type="password" id="abGatePwd" placeholder="管理密码" autocomplete="current-password">' +
+        '<button class="ab-btn primary" id="abGateBtn">登 录</button>';
+      hint = '<p class="ab-hint" style="margin-top:14px">首次部署时系统自动设置默认密码，登录后请立即修改。</p>';
     } else if (window.needAdminSetup && window.needAdminSetup()) {
       head = '<h2>设置管理密码</h2><p>本地模式：设置后用于进入后台（≥4 位）</p>';
       form =
@@ -221,7 +221,7 @@
       '<div class="ab-gate">' +
       '<div class="ab-gate-card">' +
       '<div class="ab-gate-logo">青</div>' + head +
-      form +
+      form + hint +
       '</div></div>';
 
     var btn = root.querySelector('#abGateBtn');
@@ -233,13 +233,23 @@
       try {
         if (cloudOn()) {
           var r = await window.cloudLogin(pwd);
-          if (r && r.ok) { toast('登录成功', 'ok'); go('/admin'); }
+          if (r && r.ok) {
+            if (r.mustChange) {
+              // 首次部署自动初始化：显示默认密码 + 强制改密
+              var msg = r.defaultPassword ? '（默认密码：' + r.defaultPassword + '）' : '';
+              toast('登录成功' + msg + '，请立即修改密码', 'ok');
+              go('/admin');
+              setTimeout(function () { openPasswordModal(); }, 500);
+            } else {
+              toast('登录成功', 'ok'); go('/admin');
+            }
+          }
           else { toast((r && r.message) || '登录失败', 'err'); btn.disabled = false; }
         } else if (window.needAdminSetup && window.needAdminSetup()) {
-          if (window.setupAdmin(pwd)) { toast('已设置', 'ok'); go('/admin'); }
+          if (await window.setupAdmin(pwd)) { toast('已设置', 'ok'); go('/admin'); }
           else { toast('密码至少 4 位', 'err'); btn.disabled = false; }
         } else {
-          if (window.tryAdmin(pwd)) { toast('登录成功', 'ok'); go('/admin'); }
+          if (await window.tryAdmin(pwd)) { toast('登录成功', 'ok'); go('/admin'); }
           else { toast('密码错误', 'err'); btn.disabled = false; }
         }
       } catch (e) { toast('登录异常：' + (e && e.message || e), 'err'); btn.disabled = false; }
@@ -1362,24 +1372,25 @@
   }
 
   /* ====================== 修改密码 ====================== */
-  function openPasswordModal() {
+  function openPasswordModal(onSuccess) {
     var mask = document.createElement('div');
     mask.className = 'ab-modal-mask';
     mask.innerHTML = '<div class="ab-modal"><h3>修改密码</h3>' +
       '<div class="ab-field" style="margin-bottom:12px"><label class="ab-label">当前密码</label><input class="ab-input" id="abCurPwd" type="password"></div>' +
-      '<div class="ab-field" style="margin-bottom:12px"><label class="ab-label">新密码（≥8 位）</label><input class="ab-input" id="abNewPwd" type="password"></div>' +
+      '<div class="ab-field" style="margin-bottom:12px"><label class="ab-label">新密码（≥6 位）</label><input class="ab-input" id="abNewPwd" type="password"></div>' +
       '<div class="ab-modal-actions"><button class="ab-btn ghost" data-act="cancel">取消</button><button class="ab-btn primary" id="abDoPwd">确定修改</button></div></div>';
     document.body.appendChild(mask);
     mask.addEventListener('click', function (e) { if (e.target === mask || e.target.getAttribute('data-act') === 'cancel') mask.remove(); });
     mask.querySelector('#abDoPwd').addEventListener('click', async function () {
       var cur = mask.querySelector('#abCurPwd').value, pwd = mask.querySelector('#abNewPwd').value;
       if (!cur || !pwd) { toast('请填写完整', 'err'); return; }
+      if (pwd.length < 6) { toast('新密码至少 6 位', 'err'); return; }
       try {
         await api('api/admin/password', { method: 'POST', body: JSON.stringify({ current: cur, password: pwd }) });
-        toast('密码已更新，请重新登录', 'ok');
+        toast('密码已更新', 'ok');
         mask.remove();
         if (cloudOn()) window.cloudLogout && window.cloudLogout();
-        go('/admin');
+        if (onSuccess) onSuccess(); else go('/admin');
       } catch (e) { toast('修改失败：' + (e.message || e), 'err'); }
     });
   }

@@ -634,6 +634,15 @@ function randomToken(bytes = 32) {
   crypto.getRandomValues(buf);
   return bytesToHex(buf);
 }
+/** 生成可读的默认密码（格式：xxxx-xxxx，8 位字母数字） */
+function generateDefaultPassword() {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789'; // 去掉容易混淆的 i/l/o/0/1
+  const buf = new Uint8Array(8);
+  crypto.getRandomValues(buf);
+  const p1 = Array.from(buf.slice(0, 4), b => chars[b % chars.length]).join('');
+  const p2 = Array.from(buf.slice(4, 8), b => chars[b % chars.length]).join('');
+  return p1 + '-' + p2;
+}
 /** PBKDF2-SHA256 派生密钥（返回 hex）；salt 为 hex 字符串 */
 async function deriveKey(password, saltHex, iter) {
   const enc = new TextEncoder();
@@ -665,13 +674,24 @@ function nowMs() { return Date.now(); }
 
 async function getAdminAuth(env) {
   const r = await dbFirst(env.DB, "SELECT * FROM admin_auth WHERE k = ?", ADMIN_AUTH_KEY);
-  return r ? { salt: r.salt, hash: r.hash, iter: r.iter || PBKDF2_ITER } : null;
+  return r ? { salt: r.salt, hash: r.hash, iter: r.iter || PBKDF2_ITER, mustChange: !!(r.must_change) } : null;
 }
 async function setAdminAuth(env, auth) {
-  await dbRun(env.DB,
-    'INSERT INTO admin_auth (k,salt,hash,iter) VALUES (?,?,?,?) '
-    + 'ON CONFLICT(k) DO UPDATE SET salt=excluded.salt, hash=excluded.hash, iter=excluded.iter',
-    ADMIN_AUTH_KEY, auth.salt, auth.hash, auth.iter);
+  const mc = auth.mustChange != null ? (auth.mustChange ? 1 : 0) : undefined;
+  if (mc != null) {
+    await dbRun(env.DB,
+      'INSERT INTO admin_auth (k,salt,hash,iter,must_change) VALUES (?,?,?,?,?) '
+      + 'ON CONFLICT(k) DO UPDATE SET salt=excluded.salt, hash=excluded.hash, iter=excluded.iter, must_change=excluded.must_change',
+      ADMIN_AUTH_KEY, auth.salt, auth.hash, auth.iter, mc);
+  } else {
+    await dbRun(env.DB,
+      'INSERT INTO admin_auth (k,salt,hash,iter) VALUES (?,?,?,?) '
+      + 'ON CONFLICT(k) DO UPDATE SET salt=excluded.salt, hash=excluded.hash, iter=excluded.iter',
+      ADMIN_AUTH_KEY, auth.salt, auth.hash, auth.iter);
+  }
+}
+async function clearMustChange(env) {
+  await dbRun(env.DB, 'UPDATE admin_auth SET must_change = 0 WHERE k = ?', ADMIN_AUTH_KEY).catch(() => {});
 }
 /** 校验会话 token 是否有效（存在且未过期） */
 async function validSession(env, token) {
@@ -706,25 +726,30 @@ export async function isWriteAuthed(request, env) {
 
 /* ---------- 接口实现 ---------- */
 
-/** POST /api/admin/setup — 首次设置管理员密码（需 X-Setup-Key 匹配 BLOG_ADMIN_SETUP_KEY） */
+/** POST /api/admin/setup — 设置管理员密码（首次无需密钥；已有密码时需 X-Setup-Key） */
 export async function handleAdminSetup(request, env) {
   if (!env || !env.DB) return json({ error: DB_ERR }, 500, request, env);
   if (request.method === 'OPTIONS') return corsPreflight(request, env);
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405, request, env);
 
-  const setupKey = env.BLOG_ADMIN_SETUP_KEY;
-  if (!setupKey) return json({ error: '未配置 BLOG_ADMIN_SETUP_KEY 环境变量，无法设置管理员密码' }, 500, request, env);
-  const given = String(request.headers.get('X-Setup-Key') || '').trim();
-  if (!safeEqual(given, setupKey)) return json({ error: '设置密钥无效' }, 403, request, env);
-
-  if (await getAdminAuth(env)) return json({ error: '管理员密码已设置；如需重置，请先删除 D1 表 admin_auth 的 auth 行' }, 409, request, env);
+  const existingAuth = await getAdminAuth(env);
+  // 已有密码时需验证 setup key（防未授权重置）
+  if (existingAuth && existingAuth.hash) {
+    const setupKey = env.BLOG_ADMIN_SETUP_KEY;
+    if (setupKey) {
+      const given = String(request.headers.get('X-Setup-Key') || '').trim();
+      if (!safeEqual(given, setupKey)) return json({ error: '设置密钥无效' }, 403, request, env);
+    }
+    // 无 setup key 环境变量时也拒绝重置（安全默认）
+    return json({ error: '管理员密码已设置；如需重置，请先删除 D1 表 admin_auth 的 auth 行' }, 409, request, env);
+  }
 
   let body = null;
   try { body = await request.json(); } catch (e) {
     return json({ error: '请求体不是有效 JSON（检查是否含 BOM/引号被转义）' }, 400, request, env);
   }
   const password = String((body && body.password) || '');
-  if (password.length < 8) return json({ error: '密码至少 8 位' }, 400, request, env);
+  if (password.length < 6) return json({ error: '密码至少 6 位' }, 400, request, env);
 
   const salt = randomToken(16);
   const iter = PBKDF2_ITER;
@@ -734,7 +759,7 @@ export async function handleAdminSetup(request, env) {
     console.error('[admin:setup] deriveKey failed:', e && e.message, e);
     return json({ error: '密码哈希计算失败（服务端）: ' + (e && e.message) }, 500, request, env);
   }
-  try { await setAdminAuth(env, { salt, hash, iter }); }
+  try { await setAdminAuth(env, { salt, hash, iter, mustChange: false }); }
   catch (e) {
     console.error('[admin:setup] D1 write failed:', e && e.message, e);
     return json({ error: '数据库写入失败（服务端）: ' + (e && e.message) }, 500, request, env);
@@ -765,10 +790,24 @@ export async function handleAdminLogin(request, env) {
   const body = await request.json().catch(() => null);
   const password = String((body && body.password) || '');
   const auth = await getAdminAuth(env);
+
+  // —— 首次部署：自动初始化默认密码（无需手动 setup） ——
   if (!auth || !auth.hash || !auth.salt) {
-    return json({ error: '尚未设置管理员密码（请先调用 /api/admin/setup）' }, 401, request, env);
+    const defaultPwd = generateDefaultPassword();
+    const salt = randomToken(16);
+    const iter = PBKDF2_ITER;
+    let hash;
+    try { hash = await deriveKey(defaultPwd, salt, iter); }
+    catch (e) { return json({ error: '服务端初始化失败' }, 500, request, env); }
+    try { await setAdminAuth(env, { salt, hash, iter, mustChange: true }); }
+    catch (e) { return json({ error: '数据库写入失败' }, 500, request, env); }
+    // 签发会话 token
+    const token = randomToken(32);
+    await dbRun(env.DB, 'INSERT INTO admin_sessions (token,exp) VALUES (?,?)', token, nowMs() + ADMIN_SESSION_TTL * 1000);
+    return json({ ok: true, token, expiresIn: ADMIN_SESSION_TTL, mustChange: true, defaultPassword: defaultPwd }, 200, request, env);
   }
 
+  // —— 正常登录 ——
   const hash = await deriveKey(password, auth.salt, auth.iter || PBKDF2_ITER);
   if (!safeEqual(hash, auth.hash)) {
     let n = 1;
@@ -786,7 +825,7 @@ export async function handleAdminLogin(request, env) {
   try { await dbRun(env.DB, 'DELETE FROM admin_fails WHERE ip = ?', ip); } catch (e) { /* ignore */ }
   const token = randomToken(32);
   await dbRun(env.DB, 'INSERT INTO admin_sessions (token,exp) VALUES (?,?)', token, nowMs() + ADMIN_SESSION_TTL * 1000);
-  return json({ ok: true, token, expiresIn: ADMIN_SESSION_TTL }, 200, request, env);
+  return json({ ok: true, token, expiresIn: ADMIN_SESSION_TTL, mustChange: !!auth.mustChange }, 200, request, env);
 }
 
 /** POST /api/admin/logout — 撤销当前会话 token */
@@ -936,7 +975,7 @@ export async function handleAdminPassword(request, env) {
   const body = await request.json().catch(() => null);
   const cur = String((body && body.current) || '');
   const pwd = String((body && body.password) || '');
-  if (pwd.length < 8) return json({ error: '新密码至少 8 位' }, 400, request, env);
+  if (pwd.length < 6) return json({ error: '新密码至少 6 位' }, 400, request, env);
   const auth = await getAdminAuth(env);
   if (!auth || !auth.hash || !auth.salt) return json({ error: '尚未设置管理员密码' }, 400, request, env);
   const curHash = await deriveKey(cur, auth.salt, auth.iter || PBKDF2_ITER);
@@ -944,7 +983,7 @@ export async function handleAdminPassword(request, env) {
   const salt = randomToken(16);
   const iter = PBKDF2_ITER;
   const hash = await deriveKey(pwd, salt, iter);
-  await setAdminAuth(env, { salt, hash, iter });
+  await setAdminAuth(env, { salt, hash, iter, mustChange: false });
   try { await dbRun(env.DB, 'DELETE FROM admin_sessions'); } catch (e) {}
   return json({ ok: true, message: '密码已更新，请重新登录' }, 200, request, env);
 }

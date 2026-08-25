@@ -671,6 +671,12 @@ function _localPwd() { try { return localStorage.getItem('qingyu.admin.pwd') || 
 function _setLocalPwd(v) { try { localStorage.setItem('qingyu.admin.pwd', String(v)); } catch (e) {} }
 function _adminSession() { try { return localStorage.getItem('qingyu.admin.ok') === '1'; } catch (e) { return false; } }
 function _setAdminSession(v) { try { localStorage.setItem('qingyu.admin.ok', v ? '1' : '0'); } catch (e) {} }
+/** 简单 SHA-256 哈希（前端 PBKDF2 不需要，用轻量版即可） */
+async function _hashLocalPwd(pwd) {
+  var enc = new TextEncoder();
+  var buf = await crypto.subtle.digest('SHA-256', enc.encode(String(pwd)));
+  return 'sha256:' + Array.from(new Uint8Array(buf), function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+}
 /* 云端会话 token */
 function _sessionToken() { try { return localStorage.getItem('qingyu.token') || ''; } catch (e) { return ''; } }
 function _setSessionToken(t) {
@@ -692,27 +698,40 @@ function adminOk() {
   if (_cloudOn()) return !!_sessionToken();
   return _adminSession();
 }
-function setupAdmin(pwd) {
+async function setupAdmin(pwd) {
   pwd = String(pwd || '');
   if (pwd.length < 4) return false;
-  _setLocalPwd(pwd);
+  var hashed = await _hashLocalPwd(pwd);
+  _setLocalPwd(hashed);
   _setAdminSession(true);
   return true;
 }
-function tryAdmin(pwd) {
+async function tryAdmin(pwd) {
   var target = _cfgPwd() || _localPwd();
   if (!target) return false;
-  if (String(pwd || '') === target) { _setAdminSession(true); return true; }
+  // 兼容旧版明文密码（无 sha256: 前缀）
+  if (target.indexOf('sha256:') !== 0) {
+    if (String(pwd || '') === target) {
+      // 升级为哈希存储
+      var hashed = await _hashLocalPwd(pwd);
+      _setLocalPwd(hashed);
+      _setAdminSession(true);
+      return true;
+    }
+    return false;
+  }
+  var hashed = await _hashLocalPwd(pwd);
+  if (hashed === target) { _setAdminSession(true); return true; }
   return false;
 }
-/** 云端登录：POST /api/admin/login，成功存 token；返回 { ok, message } */
+/** 云端登录：POST /api/admin/login，成功存 token；返回 { ok, message, mustChange, defaultPassword } */
 async function cloudLogin(pwd) {
   try {
     var data = await apiFetch('api/admin/login', { method: 'POST', body: JSON.stringify({ password: String(pwd || '') }) });
     if (!data || !data.token) return { ok: false, message: (data && data.error) || '登录失败' };
     _setSessionToken(data.token);
     _setAdminSession(true);
-    return { ok: true };
+    return { ok: true, mustChange: !!data.mustChange, defaultPassword: data.defaultPassword || '' };
   } catch (e) {
     return { ok: false, message: '登录失败（HTTP ' + (e && e.message ? e.message.replace('HTTP ', '') : '') + '）' };
   }
@@ -1613,11 +1632,10 @@ function renderWrite() {
       html += '<div class="card gate-card">'
         + '<div class="gate-badge">' + svgIcon('lock', 26) + '</div>'
         + '<h3 class="gate-title">管理员登录</h3>'
-        + '<p class="gate-sub">输入管理员密码以继续写作<br>密码校验于 Cloudflare D1 后端，仅比对哈希、不回传</p>'
+        + '<p class="gate-sub">输入管理员密码以继续写作</p>'
         + '<div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码" autocomplete="current-password"><button class="btn btn-primary" id="btnGate">' + svgIcon('logout', 15) + ' 登 录</button></div>'
         + '<div class="gate-msg alert-strip" id="gateMsg"></div>'
         + '<div class="gate-foot"><a href="' + esc(href('/')) + '">← 返回首页</a></div>'
-        + '<p class="gate-hint">提示：首次部署请先按 README 用 <code>/api/admin/setup</code> 设置密码。</p>'
         + '</div>';
     } else if (needAdminSetup()) {
       html += '<div class="card gate-card">'
@@ -1641,15 +1659,15 @@ function renderWrite() {
     html += '</main>' + renderFooter();
     app().innerHTML = html;
     var btnSetup = document.querySelector('#btnSetup');
-    if (btnSetup) btnSetup.addEventListener('click', function () {
+    if (btnSetup) btnSetup.addEventListener('click', async function () {
       var inp = document.querySelector('#setupPwd');
       var msg = document.querySelector('#gateMsg');
       if (!inp) return;
-      if (setupAdmin(inp.value)) { route(); }
+      if (await setupAdmin(inp.value)) { route(); }
       else if (msg) msg.textContent = '密码太短，至少 4 位';
     });
     var btnGate = document.querySelector('#btnGate');
-    if (btnGate) btnGate.addEventListener('click', function () {
+    if (btnGate) btnGate.addEventListener('click', async function () {
       var inp = document.querySelector('#gatePwd');
       var msg = document.querySelector('#gateMsg');
       if (!inp || !inp.value) { if (msg) msg.textContent = '请输入密码'; return; }
@@ -1661,13 +1679,23 @@ function renderWrite() {
         cloudLogin(inp.value).then(function (r) {
           btnGate.disabled = false;
           btnGate.innerHTML = orig;
-          if (r.ok) { route(); }
+          if (r.ok) {
+            if (r.mustChange) {
+              // 首次部署自动初始化：显示默认密码 + 跳转强制改密
+              if (r.defaultPassword) {
+                if (msg) { msg.className = 'gate-msg alert-strip ok'; msg.textContent = '默认密码：' + r.defaultPassword + '（请登录后立即修改）'; }
+              }
+              setTimeout(function () { route(); }, 800);
+            } else {
+              route();
+            }
+          }
           else {
             if (msg) msg.textContent = r.message || '密码错误';
             try { inp.focus(); inp.select(); } catch (e2) {}
           }
         });
-      } else if (tryAdmin(inp.value)) { route(); }
+      } else if (await tryAdmin(inp.value)) { route(); }
       else if (msg) msg.textContent = '密码错误';
     });
     // 回车即提交 + 自动聚焦密码框
