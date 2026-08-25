@@ -708,19 +708,29 @@ function renderFeaturedHtml(excludeId) {
   return '<div class="featured-posts" id="featuredPosts"><div class="featured-title">' + svgIcon('pin', 16) + ' 精选文章</div><div class="featured-grid" id="featuredGrid"><div class="featured-loading">加载中…</div></div></div>';
 }
 function loadFeaturedPosts(excludeId) {
+  _featuredCache = null; // 每次进入新文章清缓存，确保过滤当前文章
   getFeaturedPosts(excludeId, 2).then(function (items) {
+    var wrap = document.querySelector('#featuredPosts');
     var grid = document.querySelector('#featuredGrid');
     if (!grid) return;
-    if (!items.length) { grid.innerHTML = '<div class="featured-empty">暂无精选文章</div>'; return; }
+    if (!items.length) { if (wrap) wrap.style.display = 'none'; return; }
     grid.innerHTML = items.map(function (p) {
-      return '<a class="featured-card" href="' + esc(href(postUrl(p.id))) + '">'
+      var url = postUrl(p.id);
+      return '<a class="featured-card" href="' + esc(href(url)) + '" data-nav="' + esc(url) + '">'
         + '<div class="featured-card-title">' + esc(p.title) + '</div>'
         + '<div class="featured-card-meta">' + svgIcon('eye', 12) + ' ' + p.views + ' · ' + svgIcon('heart', 12) + ' ' + p.likes + ' · ' + svgIcon('quote', 12) + ' ' + p.comments
         + '</div></a>';
     }).join('');
+    // 用 data-nav + click 事件确保跳转，不依赖 SPA 的 <a> 拦截
+    grid.querySelectorAll('[data-nav]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        navigate(a.getAttribute('data-nav'));
+      });
+    });
   }).catch(function () {
-    var grid = document.querySelector('#featuredGrid');
-    if (grid) grid.innerHTML = '<div class="featured-empty">暂无精选文章</div>';
+    var wrap = document.querySelector('#featuredPosts');
+    if (wrap) wrap.style.display = 'none';
   });
 }
 
@@ -2544,6 +2554,7 @@ function parseQuery(source) {
 
 async function route() {
   _searchOpen = false;   // 进入新页面时收起顶部搜索
+  _featuredCache = null; // 清除精选缓存，确保每页重新计算
   var r = currentRoute();
   var path = r.path;
   var q = r.query;
