@@ -103,27 +103,35 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           BLOG_D1_ID: ${{ secrets.BLOG_D1_ID }}
         run: |
+          # 查询某表是否存在指定列（用于 ALTER 类迁移的幂等跳过）
+          check_col() {
+            local tbl="$1" col="$2"
+            npx --yes wrangler@3.90.0 d1 execute blog --remote --config wrangler.workers.ci.toml \
+              --command "SELECT COUNT(*) AS n FROM pragma_table_info('$tbl') WHERE name='$col'" --json 2>/dev/null \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['results'][0]['n'] if d and d[0].get('results') else 0)" 2>/dev/null || echo 0
+          }
           for f in migrations/*.sql; do
             echo "Applying $f"
-            # 0003（ALTER 加 cover 列）幂等：先查列是否存在，存在则跳过，
+            base=$(basename "$f")
+            skip=0
+            # ALTER 加列类迁移幂等：先查列是否存在，存在则跳过，
             # 避免重复执行 ALTER TABLE ADD COLUMN 报 duplicate column（SQLite 无 IF NOT EXISTS）
-            if [ "$(basename "$f")" = "0003_cover_column.sql" ]; then
-              # 单行 python：避免 YAML block scalar 内的多行缩进问题（缩进不足会提前结束标量）
-              cnt=$(npx --yes wrangler@3.90.0 d1 execute blog --remote --config wrangler.workers.ci.toml \
-                --command "SELECT COUNT(*) AS n FROM pragma_table_info('posts') WHERE name='cover'" --json 2>/dev/null \
-                | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['results'][0]['n'] if d and d[0].get('results') else 0)" 2>/dev/null || echo 0)
-              if [ "${cnt:-0}" -gt 0 ] 2>/dev/null; then
-                echo "→ cover 列已存在，跳过（幂等）"
-                continue
-              fi
+            case "$base" in
+              0003_cover_column.sql)    [ "$(check_col posts cover)" -gt 0 ] 2>/dev/null && skip=1 ;;
+              0004_post_meta.sql)       [ "$(check_col posts category)" -gt 0 ] 2>/dev/null && skip=1 ;;
+              0005_comment_status.sql)  [ "$(check_col comments status)" -gt 0 ] 2>/dev/null && skip=1 ;;
+            esac
+            if [ "$skip" -eq 1 ]; then
+              echo "→ 列已存在，跳过（幂等）"
+              continue
             fi
             out=$(npx --yes wrangler@3.90.0 d1 execute blog --remote --config wrangler.workers.ci.toml --file="$f" 2>&1)
             code=$?
             if [ $code -ne 0 ]; then
               # 兜底：万一上面的列查询不可用（如 D1 不支持 pragma_table_info），
               # 仍按错误文本识别 duplicate column 并跳过
-              if [ "$(basename "$f")" = "0003_cover_column.sql" ] && echo "$out" | grep -qi "duplicate column"; then
-                echo "→ cover 列已存在，跳过（幂等）"
+              if echo "$out" | grep -qi "duplicate column"; then
+                echo "→ 列已存在，跳过（幂等）"
               else
                 echo "$out"; exit 1
               fi

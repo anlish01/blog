@@ -2465,12 +2465,24 @@ async function route() {
       editing = seg[1] === 'edit';
     }
     if (editing) {
-      renderWrite();
+      // 编辑文章：交给新版后台管理 UI（存在时）；否则回退旧编辑器
+      if (window.QingyuAdmin && window.QingyuAdmin.mount) {
+        window.QingyuAdmin.mount(app(), id ? '/posts/' + encodeURIComponent(id) + '/edit' : '/admin/posts/new');
+      } else {
+        renderWrite(id);
+      }
     } else {
       await renderPost(id);
     }
   }
-  else if (path === '/write' || path === '/admin' || path === '/admin/write' || path === '/admin/posts' || /^\/admin\/posts\/[^\/]+\/edit$/.test(path)) { renderAdmin(); }
+  else if (path === '/write' || path === '/admin' || path.indexOf('/admin/') === 0) {
+    // 后台管理 UI：交给新版模块（存在时）；否则回退旧 admin 渲染，保证逻辑不变
+    if (window.QingyuAdmin && window.QingyuAdmin.mount) {
+      window.QingyuAdmin.mount(app(), path);
+    } else {
+      renderAdmin();
+    }
+  }
   else if (path === '/archive') { app().innerHTML = renderArchive(); }
   else if (path === '/about') { app().innerHTML = renderAbout(); }
   else if (path === '/tags') { app().innerHTML = renderTags(); }

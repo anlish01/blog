@@ -6,7 +6,7 @@
  *   · 其余请求 → 静态资源（由 wrangler.workers.toml [assets] 绑定提供）
  * 部署：npx wrangler deploy
  * ============================================================ */
-import { handlePosts, handlePostId, handleFeed, handleComments, handleCommentId, handleSitemap, handleSiteFiles, handleStats, handleAdminSetup, handleAdminLogin, handleAdminLogout, getCorsHeaders } from './functions/_lib/api-core.js';
+import { handlePosts, handlePostId, handleFeed, handleComments, handleCommentId, handleSitemap, handleSiteFiles, handleStats, handleAdminSetup, handleAdminLogin, handleAdminLogout, getCorsHeaders, handleCommentsList, handleCommentUpdate, handleCommentDeleteGlobal, handleMedia, handleMediaId, handleSettings, handleAdminPassword, handleStatsTrend } from './functions/_lib/api-core.js';
 
 export default {
   async fetch(request, env) {
@@ -45,6 +45,30 @@ export default {
     }
     if (url.pathname === '/api/admin/logout') {
       return handleAdminLogout(request, env);
+    }
+    if (url.pathname === '/api/admin/password') {
+      return handleAdminPassword(request, env);
+    }
+    if (url.pathname === '/api/comments') {
+      return handleCommentsList(request, env);
+    }
+    if (url.pathname === '/api/media') {
+      return handleMedia(request, env);
+    }
+    if (url.pathname === '/api/settings') {
+      return handleSettings(request, env);
+    }
+    if (url.pathname === '/api/stats/trend') {
+      return handleStatsTrend(request, env);
+    }
+    let cm = url.pathname.match(/^\/api\/comments\/([^/]+)$/);
+    if (cm) {
+      if (request.method === 'DELETE') return handleCommentDeleteGlobal(request, env, decodeURIComponent(cm[1]));
+      return handleCommentUpdate(request, env, decodeURIComponent(cm[1]));
+    }
+    let mm = url.pathname.match(/^\/api\/media\/([^/]+)$/);
+    if (mm) {
+      return handleMediaId(request, env, decodeURIComponent(mm[1]));
     }
     if (url.pathname === '/api/feed.xml') {
       return handleFeed(request, env);
