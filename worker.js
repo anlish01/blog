@@ -13,11 +13,12 @@ export default {
     try {
       return await this.handle(request, env);
     } catch (e) {
-      // 全局兜底：任何未捕获异常都返回 JSON 错误（含消息），便于远程定位
+      // 全局兜底：任何未捕获异常都返回 JSON 错误。
+      // 生产环境不把内部错误信息（可能含 SQL/路径细节）回传给客户端，详情只打在服务端日志。
       console.error('[worker] unhandled error:', e && e.message, e && e.stack);
       return new Response(JSON.stringify({
         ok: false,
-        error: '服务端内部错误: ' + (e && e.message ? e.message : String(e))
+        error: '服务端内部错误'
       }), {
         status: 500,
         headers: { 'Content-Type': 'application/json; charset=utf-8' }

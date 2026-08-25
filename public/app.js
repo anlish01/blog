@@ -431,7 +431,7 @@ function globalSearch(query, limit) {
   var hits = [];
   posts.forEach(function (p) {
     if (p.protected && !_unlocked[p.id]) return;
-    var hay = (p.title || '') + ' ' + (p.excerpt || '') + ' ' + (p.content || '') + ' ' + (p.tags || []).join(' ');
+    var hay = (p.search ? p.search + ' ' : '') + (p.title || '') + ' ' + (p.excerpt || '') + ' ' + (p.content || '') + ' ' + (p.tags || []).join(' ');
     if (hay.toLowerCase().indexOf(q) >= 0) hits.push(p);
   });
   return hits.slice(0, limit || 8);
@@ -611,6 +611,13 @@ async function loadStats(postId) {
 }
 
 async function incView(postId) {
+  // 同会话去重：避免刷新 / 后退 / SWR 重渲染把同一篇阅读数反复 +1
+  try {
+    if (sessionStorage.getItem('qingyu.viewed.' + postId) === '1') {
+      return _statsCache[postId] || await loadStats(postId);
+    }
+    sessionStorage.setItem('qingyu.viewed.' + postId, '1');
+  } catch (e) {}
   if (_cloudOn()) {
     try {
       var data = await apiFetch(statApi(postId), { method: 'POST', body: JSON.stringify({ action: 'views' }) });
@@ -1478,7 +1485,6 @@ async function togglePinFromList(id) {
       await savePostToCloud(post);
       upsertLocalPost(post, false);
       alert(target ? '已置顶（云端已更新）' : '已取消置顶（云端已更新）');
-      syncSiteFilesToCloud().catch(function () {});
     } catch (e) {
       alert('操作失败，请检查网络或登录状态');
       return;
@@ -1533,7 +1539,6 @@ async function toggleLockFromList(id) {
       upsertLocalPost(post, false);
       clearPostCache(post.id);   // 加密状态/正文已变：清除详情缓存
       alert(post.protected ? '已加密（云端已更新）' : '已取消加密（云端已更新）');
-      syncSiteFilesToCloud().catch(function () {});
     } catch (e) {
       alert('操作失败，请检查网络或登录状态');
       return;
@@ -1681,45 +1686,8 @@ function renderWrite() {
   var _editId = currentEditId();
   var _editPost = _editId ? getStaticPosts().find(function (p) { return p.id === _editId; }) : null;
   // 顶栏：页面标题 + 模式徽章 + 编辑状态，层次一目了然
-  html += '<div class="write-head">'
-    + '<h2 class="page-title wh-title">' + svgIcon('pen', 20) + ' 写作台</h2>'
-    + (_cloudOn()
-        ? '<span class="mode-chip cloud">' + svgIcon('cloud', 12) + ' 云端模式</span>'
-        : '<span class="mode-chip local">' + svgIcon('file', 12) + ' 本地模式</span>')
-    + (_editId ? '<span class="mode-chip editing" id="writeTitleHint">' + (_editPost ? esc('编辑：' + (_editPost.title || '')) : '新文章') + '</span>' : '')
-    + '</div>';
-  html += '<div class="card editor-meta"><div class="editor-grid">'
-    + '<div class="field"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div>'
-    + '<div class="field"><label>日期（可精确到时间）</label><div style="display:flex;gap:8px;align-items:center;"><input type="datetime-local" id="dateInput" style="flex:1;"><button class="btn btn-sm btn-ghost" id="btnToday" title="设为当前时间" style="flex-shrink:0;padding:5px 10px;font-size:12px;">今天</button></div></div>'
-    + '<div class="field"><label>摘要（可选，不填则自动截取）</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
-    + '<div class="field field-full"><label>封面图 URL（可选，列表卡片右侧缩略图）</label><input type="text" id="coverInput" placeholder="https://… 未填写则自动取正文第一张图"></div>'
-    + '<div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div>'
-    + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' 置顶</label></div>'
-    + '<div class="field check-label field-protect" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" class="protect-pwd" placeholder="文章访问密码（勾选加密后设置）" style="display:none"></div>'
-    + '</div></div>';
-  html += '<div class="editor-wrap">'
-    + '<section class="editor-pane"><div class="pane-head">' + svgIcon('pen', 13) + ' 编辑<span class="pane-note">Markdown</span></div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" class="md-input" rows="18" placeholder="用 Markdown 写作…"></textarea></section>'
-    + '<section class="editor-pane preview-pane"><div class="pane-head">' + svgIcon('eye', 13) + ' 预览<span class="pane-note">实时渲染</span></div><div class="write-preview article preview-body" id="previewPane"></div></section>'
-    + '</div>';
-  html += '<div class="editor-actions actions-bar">'
-    + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">' + svgIcon('cloud', 15) + ' 发布到云端</button>' : '')
-    + '<button class="btn btn-primary" id="btnSave">' + svgIcon('save', 15) + ' 保存文章</button>'
-    + '<span class="action-sep"></span>'
-    + '<button class="btn" id="btnSaveDraft">' + svgIcon('upload', 15) + ' 存草稿</button>'
-    + '<button class="btn" id="btnImport">' + svgIcon('file', 15) + ' 导入 .md</button>'
-    + '<input type="file" id="mdFileInput" accept=".md,.markdown" hidden>'
-    + '<button class="btn" id="btnOpenMdEditor">' + svgIcon('external', 15) + ' 官方编辑器</button>'
-    + '<span class="action-sep"></span>'
-    + '<button class="btn" id="btnExport">' + svgIcon('download', 15) + ' 导出 posts.js</button>'
-    + '<button class="btn" id="btnExportAll" title="同时导出 posts.js / feed.xml / sitemap.xml 三个文件，一次覆盖即可全部发布">' + svgIcon('save', 15) + ' 一键导出全部</button>'
-    + '<button class="btn" id="btnRss">' + svgIcon('rss', 15) + ' RSS</button>'
-    + '<button class="btn" id="btnSitemap">' + svgIcon('sitemap', 15) + ' Sitemap</button>'
-    + '<span class="actions-right"><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span>'
-    + '<button class="btn btn-outline-danger btn-logout" id="btnClearData" title="清除所有本地数据并重置站点">' + svgIcon('trash', 14) + ' 清理数据</button>'
-    + '<button class="btn btn-ghost btn-logout" id="btnLogout">' + svgIcon('logout', 15) + ' 退出登录</button></span>'
-    + '</div>';
-  html += '<p class="keys-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> 存草稿 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 保存文章</p>';
-  html += '<h3 class="draft-hint"><b>一键导出：</b>保存文章 / RSS / Sitemap 会打开系统保存对话框，选中原文件即可原地覆盖发布。</h3>';
+  // 复用 renderEditorBody（与 /admin 后台编辑器同源，避免两份模板漂移）
+  html += renderEditorBody();
   html += '</main>' + renderFooter();
   app().innerHTML = html;
 
@@ -1781,6 +1749,16 @@ function currentEditId() {
   return (q && q.edit) || '';
 }
 
+function autoGrowMd() {
+  var md = document.querySelector('#mdInput');
+  if (!md) return;
+  try {
+    md.style.height = 'auto';
+    var max = Math.max(window.innerHeight ? Math.floor(window.innerHeight * 0.7) : 600, 360);
+    md.style.height = Math.min(md.scrollHeight, max) + 'px';
+  } catch (e) {}
+}
+
 function updatePreview() {
   var md = document.querySelector('#mdInput');
   var pv = document.querySelector('#previewPane');
@@ -1788,6 +1766,7 @@ function updatePreview() {
   pv.innerHTML = renderMarkdown(md.value || '');
   var wc = document.querySelector('#wordCount');
   if (wc) wc.textContent = stripMd(md.value || '').length + ' 字';
+  autoGrowMd();
 }
 
 /** 云端模式编辑：/api/posts 列表只返回摘要（无 content），编辑时须按 id 拉取云端全文。
@@ -1821,6 +1800,7 @@ function bindWriteEvents() {
   var md = document.querySelector('#mdInput');
   if (md) md.addEventListener('input', function () {
     updatePreview();
+    autoGrowMd();
     var st = document.querySelector('#saveStatus');
     if (st) st.textContent = '未保存';
   });
@@ -2144,8 +2124,6 @@ function renderAdmin() {
               window.BLOG_POSTS = arr.filter(function (p) { return p && p.id !== id; });
             }
             alert('删除成功');
-            // 删除后同步最新 RSS/Sitemap 产物到云端（失败不阻断）
-            syncSiteFilesToCloud().catch(function () {});
             route();
           } else {
             alert('删除失败，请重试');
@@ -2241,6 +2219,9 @@ function collectEditor() {
     dv = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()) + ' '
       + pad2(now.getHours()) + ':' + pad2(now.getMinutes());
   }
+  // 记录当前正在编辑文章的原始加密状态/密文，供 applyEncryption 在「保持原加密」时复用
+  var _editId = currentEditId();
+  var _cur = _editId ? getStaticPosts().find(function (p) { return p.id === _editId; }) : null;
   return {
     title: title.value || '未命名',
     date: dv,
@@ -2251,7 +2232,10 @@ function collectEditor() {
     content: md ? md.value : '',
     // 加密意图：_wantProtect 勾选、_protectPwd 密码（异步加密在保存/发布时执行）
     _wantProtect: !!(protect && protect.checked),
-    _protectPwd: String((protectPwd && protectPwd.value) || '').trim()
+    _protectPwd: String((protectPwd && protectPwd.value) || '').trim(),
+    // 原始文章的加密状态/密文：重发布加密文章时不重输密码也能保留加密
+    _origProtected: !!(_cur && _cur.protected),
+    _origEnc: (_cur && _cur.enc) || null
   };
 }
 
@@ -2263,7 +2247,12 @@ async function applyEncryption(d) {
       d.protected = true;
       d.enc = await encryptText(d.content, d._protectPwd);   // enc 是对象（含 salt/iv/data base64）
       d.content = '';
-    } else if (!d.protected) {
+    } else if (d._origProtected && d._origEnc) {
+      // 已加密文章、未提供新密码：保留原密文，维持加密状态（无需重新输入密码/正文）
+      d.protected = true;
+      d.enc = d._origEnc;
+      d.content = '';
+    } else if (!d._origProtected) {
       d._encErr = '勾选了加密但未填写文章访问密码';
     }
   } else {
@@ -2273,6 +2262,8 @@ async function applyEncryption(d) {
   }
   delete d._wantProtect;
   delete d._protectPwd;
+  delete d._origProtected;
+  delete d._origEnc;
   return d;
 }
 
@@ -2337,8 +2328,6 @@ async function cloudPublish() {
     if (idx >= 0) arr[idx] = d; else arr.push(d);
     window.BLOG_POSTS = arr;
     if (st) st.innerHTML = svgIcon('check', 14) + ' 已发布到云端';
-    // 与文章一同把最新 RSS/Sitemap 产物上传到 D1 云端（失败不阻断发布）
-    syncSiteFilesToCloud().catch(function () {});
   } catch (e) {
     var em = (e && e.message) || '未知错误';
     // 会话过期/无效：清掉本地旧 token，跳回登录页重新拿新令牌
@@ -2353,17 +2342,8 @@ async function cloudPublish() {
   }
 }
 
-/** 把最新生成的 feed.xml / sitemap.xml 产物上传到 D1（随文章发布/更新/删除自动同步） */
-async function syncSiteFilesToCloud() {
-  if (!_cloudOn()) return;
-  await apiFetch('api/site-files', {
-    method: 'POST',
-    body: JSON.stringify([
-      { name: 'feed.xml', content: buildFeedXmlClient(getStaticPosts(), 20) },
-      { name: 'sitemap.xml', content: buildSitemapClient() }
-    ])
-  });
-}
+/* 注：云端 feed.xml / sitemap.xml 由 /api/feed.xml、/api/sitemap.xml 实时从 D1 生成，
+ * 前端不再需要回传产物到 site_files（原 syncSiteFilesToCloud 已移除，避免无用的 D1 写入）。 */
 
 function buildSitemapClient() {
   var cfg = getConfig();

@@ -485,6 +485,7 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
   align-self: center;
   width: 260px;
   height: 160px;
+  aspect-ratio: 13 / 8;          /* 固定宽高比，图片加载前即预留空间，避免布局抖动（CLS） */
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -857,7 +858,8 @@ html[data-theme="dark"] .post-card .mini-tags span {
   font-family: var(--mono);
   font-size: 14.5px;
   line-height: 1.8;
-  resize: vertical;
+  resize: none;          /* 由 autoGrowMd 按内容自动撑高，超上限后内部滚动 */
+  overflow-y: auto;
   outline: none;
 }
 .preview-body {
