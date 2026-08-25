@@ -1263,6 +1263,7 @@ kbd {
   border-radius: 10px;
   background: var(--bg-soft);
   text-decoration: none;
+  cursor: pointer;
   transition: border-color .2s, box-shadow .2s;
   min-height: 90px;
 }

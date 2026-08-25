@@ -714,18 +714,17 @@ function loadFeaturedPosts(excludeId) {
     var grid = document.querySelector('#featuredGrid');
     if (!grid) return;
     if (!items.length) { if (wrap) wrap.style.display = 'none'; return; }
-    grid.innerHTML = items.map(function (p) {
-      var url = postUrl(p.id);
-      return '<a class="featured-card" href="' + esc(href(url)) + '" data-nav="' + esc(url) + '">'
+    grid.innerHTML = items.map(function (p, idx) {
+      return '<div class="featured-card" data-idx="' + idx + '">'
         + '<div class="featured-card-title">' + esc(p.title) + '</div>'
         + '<div class="featured-card-meta">' + svgIcon('eye', 12) + ' ' + p.views + ' · ' + svgIcon('heart', 12) + ' ' + p.likes + ' · ' + svgIcon('quote', 12) + ' ' + p.comments
-        + '</div></a>';
+        + '</div></div>';
     }).join('');
-    // 用 data-nav + click 事件确保跳转，不依赖 SPA 的 <a> 拦截
-    grid.querySelectorAll('[data-nav]').forEach(function (a) {
-      a.addEventListener('click', function (e) {
-        e.preventDefault();
-        navigate(a.getAttribute('data-nav'));
+    // 用 div + click 直接调用 navigate，避免 SPA <a> 拦截器干扰
+    grid.querySelectorAll('.featured-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        var idx = parseInt(card.getAttribute('data-idx'), 10);
+        if (items[idx]) navigate(postUrl(items[idx].id));
       });
     });
   }).catch(function () {
