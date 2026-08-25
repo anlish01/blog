@@ -6,7 +6,7 @@
  *   · 其余请求 → 静态资源（由 wrangler.workers.toml [assets] 绑定提供）
  * 部署：npx wrangler deploy
  * ============================================================ */
-import { handlePosts, handlePostId, handleFeed, handleComments, handleCommentId, handleSitemap, handleSiteFiles, handleStats, handleAdminSetup, handleAdminLogin, handleAdminLogout } from './functions/_lib/api-core.js';
+import { handlePosts, handlePostId, handleFeed, handleComments, handleCommentId, handleSitemap, handleSiteFiles, handleStats, handleAdminSetup, handleAdminLogin, handleAdminLogout, getCorsHeaders } from './functions/_lib/api-core.js';
 
 export default {
   async fetch(request, env) {
@@ -15,13 +15,17 @@ export default {
     } catch (e) {
       // 全局兜底：任何未捕获异常都返回 JSON 错误。
       // 生产环境不把内部错误信息（可能含 SQL/路径细节）回传给客户端，详情只打在服务端日志。
+      // 带上 CORS 头，避免跨域调用方因缺 ACAO 而读不到错误体（仅用于错误提示，不泄露内部细节）。
       console.error('[worker] unhandled error:', e && e.message, e && e.stack);
       return new Response(JSON.stringify({
         ok: false,
         error: '服务端内部错误'
       }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+        headers: Object.assign(
+          { 'Content-Type': 'application/json; charset=utf-8' },
+          getCorsHeaders(request, env)
+        )
       });
     }
   },

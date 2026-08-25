@@ -58,7 +58,8 @@ async function dbRun(db, sql, ...params) {
 function getCorsHeaders(request, env) {
   const h = {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Setup-Key'
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Setup-Key',
+    'Vary': 'Origin'   // 跨域缓存按 Origin 区分副本，避免命中错误/缺失的 ACAO 响应
   };
   const origin = request && request.headers && request.headers.get ? request.headers.get('Origin') : null;
   if (!origin) return h; // 同源，无需 CORS 头
@@ -389,6 +390,8 @@ export async function handleComments(request, env, postId) {
     if (env.BLOG) {
       try { await env.BLOG.put(rk, String(cnt + 1), { expirationTtl: 120 }); } catch (e) {}
     }
+    // 清评论列表缓存，保证新评论立即可见（与 DELETE 评论行为一致）
+    await purgeTags(env, ['comments:' + postId]);
     return json({ ok: true, comment }, 201, request, env);
   }
 
@@ -438,7 +441,7 @@ export function buildSitemapXml(posts, siteUrl) {
 
 /** GET /api/sitemap.xml */
 export async function handleSitemap(request, env) {
-  const siteUrl = env.SITE_URL || (request ? new URL(request.url).origin : '');
+  const siteUrl = (env && env.SITE_URL) || (request ? new URL(request.url).origin : '');
   const posts = env && env.DB ? await readPosts(env) : [];
   const xml = buildSitemapXml(posts, siteUrl);
   return new Response(xml, {
@@ -502,7 +505,7 @@ export async function handleStats(request, env, postId) {
 
   if (method === 'GET') {
     const s = await dbFirst(env.DB, 'SELECT * FROM stats WHERE post_id = ?', postId);
-    return json({ ok: true, postId, stats: { likes: Number(s && s.likes) || 0, views: Number(s && s.views) || 0 } }, 200, request, env, { 'Cache-Control': READ_CACHE });
+    return json({ ok: true, postId, stats: { likes: Number(s && s.likes) || 0, views: Number(s && s.views) || 0 } }, 200, request, env, { 'Cache-Control': READ_CACHE, 'Cache-Tag': 'stats:' + postId });
   }
 
   if (method === 'POST') {
@@ -512,10 +515,22 @@ export async function handleStats(request, env, postId) {
       return json({ error: 'action 只能是 views 或 like' }, 400, request, env);
     }
 
-    // 点赞频控（防刷量）：每 IP 每分钟上限 LIKE_CAP 次。
-    // 浏览量不做频控（仅计数，被刷影响有限）；点赞是「可感知的社交信号」，必须防刷。
     if (action === 'like') {
+      // 点赞去重（每 IP 每文章仅计一次）：与前端 per-browser 去重呼应，
+      // 服务端再兜底一层，防止绕过前端直接调 API 把同一篇赞数刷高。
       const ip = clientIp(request);
+      const dk = 'liked:' + ip + ':' + postId;
+      if (env.BLOG) {
+        try {
+          if (await env.BLOG.get(dk)) {
+            // 已赞过：返回当前计数，不重复 +1（保持幂等）
+            const cur = await dbFirst(env.DB, 'SELECT * FROM stats WHERE post_id = ?', postId) || {};
+            const s = { likes: Number(cur.likes) || 0, views: Number(cur.views) || 0 };
+            return json({ ok: true, postId, stats: s, duplicated: true }, 200, request, env);
+          }
+        } catch (e) {}
+      }
+      // 全局频控（防整体刷量：短时间内对大量不同文章连赞）
       const win = Math.floor(Date.now() / 60000);
       const rk = 'rate:like:' + ip + ':' + win;
       let cnt = 0;
@@ -532,11 +547,17 @@ export async function handleStats(request, env, postId) {
         'INSERT INTO stats (post_id,likes,views) VALUES (?,?,?) '
         + 'ON CONFLICT(post_id) DO UPDATE SET likes=excluded.likes, views=excluded.views',
         postId, s.likes, s.views);
-      if (env.BLOG) { try { await env.BLOG.put(rk, String(cnt + 1), { expirationTtl: 120 }); } catch (e) {} }
+      if (env.BLOG) {
+        try {
+          await env.BLOG.put(rk, String(cnt + 1), { expirationTtl: 120 });
+          await env.BLOG.put(dk, '1');   // 永久去重标记（无过期）
+        } catch (e) {}
+      }
+      await purgeTags(env, ['stats:' + postId]);   // 清 stats 缓存，保证点赞数立即生效
       return json({ ok: true, postId, stats: s }, 200, request, env);
     }
 
-    // views：计数即可
+    // views：计数即可（同会话去重由前端 sessionStorage 负责；此处仅累加）
     const cur = await dbFirst(env.DB, 'SELECT * FROM stats WHERE post_id = ?', postId) || {};
     const s = { likes: Number(cur.likes) || 0, views: Number(cur.views) || 0 };
     s.views = Math.min(s.views + 1, 9999999);
@@ -544,6 +565,7 @@ export async function handleStats(request, env, postId) {
       'INSERT INTO stats (post_id,likes,views) VALUES (?,?,?) '
       + 'ON CONFLICT(post_id) DO UPDATE SET likes=excluded.likes, views=excluded.views',
       postId, s.likes, s.views);
+    await purgeTags(env, ['stats:' + postId]);   // 清 stats 缓存，保证阅读数立即生效
     return json({ ok: true, postId, stats: s }, 200, request, env);
   }
 
