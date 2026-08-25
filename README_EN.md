@@ -1,197 +1,352 @@
-# Qingyu'Blog · A native-JS blog you can open by double-clicking
+<p align="center">
+  <img src="screenshots/home.png" alt="Qingyu'Blog" width="100%">
+</p>
 
-> Zero framework · Zero build step · Zero dependency — a personal blog that **works by double-clicking `index.html`**, or deploy to Cloudflare for free cloud hosting.
->
-> 🚀 Live demo: **[kejiland.azhz.workers.dev](https://kejiland.azhz.workers.dev)**
+<h1 align="center">Qingyu'Blog</h1>
+
+<p align="center">
+  <b>Zero framework · Zero build · Zero dependency — a personal blog you can open by double-clicking</b>
+</p>
+
+<p align="center">
+  <a href="https://kejiland.azhz.workers.dev">
+    <img src="https://img.shields.io/badge/Live%20Demo-kejiland.azhz.workers.dev-blue?style=flat-square" alt="Demo">
+  </a>
+  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License">
+  <img src="https://img.shields.io/badge/Stack-Vanilla%20JS-orange?style=flat-square" alt="Vanilla JS">
+  <img src="https://img.shields.io/badge/Deploy-Cloudflare%20Workers-purple?style=flat-square" alt="Cloudflare Workers">
+</p>
 
 ---
 
-## Why you should try it
+## 📖 About
 
-Most blogging tools require Node + build steps (Hexo / Hugo) or a server + database (WordPress / CMS). **Qingyu'Blog is different**:
+Qingyu'Blog is a personal blog system built with **pure vanilla JavaScript** — no frameworks (React / Vue / Svelte), no build tools (Webpack / Vite), no third-party dependencies.
+
+It runs in two modes:
+
+| Mode | Description | Use Case |
+| --- | --- | --- |
+| **Static** | Double-click `index.html`, data in browser localStorage | Local writing, quick preview |
+| **Cloud** | Deploy to Cloudflare Workers + D1, data in cloud database | Production, public access |
+
+The entire blog = **4 core files** (`index.html` + `style.css` + `app.js` + `posts.js`), plus admin panel (`admin.js` + `admin.css`).
+
+---
+
+## ✅ Why Choose This
+
+| Advantage | Description |
+| --- | --- |
+| **Zero barrier** | No Node.js, no npm, no build steps — just double-click to run |
+| **Zero cost** | Cloudflare Workers + D1 free tier is more than enough for a personal blog |
+| **Zero dependency** | No third-party libraries, fully controllable codebase, blazing fast |
+| **Zero lock-in** | Posts are Markdown files, portable to any platform anytime |
+| **Dual channel** | Static export + Cloud API, same codebase two deployment options |
+| **Responsive** | Frontend + admin panel, fully adapted for phone / tablet / desktop |
+| **Secure** | PBKDF2 + AES-GCM encryption, hashed passwords, session token auth |
+
+---
+
+## 📁 Directory Structure
 
 ```
-📂 The entire blog = one folder = core 4 files
-   index.html + style.css + app.js + posts.js
-   └─ Admin panel: admin.js + admin.css (responsive SPA)
+├── public/                          # Site assets (static)
+│   ├── index.html                   # Entry point (double-click / deploy)
+│   ├── config.js                    # Site config (nav / footer / ads / mode)
+│   ├── style.css                    # Frontend styles (dark mode + responsive)
+│   ├── app.js                       # Frontend logic (routing / comments / encryption / search)
+│   ├── admin.js                     # Admin panel SPA (dashboard / posts / comments / settings)
+│   ├── admin.css                    # Admin styles (responsive layout)
+│   └── posts.js                     # Static mode post data
+├── functions/                       # Cloudflare API (shared by Pages Functions / Workers)
+│   ├── api/
+│   │   ├── posts.js                 # Posts CRUD
+│   │   ├── posts/[id]/
+│   │   │   ├── index.js             # Single post (GET / PUT / DELETE)
+│   │   │   ├── comments.js          # Post comments (GET / POST)
+│   │   │   └── stats.js             # View / like stats
+│   │   ├── comments.js              # Global comment list (admin)
+│   │   ├── comments/[id].js         # Comment approve / delete
+│   │   ├── media.js                 # Media library
+│   │   ├── media/[id].js            # Media delete
+│   │   ├── settings.js              # Site settings
+│   │   ├── admin/
+│   │   │   ├── setup.js             # First-time password setup
+│   │   │   ├── login.js             # Password login
+│   │   │   ├── logout.js            # Logout
+│   │   │   └── password.js          # Change password
+│   │   ├── stats/trend.js           # 30-day trend data
+│   │   ├── feed.xml.js              # RSS generation
+│   │   └── sitemap.xml.js           # Sitemap generation
+│   └── _lib/
+│       └── api-core.js              # API core logic (D1 + auth + security)
+├── worker.js                        # Cloudflare Workers entry (route dispatch)
+├── migrations/                      # D1 database migrations (auto-applied by CI)
+│   ├── 0001_init.sql                # Base tables
+│   ├── 0002_site_files.sql          # Site file storage
+│   ├── 0003_cover_column.sql        # Cover image field
+│   ├── 0004_post_meta.sql           # Category / status fields
+│   ├── 0005_comment_status.sql      # Comment moderation status
+│   ├── 0006_media.sql               # Media library table
+│   ├── 0007_settings.sql            # Site settings table
+│   ├── 0008_stats_daily.sql         # Daily stats table
+│   ├── 0009_comment_status_index.sql # Comment status index
+│   └── 0010_admin_must_change.sql   # Forced password change flag
+├── .github/workflows/deploy.yml     # GitHub Actions auto-deploy
+├── wrangler.toml                    # Cloudflare Pages config
+├── wrangler.workers.toml            # Cloudflare Workers config
+├── smoke-test.js                    # Smoke tests
+├── README.md                        # 中文说明
+└── README_EN.md                     # English docs
 ```
-
-- ✅ **Double-click to open**: download, double-click `index.html`, start reading & writing — fully offline, no `npm install`
-- ✅ **Free cloud hosting**: deploy to Cloudflare Workers + D1 (free tier), auto-deployed on every `git push`
-- ✅ **Feature-complete**: editor / comments / encryption / search / tags / archive / RSS / read stats / featured articles — all built in
-- ✅ **Responsive admin panel**: fixed sidebar on desktop, drawer on mobile, six sections (Dashboard / Posts / Comments / Categories & Tags / Media / Settings)
-- ✅ **Vanilla tech**: pure HTML/CSS/JS + native Web APIs (Web Crypto, localStorage) — no framework at all
-- ✅ **Your data, your rules**: posts are plain Markdown files, portable forever, never locked into a platform
 
 ---
 
 ## ✨ Features
 
-### 📝 Writing & Publishing
+### Frontend
 
-- **Markdown editor**: live preview, one-click toolbar inserts, word count, autosaved drafts (survive closing the tab)
-- **Dual publishing**: static mode exports `posts.js` + `feed.xml` + `sitemap.xml` in one click; cloud mode one-click "Publish to Cloud", instantly visible everywhere
-- **Import .md**: supports `---` frontmatter (title / date / tags / excerpt / password)
-- **List management**: toggle **pin / encrypt / delete** directly from the post list, no editor needed
-- **Category management**: assign one category per article, rename / delete across all articles
-- **Tag management**: assign multiple tags per article, rename / delete across all articles
+| Feature | Description |
+| --- | --- |
+| Markdown Editor | Live preview, one-click toolbar, word count, autosaved drafts |
+| Article Encryption | PBKDF2 + AES-GCM end-to-end, only ciphertext stored |
+| Comments | Cloud D1 global comments + moderation; static mode localStorage |
+| Site Search | Real-time matching of title / tags / excerpt |
+| TOC | Auto-generated with anchor jumps; syntax highlighting |
+| Read Stats | Views / likes (cloud-global / local) |
+| Featured Articles | Auto-recommended below comments (likes×3 + views + comments×5) |
+| RSS / Sitemap | Auto-generated, encrypted posts excluded |
+| Prev/Next | Hides empty slot when only one direction exists |
+| Card List | Cover thumbnails, pin badge, tags pinned to bottom |
+| Dark / Light Theme | One-click toggle, responsive multi-breakpoint |
 
-### 🔒 Privacy & Security
+### Admin Panel
 
-- **Article encryption**: PBKDF2 + AES-GCM end-to-end; only ciphertext is stored (hidden from list APIs too); lock-screen reading with a password
-- **Admin security**: passwords stored as PBKDF2-SHA256 salted hashes; 7-day session tokens; 5 failed attempts = 15-min IP lockout; auto-generated random default password on first deploy with forced password change
-- **Static mode hashing**: local passwords stored as SHA-256 hashes (backward-compatible with old plaintext, auto-upgraded on login)
-- **Comment security**: full HTML escaping (anti-XSS), parameterized queries (anti-SQLi), per-IP rate limiting, Origin validation, control-character scrubbing, length caps, token-protected admin deletion
-
-### 💬 Comments
-
-- Cloud **D1 global comments** (shared across all visitors), with moderation support (new comments auto-approved by default)
-- Static mode stores comments in browser localStorage
-- Consistent mobile & desktop experience
-
-### 🧭 Reading Experience
-
-- **Card list**: cover thumbnails (custom image / first image in body / themed placeholder), pin badge, tags pinned to the bottom
-- **Responsive**: dark/light theme toggle, multi-breakpoint mobile adaptation (OPPO / Xiaomi / vivo / Huawei / iPhone)
-- **Instant detail pages**: local cache + SWR background refresh — second visits open instantly
-- **Site search**: expandable in the top bar, live matching of title / tags / excerpt
-- **TOC**: auto-generated table of contents with anchor jumps; syntax highlighting for js / ts / python / bash / css / html / json
-- **Read stats**: views / likes (cloud-global or local)
-- **Featured articles**: auto-recommends top 2 articles below comments, ranked by engagement (likes×3 + views + comments×5)
-- **Archive / tag cloud / prev-next / copy-link**: all there
-- **Prev-next navigation**: hides the empty slot when only one direction exists
-
-### 📡 Distribution
-
-- **RSS + Sitemap** auto-generated (encrypted posts excluded), great for subscribers & search engines
-- **Custom nav / footer / ad slots**: all driven by `config.js` — change config, not code
-- Footer nav adapts to login state: regular users see RSS, admins see the editor link
-
-### 🖥️ Admin Panel
-
-- **Dashboard**: 7 stat cards + 30-day views/comments trend charts
-- **Post management**: search / category filter / pagination, one-click pin/encrypt toggle
-- **Editor**: Markdown live preview + category / tags / cover / pin / encrypt settings
-- **Comment management**: global comment list with approve / delete
-- **Media library**: image upload (base64 to D1), preview, copy link
-- **Blog settings**: site info / profile / navigation menu (visual editor + JSON dual mode)
-- **Responsive layout**: fixed sidebar on desktop, drawer navigation on mobile (992 / 640 / 420 breakpoints)
+| Feature | Description |
+| --- | --- |
+| Dashboard | 7 stat cards + 30-day trend charts |
+| Post Management | Search / category filter / pagination / pin toggle / encrypt toggle |
+| Editor | Markdown live preview + category / tags / cover / pin / encrypt |
+| Comment Management | Global comment list, approve / delete |
+| Category / Tag Management | Rename / delete (bulk update all related articles) |
+| Media Library | Image upload (base64 to D1) |
+| Blog Settings | Site info / profile / navigation menu (visual + JSON) |
+| Responsive | Fixed sidebar on desktop, drawer navigation on mobile |
 
 ---
 
-## 🖼️ Screenshots
+## 🚀 Deployment
 
-| Home (desktop) | Article (desktop) | Editor |
-| --- | --- | --- |
-| ![Home](screenshots/home.png) | ![Article](screenshots/detail.png) | ![Editor](screenshots/write.png) |
-
-| Admin (editor view) | Admin (login gate) | Home (mobile) |
-| --- | --- | --- |
-| ![Admin](screenshots/admin-list.png) | ![Login](screenshots/admin.png) | ![Mobile](screenshots/mobile.png) |
-
-> Real screenshots of the site. Try it now: <https://kejiland.azhz.workers.dev>
-
----
-
-## 🚀 Quick Start
-
-### Option 1: Local static (30-second demo, zero deployment)
+### Option 1: Local Static
 
 ```bash
 git clone https://github.com/kejiland/blog.git
-# or download the ZIP
+cd blog
 ```
 
-Double-click `public/index.html` → click "✏️ Write" → set a password (≥4 chars) → start writing.
+Double-click `public/index.html`, or start a local server:
 
-> In static mode there is no backend: "publish" = use the "Export All" button in the editor to download `posts.js` + `feed.xml` + `sitemap.xml`, place them in `public/` to overwrite the old files.
+```bash
+# Python
+python -m http.server 8080 -d public
 
-### Option 2: Deploy to Cloudflare (recommended, free)
+# Node.js
+npx serve public
+```
 
-1. Fork this repo to your GitHub
-2. On Cloudflare, create a **D1 database** `blog` (primary storage) + a **KV namespace** `BLOG` (backup binding)
-3. Add repo Secrets: `BLOG_D1_ID`, `BLOG_KV_ID`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
-4. Push to `main` → GitHub Actions auto-runs: create tables → deploy
-5. Open `https://<your-domain>/admin` → first login auto-initializes a random default password → forced password change on login
+Open `http://localhost:8080/admin`, set a password and start writing.
 
-**Secrets overview**:
+### Option 2: Cloudflare Workers (Recommended)
 
-| Secret | Purpose |
-| --- | --- |
-| `BLOG_D1_ID` | D1 database ID (UUID, primary storage) |
-| `BLOG_KV_ID` | KV namespace ID (backup binding) |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API token (Workers / KV / D1 access) |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
+#### 1. Prerequisites
 
-> `BLOG_ADMIN_SETUP_KEY` is no longer required. The system auto-generates a random default password on first deploy and forces a password change on login.
+- [Cloudflare account](https://dash.cloudflare.com/sign-up)
+- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/): `npm install -g wrangler`
+
+#### 2. Create Cloudflare Resources
+
+```bash
+# Login to Cloudflare
+npx wrangler login
+
+# Create D1 database (primary storage: posts / comments / stats / passwords)
+npx wrangler d1 create blog
+# Save the database_id from output
+
+# Create KV namespace (backup binding)
+npx wrangler kv namespace create BLOG
+# Save the id from output
+```
+
+#### 3. Configure GitHub Secrets
+
+Add in repo Settings → Secrets and variables → Actions:
+
+| Secret | Required | Description |
+| --- | --- | --- |
+| `CLOUDFLARE_API_TOKEN` | ✅ | Cloudflare API Token (Workers + D1 + KV permissions) |
+| `CLOUDFLARE_ACCOUNT_ID` | ✅ | Cloudflare Account ID (visible on Dashboard sidebar) |
+| `BLOG_D1_ID` | ✅ | D1 Database ID (from step 2) |
+| `BLOG_KV_ID` | ✅ | KV Namespace ID (from step 2) |
+| `SITE_URL` | Recommended | Public domain, e.g. `https://blog.example.com` (for RSS/Sitemap) |
+| `CF_ZONE_ID` | Optional | Custom domain Zone ID (enables cache purge on publish) |
+
+#### 4. Deploy
+
+Push to `main` branch, GitHub Actions will automatically:
+
+1. ✅ Run D1 migrations (create tables + add columns)
+2. ✅ Deploy Worker to Cloudflare
+3. ✅ Auto-initialize random default password on first login
+
+After deployment, visit `https://<worker-name>.<subdomain>.workers.dev/admin` to start writing.
 
 ---
 
-## 🧰 Tech Stack
+## ☁️ Cloudflare Services
 
-| Layer | Tech |
+### Workers
+
+Workers is Cloudflare's edge computing platform. This project uses it to run the backend API:
+
+- **Entry**: `worker.js` (route dispatch) + `functions/` (Pages Functions)
+- **Assets**: `public/` directory served via Workers `[assets]` binding
+- **Compatibility date**: `2025-02-01`
+
+**Key wrangler.workers.toml config**:
+
+```toml
+name = "kejiland"
+main = "worker.js"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"  # SPA fallback
+html_handling = "auto-trailing-slash"
+
+[[kv_namespaces]]
+binding = "BLOG"
+id = "{env.BLOG_KV_ID}"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "blog"
+database_id = "{env.BLOG_D1_ID}"
+```
+
+### KV (Key-Value Storage)
+
+KV is used as a backup binding (largely replaced by D1). Current uses:
+
+| Purpose | Description |
 | --- | --- |
-| Frontend | Vanilla JavaScript (ES5-style, zero framework, zero dependency) |
-| Admin Panel | Vanilla JS responsive SPA (admin.js + admin.css) |
-| Cloud | Cloudflare Workers + D1 (SQLite) + KV (backup) |
-| Deploy | GitHub Actions auto-deploy (push to go live) |
-| Encryption | PBKDF2 + AES-GCM (browser-native Web Crypto) |
-| Data | Markdown files (local) / D1 (cloud), dual channel |
+| Like dedup | `liked:{ip}:{postId}` — prevents like spam |
+| File cache | feed.xml / sitemap.xml / posts.js caching |
+| Cache purge | `purge:{tag}` — version control |
+
+> ⚠️ KV is **eventually consistent** (global propagation has delay). Not suitable for strong consistency needs. D1 is SQLite with strong consistency.
+
+### D1 (SQLite Database)
+
+D1 is Cloudflare's edge SQLite database — the **primary storage** for this project:
+
+| Table | Description | Key Fields |
+| --- | --- | --- |
+| `posts` | Articles | id, title, content, cover, pinned, protected, enc, tags, category, status |
+| `comments` | Comments | id, post_id, author, content, date, status (approved/pending) |
+| `stats` | Views/likes | post_id, views, likes |
+| `admin_auth` | Admin password | k, salt, hash, iter, must_change |
+| `admin_sessions` | Login sessions | token, exp |
+| `admin_fails` | Rate limiting | ip, n, until |
+| `media` | Media library | id, name, url, type, size |
+| `site_settings` | Site config | k, v (key-value) |
+| `stats_daily` | Daily stats | post_id, date, views, likes |
 
 ---
 
-## 🗂️ Project Structure
+## ⚙️ Configuration
 
+### config.js
+
+```javascript
+window.BLOG_CONFIG = {
+  // ====== Basic ======
+  mode: 'auto',           // 'auto' | 'static' | 'api'
+  apiBase: '',            // API base URL, empty = same origin
+  siteUrl: '',            // Public site URL (for RSS/Sitemap)
+  writeToken: '',         // Legacy write token (use login instead)
+  pageSize: 5,            // Posts per page (0 = no pagination)
+  adminPwd: '',           // Static mode local password (leave empty for cloud)
+
+  // ====== Navigation ======
+  nav: [
+    { text: 'Home', url: '/' },
+    { text: 'Archive', url: '/archive' },
+    { text: 'Tags', url: '/tags' },
+    { text: 'About', url: '/about' },
+    // Nested menu supported:
+    // { text: 'More', children: [
+    //   { text: 'Example', url: '/about' },
+    //   { text: 'External', url: 'https://example.com' }
+    // ]}
+  ],
+
+  // ====== Footer ======
+  footer: {
+    text: '',
+    icp: '',               // ICP filing number
+    contact: [],           // Contact links
+    links: [],             // Friendly links
+    decl: '',              // Site declaration
+    email: '',             // Contact email
+    startYear: 2019,       // Copyright start year
+    copyrightName: "Qingyu'Blog"
+  },
+
+  // ====== Ads ======
+  ads: {
+    enabled: false,
+    belowSearch: '',       // Above post list
+    between: '',           // Between posts
+    betweenEvery: 3,       // Every N posts
+    content: ''            // Article detail bottom
+  }
+};
 ```
-├── public/                      # The site itself (static assets)
-│   ├── index.html               # Page shell (double-click / deploy entry)
-│   ├── config.js                # All site config (nav / footer / ads …)
-│   ├── style.css                # Frontend styles (dark mode + responsive)
-│   ├── app.js                   # Frontend logic (routing / editor / comments / search …)
-│   ├── admin.js                 # Admin panel SPA (dashboard / posts / comments / settings)
-│   ├── admin.css                # Admin styles (responsive layout + dark theme)
-│   └── posts.js                 # Static-mode post data (Markdown)
-├── functions/                   # Cloudflare API (shared by Pages Functions / Workers)
-│   ├── api/                     # Routes: posts / comments / media / settings / admin / feed / sitemap
-│   └── _lib/api-core.js         # API core (D1 storage + auth + security)
-├── worker.js                    # Cloudflare Workers entry
-├── migrations/                  # D1 schema (applied automatically by CI)
-│   ├── 0001_init.sql            # Base tables (posts / comments / stats / admin_auth …)
-│   ├── 0002_site_files.sql      # Site file storage
-│   ├── 0003_cover_column.sql    # Cover image field
-│   ├── 0004_post_meta.sql       # Category / status fields
-│   ├── 0005_comment_status.sql  # Comment moderation status
-│   ├── 0006_media.sql           # Media library table
-│   ├── 0007_settings.sql        # Site settings table
-│   ├── 0008_stats_daily.sql     # Daily stats table
-│   ├── 0009_comment_status_index.sql # Comment status index
-│   └── 0010_admin_must_change.sql    # Forced password change flag
-├── .github/workflows/deploy.yml # Auto-deploy
-├── smoke-test.js                # Smoke tests (node smoke-test.js)
-└── README.md / README_EN.md     # Docs (CN / EN)
-```
+
+### mode Options
+
+| Value | Behavior |
+| --- | --- |
+| `'auto'` | **Recommended**. Auto-detect: `/api/posts` succeeds → cloud; fails → static |
+| `'static'` | Force static mode, posts.js only |
+| `'api'` | Force cloud mode, requires backend API |
+
+---
+
+## 🛡️ Security
+
+| Layer | Mechanism |
+| --- | --- |
+| Password storage | PBKDF2-SHA256 salted hash (100,000 iterations), never plaintext |
+| First deploy | Auto-generated random default password, forced change on first login |
+| Static mode | Passwords stored as SHA-256 hashes (backward-compatible with old plaintext, auto-upgraded) |
+| Session management | Random Token (32-byte hex), 7-day expiry, destroyed on logout |
+| Rate limiting | 5 consecutive failures from same IP = 15-minute lockout |
+| Article encryption | PBKDF2 + AES-GCM end-to-end, ciphertext only on server |
+| Comment security | XSS escaping + parameterized queries + per-IP rate limit + Origin validation |
 
 ---
 
 ## 🧪 Tests
 
 ```bash
-node smoke-test.js   # Regression tests, zero dependencies
+node smoke-test.js
 ```
 
-Covers: Markdown rendering / TOC / syntax highlighting / import-export / admin gate / pinning / archive / tags / comments (incl. security hardening) / encryption / stats / search / RSS / Sitemap / cloud APIs / caching.
-
----
-
-## 🛡️ Security at a Glance
-
-- **Admin passwords**: PBKDF2-SHA256 salted hashes (100,000 iterations), never stored in plaintext
-- **First deploy**: auto-generated random default password (8 chars), forced change on first login
-- **Static mode**: passwords stored as SHA-256 hashes (backward-compatible with old plaintext, auto-upgraded)
-- **Write operations**: all require `Authorization: Bearer` session tokens, otherwise 401
-- **Comments**: full XSS escaping · parameterized queries · per-IP rate limit (5/min) · Origin validation · control-character scrubbing · length caps
-- **Encryption**: only ciphertext is stored, list APIs hide ciphertext, encrypted posts excluded from RSS
-- **Secrets**: all via GitHub Secrets, never committed to the repo
+Covers: Markdown rendering, TOC, syntax highlighting, import/export, admin gate, pinning, archive, tags, comment security, encryption, stats, search, RSS, Sitemap, cloud APIs, caching.
 
 ---
 
@@ -201,4 +356,6 @@ Covers: Markdown rendering / TOC / syntax highlighting / import-export / admin g
 
 ---
 
-*If Qingyu'Blog helps you, feel free to ⭐ Star / Fork, or open an [Issue](https://github.com/kejiland/blog/issues).*
+<p align="center">
+  If Qingyu'Blog helps you, feel free to ⭐ Star / Fork, or open an <a href="https://github.com/kejiland/blog/issues">Issue</a>.
+</p>
