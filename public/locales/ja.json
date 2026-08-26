@@ -9,6 +9,7 @@
   "nav.archive": "アーカイブ",
   "nav.about": "概要",
   "nav.admin": "管理パネル",
+  "nav.toggle": "ナビゲーションを開く",
 
   "theme.toggle": "ダーク/ライトモード切替",
   "search.toggle": "記事を検索",

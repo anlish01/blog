@@ -927,15 +927,38 @@ function app() { return document.querySelector('#app'); }
     var ext = url && /^https?:|^\/\//.test(url) ? ' target="_blank" rel="noopener"' : '';
     return '<div class="nav-item"><a href="' + esc(url) + '" class="' + cls + '"' + ext + '>' + esc(n.text || '') + '</a></div>';
   }).join('');
+
   var langSwitch = '<select id="langSwitch" class="lang-switch" onchange="window.__i18n.loadLocale(this.value).then(function(){ route(); })"></select>';
   var sup = '<button class="icon-btn" id="themeToggle" aria-label="' + t('theme.toggle') + '" title="' + t('theme.toggle') + '">' + themeIcon() + '</button>';
   var searchBtn = '<button class="icon-btn search-toggle" id="searchToggle" aria-label="' + t('search.toggle') + '" title="' + t('search.toggle') + '">' + searchIconSvg() + '</button>';
+
+  // 侧边栏导航项（移动端用）
+  var sidebarLinks = navs.map(function (n) {
+    var raw = n.url || '/';
+    var pathKey = n.path || (/^#\//.test(raw) ? raw.slice(1) : (/^\//.test(raw) ? raw : null));
+    var url = (/^#\//.test(raw)) ? href(raw.slice(1)) : (/^\//.test(raw) ? href(raw) : raw);
+    var cls = (pathKey && pathKey === active) ? 'sidebar-link active' : 'sidebar-link';
+    var ext = url && /^https?:|^\/\//.test(url) ? ' target="_blank" rel="noopener"' : '';
+    return '<a href="' + esc(url) + '" class="' + cls + '"' + ext + '>' + esc(n.text || '') + '</a>';
+  }).join('');
+
+  var hamburger = '<button class="hamburger-btn" id="hamburgerBtn" aria-label="' + t('nav.toggle') + '"><span></span><span></span><span></span></button>';
+  var sidebar = '<div class="sidebar-overlay" id="sidebarOverlay"></div>'
+    + '<aside class="mobile-sidebar" id="mobileSidebar">'
+    + '<div class="sidebar-header"><span class="sidebar-brand">Qingyu\'Blog</span><button class="sidebar-close" id="sidebarClose" aria-label="' + t('search.close') + '">✕</button></div>'
+    + '<nav class="sidebar-nav">' + sidebarLinks + '</nav>'
+    + '<div class="sidebar-footer">'
+    + '<div class="sidebar-actions">' + searchBtn + langSwitch + sup + '</div>'
+    + '</div>'
+    + '</aside>';
   var searchForm = '<form class="topbar-search" id="topbarSearch" role="search" onsubmit="return false">'
     + '<span class="ts-icon">' + searchIconSvg() + '</span>'
     + '<input id="globalSearchInput" type="search" placeholder="' + t('search.placeholder') + '" autocomplete="off" aria-label="' + t('search.toggle') + '">'
     + '<button type="button" class="ts-close" id="searchClose" aria-label="' + t('search.close') + '">✕</button>'
     + '</form>';
-  return '<header class="topbar' + (active && _searchOpen ? ' searching' : '') + '">'
+  return hamburger
+    + sidebar
+    + '<header class="topbar' + (active && _searchOpen ? ' searching' : '') + '">'
     + '<div class="container topbar-inner">'
     + '<div class="topbar-left"><a class="brand" href="' + esc(href('/')) + '">Qingyu\'Blog</a></div>'
     + '<nav class="main-nav">' + links + '</nav>'
@@ -2492,6 +2515,35 @@ function bindGlobal() {
   bindSearch();
   bindBackTop();
   populateLangSwitch();
+  bindMobileSidebar();
+}
+
+function bindMobileSidebar() {
+  var overlay = document.querySelector('#sidebarOverlay');
+  var sidebar = document.querySelector('#mobileSidebar');
+  var hamburger = document.querySelector('#hamburgerBtn');
+  var closeBtn = document.querySelector('#sidebarClose');
+  if (!sidebar) return;
+  function openSidebar() {
+    sidebar.classList.add('open');
+    if (overlay) overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+  if (hamburger) hamburger.addEventListener('click', openSidebar);
+  if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+  if (overlay) overlay.addEventListener('click', closeSidebar);
+  // 点击侧边栏链接后自动关闭
+  sidebar.querySelectorAll('.sidebar-link').forEach(function (a) {
+    a.addEventListener('click', closeSidebar);
+  });
+  // 侧边栏内的语言切换/主题切换
+  var sideTheme = sidebar.querySelector('#themeToggleSide');
+  if (sideTheme) sideTheme.addEventListener('click', function () { toggleTheme(); });
 }
 
 function populateLangSwitch() {

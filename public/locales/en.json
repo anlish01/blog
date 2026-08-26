@@ -9,6 +9,7 @@
   "nav.archive": "Archive",
   "nav.about": "About",
   "nav.admin": "Admin Panel",
+  "nav.toggle": "Open navigation",
 
   "theme.toggle": "Toggle dark/light mode",
   "search.toggle": "Search articles",

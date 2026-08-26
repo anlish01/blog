@@ -182,6 +182,131 @@ a:hover { text-decoration: underline; }
 .sub-menu a:hover { background: var(--bg-soft); color: var(--accent); text-decoration: none; }
 .sub-menu a.active { color: var(--accent); font-weight: 600; }
 
+/* ---------- 汉堡按钮（默认隐藏，仅移动端显示） ---------- */
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 36px; height: 36px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.hamburger-btn span {
+  display: block;
+  width: 20px; height: 2px;
+  background: var(--fg);
+  border-radius: 2px;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.hamburger-btn:hover { background: var(--bg-soft); }
+.hamburger-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger-btn.open span:nth-child(2) { opacity: 0; }
+.hamburger-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ---------- 遮罩层 ---------- */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 199;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.sidebar-overlay.show { display: block; opacity: 1; }
+
+/* ---------- 移动端侧边导航栏 ---------- */
+.mobile-sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: 280px; height: 100vh;
+  height: 100dvh;
+  background: var(--bg);
+  z-index: 200;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.08);
+  overflow-y: auto;
+}
+.mobile-sidebar.open { transform: translateX(0); }
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sidebar-brand {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--fg);
+  letter-spacing: 0.5px;
+}
+.sidebar-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: pointer;
+  width: 32px; height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar-close:hover { background: var(--bg-soft); color: var(--fg); }
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-link {
+  display: block;
+  padding: 12px 24px;
+  font-size: 15px;
+  color: var(--fg);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  border-left: 3px solid transparent;
+}
+.sidebar-link:hover { background: var(--bg-soft); color: var(--accent); text-decoration: none; }
+.sidebar-link.active {
+  color: var(--accent);
+  font-weight: 600;
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--border);
+  padding: 14px 20px;
+  flex-shrink: 0;
+}
+.sidebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- 深色模式适配 ---------- */
+[data-theme="dark"] .mobile-sidebar { box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+[data-theme="dark"] .sidebar-overlay { background: rgba(0, 0, 0, 0.6); }
+
 /* 顶部图标按钮（圆角，与主题同色系） */
 .icon-btn {
   background: var(--bg-soft);
@@ -1885,4 +2010,15 @@ kbd {
 @media (max-width: 360px) {
   .brand { font-size: 14px; }
   .main-nav .nav-link { padding: 5px 5px; font-size: 12.5px; }
+}
+
+/* ---------- 移动端侧边导航（≤768px 显示汉堡 + 隐藏桌面导航） ---------- */
+@media (max-width: 768px) {
+  .hamburger-btn { display: flex; }
+  .main-nav { display: none; }
+  .topbar-left { flex: 1; }
+  .topbar-inner { grid-template-columns: auto 1fr auto; }
+  /* 窄屏顶栏操作按钮缩小 */
+  .topbar-actions { gap: 4px; }
+  .icon-btn { width: 30px; height: 30px; font-size: 13px; }
 }

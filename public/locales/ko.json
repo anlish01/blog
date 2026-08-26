@@ -9,6 +9,7 @@
   "nav.archive": "아카이브",
   "nav.about": "소개",
   "nav.admin": "관리자 패널",
+  "nav.toggle": "탐색 열기",
 
   "theme.toggle": "다크/라이트 모드 전환",
   "search.toggle": "글 검색",

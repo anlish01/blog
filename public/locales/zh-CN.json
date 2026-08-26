@@ -9,6 +9,7 @@
   "nav.archive": "归档",
   "nav.about": "关于",
   "nav.admin": "写作后台",
+  "nav.toggle": "展开导航",
 
   "theme.toggle": "切换深色/浅色模式",
   "search.toggle": "搜索文章",
