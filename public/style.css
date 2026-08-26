@@ -1992,35 +1992,6 @@ kbd {
   .post-thumb-ph svg { width: 22px; height: 22px; }
 }
 
-/* iPhone 17（约 393px）/ iPhone 17 Pro Max（约 440px）等窄屏：
-   缩略图圆角固定尺寸，同时保证左侧内容区有足够宽度（标题/摘要不被挤爆） */
-@media (max-width: 480px) {
-  .post-card { gap: 12px; padding: 12px; min-height: 140px; }
-  .post-card-main { padding: 0; }
-  .post-thumb { width: 150px; height: 100px; border-radius: 10px; }
-  .post-thumb-ph svg { width: 20px; height: 20px; }
-  .post-card h2 { font-size: 17px; }
-  .post-card .excerpt { font-size: 13.5px; }
-  /* 顶栏：品牌英文名缩小，保证单行不溢出 */
-  .brand { font-size: 16px; letter-spacing: 0.2px; }
-  .main-nav .nav-link { padding: 6px 8px; font-size: 13.5px; }
-  .topbar-actions { gap: 6px; }
-}
-
-/* 主流安卓窄屏（OPPO / 小米 / vivo / 华为，约 360-400px）：继续压缩顶栏，防品牌/导航换行竖排 */
-@media (max-width: 400px) {
-  .topbar-inner { height: 54px; }
-  .brand { font-size: 15px; letter-spacing: 0; }
-  .main-nav .nav-link { padding: 5px 6px; font-size: 13px; }
-  .topbar-actions { gap: 4px; }
-}
-
-/* 极小屏（约 320-360px，含 360px 安卓旧机型） */
-@media (max-width: 360px) {
-  .brand { font-size: 14px; }
-  .main-nav .nav-link { padding: 5px 5px; font-size: 12.5px; }
-}
-
 /* ---------- 移动端布局（≤768px） ---------- */
 /* 桌面端隐藏的东西 */
 .mobile-only { display: none; }
@@ -2054,6 +2025,39 @@ kbd {
     -webkit-box-orient: vertical;
     max-height: calc(1.5em * 2);
   }
+}
+
+/* iPhone 17（约 393px）/ iPhone 17 Pro Max（约 440px）等窄屏：
+   缩略图圆角固定尺寸，同时保证左侧内容区有足够宽度（标题/摘要不被挤爆） */
+@media (max-width: 480px) {
+  .post-card { gap: 12px; padding: 12px; min-height: 140px; }
+  .post-card-main { padding: 0; }
+  .post-thumb { width: 150px; height: 100px; border-radius: 10px; }
+  .post-thumb-ph svg { width: 20px; height: 20px; }
+  .post-card h2 { font-size: 17px; }
+  .post-card .excerpt { font-size: 13.5px; }
+  /* 顶栏：品牌英文名缩小，保证单行不溢出 */
+  .brand { font-size: 16px; letter-spacing: 0.2px; }
+  .main-nav .nav-link { padding: 6px 8px; font-size: 13.5px; }
+  .topbar-actions { gap: 6px; }
+  .featured-card-title {
+    -webkit-line-clamp: 2;
+    max-height: calc(1.5em * 2);
+  }
+}
+
+/* 主流安卓窄屏（OPPO / 小米 / vivo / 华为，约 360-400px）：继续压缩顶栏，防品牌/导航换行竖排 */
+@media (max-width: 400px) {
+  .topbar-inner { height: 54px; }
+  .brand { font-size: 15px; letter-spacing: 0; }
+  .main-nav .nav-link { padding: 5px 6px; font-size: 13px; }
+  .topbar-actions { gap: 4px; }
+}
+
+/* 极小屏（约 320-360px，含 360px 安卓旧机型） */
+@media (max-width: 360px) {
+  .brand { font-size: 14px; }
+  .main-nav .nav-link { padding: 5px 5px; font-size: 12.5px; }
 }
 /* 侧栏品牌名旁边的主题切换按钮 */
 .sidebar-theme {
