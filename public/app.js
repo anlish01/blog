@@ -931,6 +931,7 @@ function app() { return document.querySelector('#app'); }
   var langSwitch = '<select id="langSwitch" class="lang-switch" onchange="window.__i18n.loadLocale(this.value).then(function(){ route(); })"></select>';
   var themeBtn = '<button class="icon-btn" id="themeToggle" aria-label="' + t('theme.toggle') + '" title="' + t('theme.toggle') + '">' + themeIcon() + '</button>';
   var searchBtn = '<button class="icon-btn search-toggle" id="searchToggle" aria-label="' + t('search.toggle') + '" title="' + t('search.toggle') + '">' + searchIconSvg() + '</button>';
+  var hamburger = '<button class="hamburger-btn" id="hamburgerBtn" aria-label="' + t('nav.toggle') + '"><span></span><span></span><span></span></button>';
 
   // 侧边栏导航项（移动端用）
   var sidebarLinks = navs.map(function (n) {
@@ -942,7 +943,6 @@ function app() { return document.querySelector('#app'); }
     return '<a href="' + esc(url) + '" class="' + cls + '"' + ext + '>' + esc(n.text || '') + '</a>';
   }).join('');
 
-  var hamburger = '<button class="hamburger-btn" id="hamburgerBtn" aria-label="' + t('nav.toggle') + '"><span></span><span></span><span></span></button>';
   // 侧栏：品牌名 + 主题切换 + 导航链接 + 语言切换
   var sidebar = '<div class="sidebar-overlay" id="sidebarOverlay"></div>'
     + '<aside class="mobile-sidebar" id="mobileSidebar">'
@@ -958,14 +958,13 @@ function app() { return document.querySelector('#app'); }
     + '<input id="globalSearchInput" type="search" placeholder="' + t('search.placeholder') + '" autocomplete="off" aria-label="' + t('search.toggle') + '">'
     + '<button type="button" class="ts-close" id="searchClose" aria-label="' + t('search.close') + '">✕</button>'
     + '</form>';
-  // 顶栏右侧：桌面端显示搜索+语言+主题；移动端只显示搜索
-  return hamburger
-    + sidebar
+  // 汉堡在 topbar-left 前面，与品牌/搜索同行
+  return sidebar
     + '<header class="topbar' + (active && _searchOpen ? ' searching' : '') + '">'
     + '<div class="container topbar-inner">'
-    + '<div class="topbar-left"><a class="brand" href="' + esc(href('/')) + '">Qingyu\'Blog</a></div>'
+    + '<div class="topbar-left">' + hamburger + '<a class="brand" href="' + esc(href('/')) + '">Qingyu\'Blog</a></div>'
     + '<nav class="main-nav">' + links + '</nav>'
-    + '<div class="topbar-actions">' + searchBtn + '<span class="desktop-only">' + langSwitch + themeBtn + '</span></div>'
+    + '<div class="topbar-actions">' + searchBtn + langSwitch + themeBtn + '</div>'
     + searchForm
     + '</div>'
     + '<div class="search-panel" id="searchPanel"></div>'

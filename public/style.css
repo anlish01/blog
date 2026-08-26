@@ -2013,12 +2013,17 @@ kbd {
   .main-nav .nav-link { padding: 5px 5px; font-size: 12.5px; }
 }
 
-/* ---------- 移动端侧边导航（≤768px 显示汉堡 + 隐藏桌面导航 + 品牌居中） ---------- */
-.desktop-only { display: contents; }
+/* ---------- 移动端布局（≤768px） ---------- */
+/* 桌面端隐藏的东西 */
+.mobile-only { display: none; }
 @media (max-width: 768px) {
-  .desktop-only { display: none !important; }
-  .hamburger-btn { display: flex; }
+  /* 移动端隐藏桌面元素 */
   .main-nav { display: none; }
+  .topbar-actions .lang-switch,
+  .topbar-actions .icon-btn:not(.search-toggle) { display: none; }
+  /* 汉堡按钮显示 */
+  .hamburger-btn { display: flex; }
+  /* 顶栏三栏：汉堡+品牌 | 搜索 */
   .topbar-inner {
     display: flex;
     justify-content: space-between;
@@ -2026,9 +2031,9 @@ kbd {
     position: relative;
   }
   .topbar-left {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .brand { font-size: 18px; }
   .topbar-actions { gap: 6px; }
