@@ -1442,6 +1442,7 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
 }
 .featured-card:hover .featured-card-title { color: var(--accent); }
 .featured-card-meta {
@@ -1461,6 +1462,13 @@ kbd {
 }
 @media (max-width: 640px) {
   .featured-grid { grid-template-columns: 1fr; }
+  .featured-card-title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    max-height: calc(1.5em * 2);
+  }
 }
 
 /* ---------- 写作页：密码 ---------- */
@@ -2038,6 +2046,14 @@ kbd {
   .brand { font-size: 18px; }
   .topbar-actions { gap: 6px; }
   .icon-btn { width: 30px; height: 30px; font-size: 13px; }
+  /* 精选卡片标题限制2行 */
+  .featured-card-title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    max-height: calc(1.5em * 2);
+  }
 }
 /* 侧栏品牌名旁边的主题切换按钮 */
 .sidebar-theme {
