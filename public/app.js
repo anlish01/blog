@@ -429,23 +429,29 @@ function globalSearch(query, limit) {
   var posts = sortPagePosts(getStaticPosts());
   var hits = [];
   posts.forEach(function (p) {
-    var hay = (p.search ? p.search + ' ' : '') + (p.title || '') + ' ' + (p.excerpt || '') + ' ' + (p.content || '') + ' ' + (p.tags || []).join(' ');
-    if (hay.toLowerCase().indexOf(q) >= 0) hits.push(p);
+    var hay = ((p.search || '') + ' ' + (p.title || '') + ' ' + (p.excerpt || '') + ' ' + (p.content || '') + ' ' + (p.tags || []).join(' ')).toLowerCase();
+    if (hay.indexOf(q) >= 0) hits.push(p);
   });
   return hits.slice(0, limit || 8);
 }
 
+var _snipCache = {};
 function searchSnippet(post, query) {
   var q = String(query || '').trim();
   if (!q) return '';
+  var cacheKey = (post.id || '') + '|' + q.toLowerCase();
+  if (_snipCache[cacheKey] !== undefined) return _snipCache[cacheKey];
   var body = stripMd(post.content || '');
-  var idx = body.toLowerCase().indexOf(q.toLowerCase());
-  if (idx < 0) idx = (post.excerpt || '').toLowerCase().indexOf(q.toLowerCase());
-  if (idx < 0) idx = (post.title || '').toLowerCase().indexOf(q.toLowerCase());
-  if (idx < 0) return '';
+  var qLow = q.toLowerCase();
+  var idx = body.toLowerCase().indexOf(qLow);
+  if (idx < 0) idx = (post.excerpt || '').toLowerCase().indexOf(qLow);
+  if (idx < 0) idx = (post.title || '').toLowerCase().indexOf(qLow);
+  if (idx < 0) { _snipCache[cacheKey] = ''; return ''; }
   var start = Math.max(0, idx - 30);
   var end = Math.min(body.length, idx + q.length + 40);
-  return (start > 0 ? '…' : '') + body.slice(start, end) + (end < body.length ? '…' : '');
+  var result = (start > 0 ? '…' : '') + body.slice(start, end) + (end < body.length ? '…' : '');
+  _snipCache[cacheKey] = result;
+  return result;
 }
 
 
@@ -2807,9 +2813,14 @@ function bindSearch() {
     if (bar) bar.classList.remove('searching');
     if (input) input.value = '';
     if (panel) { panel.innerHTML = ''; panel.classList.remove('open'); }
+    _snipCache = {};
   });
   if (input) {
-    input.addEventListener('input', function () { renderSearchPanel(input.value); });
+    var _searchTimer = null;
+    input.addEventListener('input', function () {
+      clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(function () { renderSearchPanel(input.value); }, 200);
+    });
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') { if (close) close.click(); }
     });
