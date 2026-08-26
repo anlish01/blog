@@ -950,7 +950,7 @@ function app() { return document.querySelector('#app'); }
     + '<button class="icon-btn sidebar-theme" id="themeToggleSide" aria-label="' + t('theme.toggle') + '" title="' + t('theme.toggle') + '">' + themeIcon() + '</button>'
     + '<button class="sidebar-close" id="sidebarClose" aria-label="' + t('search.close') + '">✕</button></div>'
     + '<nav class="sidebar-nav">' + sidebarLinks + '</nav>'
-    + '<div class="sidebar-footer">' + langSwitch + '</div>'
+    + '<div class="sidebar-footer"><select id="langSwitchSide" class="lang-switch" onchange="window.__i18n.loadLocale(this.value).then(function(){ route(); })"></select></div>'
     + '</aside>';
 
   var searchForm = '<form class="topbar-search" id="topbarSearch" role="search" onsubmit="return false">'
@@ -2560,17 +2560,19 @@ function bindMobileSidebar() {
 }
 
 function populateLangSwitch() {
-  var sel = document.querySelector('#langSwitch');
-  if (!sel || !window.__i18n || typeof window.__i18n.getLanguages !== 'function') return;
+  var sels = document.querySelectorAll('.lang-switch');
+  if (!sels.length || !window.__i18n || typeof window.__i18n.getLanguages !== 'function') return;
   var langs = window.__i18n.getLanguages();
   var current = window.__i18n.getLocale ? window.__i18n.getLocale() : 'zh-CN';
-  sel.innerHTML = '';
-  langs.forEach(function (lang) {
-    var opt = document.createElement('option');
-    opt.value = lang.code;
-    opt.textContent = lang.flag + ' ' + lang.name;
-    if (lang.code === current) opt.selected = true;
-    sel.appendChild(opt);
+  sels.forEach(function (sel) {
+    sel.innerHTML = '';
+    langs.forEach(function (lang) {
+      var opt = document.createElement('option');
+      opt.value = lang.code;
+      opt.textContent = lang.flag + ' ' + lang.name;
+      if (lang.code === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
   });
 }
 
