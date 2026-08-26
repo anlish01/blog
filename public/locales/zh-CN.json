@@ -74,6 +74,9 @@
   "comment.posted": "✓ 已发表",
   "comment.deleteConfirm": "确定删除这条评论？",
   "comment.deleted": "已删除",
+  "comment.reply": "回复",
+  "comment.replyTo": "回复 {author}",
+  "comment.cancelReply": "取消回复",
 
   "pagination.page": "第 {current} / {total} 页",
   "pagination.prev": "上一页",

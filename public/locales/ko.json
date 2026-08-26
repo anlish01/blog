@@ -74,6 +74,9 @@
   "comment.posted": "✓ 게시됨",
   "comment.deleteConfirm": "이 댓글을 삭제하시겠습니까?",
   "comment.deleted": "삭제됨",
+  "comment.reply": "답글",
+  "comment.replyTo": "{author}에게 답글",
+  "comment.cancelReply": "답글 취소",
 
   "pagination.page": "{current} / {total} 페이지",
   "pagination.prev": "이전",

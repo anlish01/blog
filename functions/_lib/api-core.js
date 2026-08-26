@@ -343,6 +343,19 @@ function sanitizeText(s) {
   return String(s || '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
 }
 
+/** 计算评论的嵌套深度（从父级链向上追溯） */
+async function getCommentDepth(db, postId, parentId, maxDepth = 3) {
+  let depth = 1;
+  let currentId = parentId;
+  while (depth < maxDepth && currentId) {
+    const parent = await dbFirst(db, 'SELECT parent_id FROM comments WHERE post_id = ? AND id = ?', postId, currentId);
+    if (!parent || !parent.parent_id) break;
+    currentId = parent.parent_id;
+    depth++;
+  }
+  return depth;
+}
+
 /** GET /api/posts/:id/comments · POST /api/posts/:id/comments（公开发表） */
 export async function handleComments(request, env, postId) {
   if (!env || !env.DB) return json({ error: DB_ERR }, 500, request, env);
@@ -384,6 +397,23 @@ export async function handleComments(request, env, postId) {
     const content = sanitizeText(String((body && body.content) || '').trim()).slice(0, COMMENT_CAPS.content);
     if (!author) return json({ error: '请填写昵称' }, 400, request, env);
     if (!content) return json({ error: '评论内容不能为空' }, 400, request, env);
+    // 回复：验证 parent_id（可选）
+    let parentId = null;
+    if (body && body.parent_id) {
+      parentId = sanitizeText(String(body.parent_id).trim()) || null;
+      if (parentId) {
+        // 确保 parent_id 存在且属于同一篇文章
+        const parentComment = await dbFirst(env.DB, 'SELECT id FROM comments WHERE post_id = ? AND id = ?', postId, parentId);
+        if (!parentComment) {
+          return json({ error: '回复的评论不存在' }, 400, request, env);
+        }
+        // 检查嵌套深度（最大 3 层）
+        const depth = await getCommentDepth(env.DB, postId, parentId);
+        if (depth >= 3) {
+          return json({ error: '最多支持 3 层嵌套回复' }, 400, request, env);
+        }
+      }
+    }
     const count = await dbFirst(env.DB, 'SELECT COUNT(*) AS c FROM comments WHERE post_id = ?', postId);
     if ((count && count.c || 0) >= COMMENT_CAPS.perPost) return json({ error: '评论数已达上限' }, 400, request, env);
     // 评论审核：若开启「新评论默认需审核」，则进入待审核；否则直接通过。
@@ -398,11 +428,12 @@ export async function handleComments(request, env, postId) {
       author,
       content,
       date: new Date().toISOString().slice(0, 10),
-      status: moderate ? 'pending' : 'approved'
+      status: moderate ? 'pending' : 'approved',
+      parent_id: parentId
     };
     await dbRun(env.DB,
-      'INSERT INTO comments (id,post_id,author,content,date,status) VALUES (?,?,?,?,?,?)',
-      comment.id, postId, comment.author, comment.content, comment.date, comment.status);
+      'INSERT INTO comments (id,post_id,author,content,date,status,parent_id) VALUES (?,?,?,?,?,?,?)',
+      comment.id, postId, comment.author, comment.content, comment.date, comment.status, parentId);
     // 入库成功才计数（防刷屏）
     if (env.BLOG) {
       try { await env.BLOG.put(rk, String(cnt + 1), { expirationTtl: 120 }); } catch (e) {}

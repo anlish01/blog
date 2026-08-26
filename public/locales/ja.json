@@ -74,6 +74,9 @@
   "comment.posted": "✓ 投稿しました",
   "comment.deleteConfirm": "このコメントを削除しますか？",
   "comment.deleted": "削除しました",
+  "comment.reply": "返信",
+  "comment.replyTo": "{author}に返信",
+  "comment.cancelReply": "返信キャンセル",
 
   "pagination.page": "{current} / {total} ページ",
   "pagination.prev": "← 前へ",

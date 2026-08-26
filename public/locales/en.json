@@ -74,6 +74,9 @@
   "comment.posted": "✓ Posted",
   "comment.deleteConfirm": "Delete this comment?",
   "comment.deleted": "Deleted",
+  "comment.reply": "Reply",
+  "comment.replyTo": "Reply to {author}",
+  "comment.cancelReply": "Cancel reply",
 
   "pagination.page": "Page {current} / {total}",
   "pagination.prev": "Previous",

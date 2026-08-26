@@ -74,6 +74,9 @@
   "comment.posted": "✓ पोस्ट हो गया",
   "comment.deleteConfirm": "यह टिप्पणी हटाएं?",
   "comment.deleted": "हटा दिया गया",
+  "comment.reply": "जवाब दें",
+  "comment.replyTo": "{author} को जवाब दें",
+  "comment.cancelReply": "जवाब रद्द करें",
 
   "pagination.page": "पेज {current} / {total}",
   "pagination.prev": "पिछला",

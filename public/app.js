@@ -536,16 +536,17 @@ async function loadComments(postId) {
   return arr;
 }
 
-async function saveComment(postId, author, content) {
+async function saveComment(postId, author, content, parentId) {
   var id = String(postId || '');
   author = String(author || '').trim().slice(0, 30);
   content = String(content || '').trim().slice(0, 1000);
+  parentId = parentId || null;
   if (!author || !content) return null;
   if (_cloudOn()) {
     try {
       var data = await apiFetch(commentApi(id), {
         method: 'POST',
-        body: JSON.stringify({ author: author, content: content })
+        body: JSON.stringify({ author: author, content: content, parent_id: parentId })
       });
       var c = (data && data.comment) || null;
       if (c) { try { delete _commentsCache[id]; } catch (e) {} }
@@ -557,7 +558,8 @@ async function saveComment(postId, author, content) {
     id: 'c-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     author: author,
     content: content,
-    date: new Date().toISOString().slice(0, 10)
+    date: new Date().toISOString().slice(0, 10),
+    parent_id: parentId
   };
   if (list.length >= 300) list.shift();
   list.push(comment);
@@ -1311,6 +1313,7 @@ async function renderPost(id) {
   // comments
   html += '<div class="comments"><h3>' + t('comment.title') + ' <span class="comment-count" id="commentCount">' + '0' + '</span></h3>';
   html += '<p class="comment-hint">' + t('comment.hint') + '</p>';
+  html += '<div class="reply-indicator" id="replyIndicator" style="display:none"><span id="replyTo"></span><button class="reply-cancel" id="replyCancel">✕</button></div>';
   html += '<div class="comment-form"><input type="text" id="commentAuthor" maxlength="30" placeholder="' + t('comment.authorPlaceholder') + '"><textarea id="commentContent" rows="2" maxlength="1000" placeholder="' + t('comment.contentPlaceholder') + '"></textarea><div class="comment-submit-row"><button class="btn btn-primary" id="commentSubmit">' + t('comment.submit') + '</button><span class="c-status" id="commentStatus"></span></div></div>';
   html += '<ul class="comment-list" id="commentList"></ul></div>';
 
@@ -1361,12 +1364,52 @@ async function renderPost(id) {
     if (!ul) return;
     var canDel = !_cloudOn() || adminOk();
     if (!list.length) { ul.innerHTML = '<li class="comment-empty">' + t('comment.noComments') + '</li>'; return; }
-    ul.innerHTML = list.map(function (c) {
-      return '<li class="comment"><div class="comment-head"><span class="comment-author">' + esc(c.author) + '</span><span class="comment-date">' + esc(c.date || '') + '</span>' + (canDel ? '<button class="comment-del" data-cid="' + esc(c.id) + '">' + t('comment.delete') + '</button>' : '') + '</div><div class="comment-content">' + esc(c.content) + '</div></li>';
-    }).join('');
+    // 构建评论树
+    var roots = [], childMap = {};
+    list.forEach(function (c) { childMap[c.id] = []; });
+    list.forEach(function (c) {
+      if (c.parent_id && childMap[c.parent_id]) { childMap[c.parent_id].push(c); }
+      else if (c.parent_id) { roots.push(c); }
+      else { roots.push(c); }
+    });
+    function renderComment(c, depth) {
+      var replies = childMap[c.id] || [];
+      var replyBtn = '<button class="comment-reply-btn" data-reply-id="' + esc(c.id) + '" data-reply-author="' + esc(c.author) + '">' + t('comment.reply') + '</button>';
+      var delBtn = canDel ? '<button class="comment-del" data-cid="' + esc(c.id) + '">' + t('comment.delete') + '</button>' : '';
+      var childrenHtml = replies.length ? '<ul class="comment-children">' + replies.map(function (r) { return renderComment(r, depth + 1); }).join('') + '</ul>' : '';
+      return '<li class="comment" data-id="' + esc(c.id) + '"><div class="comment-head">'
+        + '<span class="comment-author">' + esc(c.author) + '</span>'
+        + '<span class="comment-date">' + esc(c.date || '') + '</span>'
+        + (depth < 3 ? replyBtn : '')
+        + delBtn
+        + '</div><div class="comment-content">' + esc(c.content) + '</div>' + childrenHtml + '</li>';
+    }
+    ul.innerHTML = roots.map(function (c) { return renderComment(c, 0); }).join('');
+    // 删除按钮
     ul.querySelectorAll('.comment-del').forEach(function (b) {
       b.addEventListener('click', function () { deleteComment(post.id, b.getAttribute('data-cid')).then(renderCommentsList); });
     });
+    // 回复按钮
+    ul.querySelectorAll('.comment-reply-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var indicator = document.querySelector('#replyIndicator');
+        var replyTo = document.querySelector('#replyTo');
+        var contentInput = document.querySelector('#commentContent');
+        if (indicator && replyTo) {
+          indicator.style.display = 'flex';
+          replyTo.textContent = t('comment.replyTo', { author: b.getAttribute('data-reply-author') });
+          indicator.setAttribute('data-reply-id', b.getAttribute('data-reply-id'));
+          if (contentInput) contentInput.focus();
+        }
+      });
+    });
+  });
+
+  // 取消回复
+  var replyCancel = document.querySelector('#replyCancel');
+  if (replyCancel) replyCancel.addEventListener('click', function () {
+    var indicator = document.querySelector('#replyIndicator');
+    if (indicator) { indicator.style.display = 'none'; indicator.removeAttribute('data-reply-id'); }
   });
 
   var submit = document.querySelector('#commentSubmit');
@@ -1374,14 +1417,16 @@ async function renderPost(id) {
     var a = document.querySelector('#commentAuthor');
     var c = document.querySelector('#commentContent');
     var st = document.querySelector('#commentStatus');
+    var indicator = document.querySelector('#replyIndicator');
     if (!a || !c) return;
     if (!a.value.trim() || !c.value.trim()) { if (st) st.textContent = t('comment.fillBoth'); return; }
-    // 防连点重复提交：提交期间禁用按钮
+    var parentId = (indicator && indicator.getAttribute('data-reply-id')) || null;
     submit.disabled = true;
     try {
-      await saveComment(post.id, a.value, c.value);
+      await saveComment(post.id, a.value, c.value, parentId);
       if (st) st.textContent = t('comment.posted');
       if (c) c.value = '';
+      if (indicator) { indicator.style.display = 'none'; indicator.removeAttribute('data-reply-id'); }
       loadComments(post.id).then(renderCommentsList);
     } finally {
       submit.disabled = false;
