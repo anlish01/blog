@@ -2507,8 +2507,126 @@ async function route() {
   else {
     app().innerHTML = renderNav(path) + '<main class="container page-fade"><div class="empty"><div class="big">' + svgIcon('question', 36) + '</div><p>' + t('post.notFound') + '</p><p><a href="' + esc(href('/')) + '">' + t('post.backHome') + '</a></p></div></main>' + renderFooter();
   }
+  updateSEO(path);
   bindGlobal();
 }
+
+/* ---------- SEO：动态更新 meta 标签 ---------- */
+function updateSEO(path) {
+  var cfg = getConfig();
+  var base = cfg.siteUrl || location.origin || '';
+  var pageTitle = 'Qingyu\'Blog';
+  var pageDesc = t('site.desc');
+  var pageUrl = base + (path === '/' ? '' : path);
+  var pageImage = '';
+  var pageType = 'website';
+
+  if (path === '/') {
+    pageTitle = 'Qingyu\'Blog · ' + t('site.subtitle');
+  } else if (path === '/archive') {
+    pageTitle = t('archive.title') + ' · Qingyu\'Blog';
+    pageDesc = t('archive.title') + ' - ' + t('site.desc');
+  } else if (path === '/tags') {
+    pageTitle = t('tags.title') + ' · Qingyu\'Blog';
+    pageDesc = t('tags.title') + ' - ' + t('site.desc');
+  } else if (path === '/about') {
+    pageTitle = t('about.title') + ' · Qingyu\'Blog';
+    pageDesc = t('about.desc');
+  } else if (path.indexOf('/posts/') === 0) {
+    var id = '';
+    try { id = decodeURIComponent(path.replace('/posts/', '').replace(/\/.*$/, '')); } catch (e) {}
+    var posts = getStaticPosts();
+    var post = posts.find(function (p) { return p.id === id; });
+    if (post) {
+      pageType = 'article';
+      pageTitle = (post.title || t('post.untitled')) + ' · Qingyu\'Blog';
+      pageDesc = post.excerpt || stripMd(post.content || '').slice(0, 200);
+      if (post.cover) pageImage = post.cover;
+      pageUrl = base + '/posts/' + encodeURIComponent(post.id) + '/';
+    }
+  } else if (path.indexOf('/admin') === 0 || path === '/write') {
+    // 后台页面不索引
+    document.title = '管理后台 · Qingyu\'Blog';
+    _setMeta('robots', 'noindex, nofollow');
+    return;
+  }
+
+  document.title = pageTitle;
+  _setMeta('description', pageDesc);
+  _setMeta('author', 'Qingyu');
+  _setMeta('robots', 'index, follow, max-image-preview:large, max-snippet:-1');
+
+  // Open Graph
+  _setOG('og:type', pageType);
+  _setOG('og:title', pageTitle);
+  _setOG('og:description', pageDesc);
+  _setOG('og:url', pageUrl);
+  _setOG('og:site_name', 'Qingyu\'Blog');
+  if (pageImage) _setOG('og:image', pageImage);
+
+  // Twitter Card
+  _setMeta('twitter:card', pageImage ? 'summary_large_image' : 'summary');
+  _setMeta('twitter:title', pageTitle);
+  _setMeta('twitter:description', pageDesc);
+  if (pageImage) _setMeta('twitter:image', pageImage);
+
+  // Canonical
+  var canonical = document.querySelector('link[rel="canonical"]');
+  if (canonical) canonical.setAttribute('href', pageUrl);
+
+  // JSON-LD structured data
+  if (pageType === 'article' && path.indexOf('/posts/') === 0) {
+    var postId = '';
+    try { postId = decodeURIComponent(path.replace('/posts/', '').replace(/\/.*$/, '')); } catch (e) {}
+    var allPosts = getStaticPosts();
+    var p = allPosts.find(function (x) { return x.id === postId; });
+    if (p) {
+      var jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        'headline': p.title || t('post.untitled'),
+        'description': p.excerpt || '',
+        'datePublished': p.date || '',
+        'dateModified': p.date || '',
+        'author': { '@type': 'Person', 'name': 'Qingyu' },
+        'publisher': { '@type': 'Organization', 'name': 'Qingyu\'Blog' },
+        'mainEntityOfPage': pageUrl
+      };
+      if (p.cover) jsonLd.image = p.cover;
+      if (p.tags) jsonLd.keywords = p.tags;
+      _setJsonLd(jsonLd);
+    }
+  } else {
+    _setJsonLd({
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      'name': 'Qingyu\'Blog',
+      'url': base + '/',
+      'description': t('site.desc')
+    });
+  }
+}
+
+function _setMeta(name, content) {
+  var el = document.querySelector('meta[name="' + name + '"]')
+    || document.querySelector('meta[property="' + name + '"]');
+  if (!el) { el = document.createElement('meta'); el.setAttribute('name', name); document.head.appendChild(el); }
+  el.setAttribute('content', content);
+}
+function _setOG(property, content) {
+  var el = document.querySelector('meta[property="' + property + '"]');
+  if (!el) { el = document.createElement('meta'); el.setAttribute('property', property); document.head.appendChild(el); }
+  el.setAttribute('content', content);
+}
+function _setJsonLd(obj) {
+  var old = document.querySelector('script[type="application/ld+json"]');
+  if (old) old.remove();
+  var s = document.createElement('script');
+  s.type = 'application/ld+json';
+  s.textContent = JSON.stringify(obj);
+  document.head.appendChild(s);
+}
+
 
 function bindGlobal() {
   // 主题切换：顶栏
