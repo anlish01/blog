@@ -31,41 +31,6 @@
   function go(path) { if (window.navigate) window.navigate(path); }
   function link(path) { return window.href ? window.href(path) : path; }
 
-  /* ---------- 加密（PBKDF2+AES-GCM，与 reader 端完全兼容） ---------- */
-  function bufToB64(buf) {
-    var bytes = new Uint8Array(buf); var bin = '';
-    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    return btoa(bin);
-  }
-  function b64ToBuf(b64) {
-    var bin = atob(b64); var bytes = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return bytes.buffer;
-  }
-  async function deriveAdminKey(password, salt) {
-    var enc = new TextEncoder();
-    var keyMaterial = await window.crypto.subtle.importKey('raw', enc.encode(String(password)), 'PBKDF2', false, ['deriveKey']);
-    return window.crypto.subtle.deriveKey({ name: 'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256' }, keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-  }
-  async function encryptText(text, password) {
-    var salt = window.crypto.getRandomValues(new Uint8Array(16));
-    var iv = window.crypto.getRandomValues(new Uint8Array(12));
-    var key = await deriveAdminKey(password, salt);
-    var enc = new TextEncoder();
-    var data = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, enc.encode(String(text)));
-    return { salt: bufToB64(salt.buffer), iv: bufToB64(iv.buffer), data: bufToB64(data) };
-  }
-  async function decryptText(encObj, password) {
-    try {
-      var salt = new Uint8Array(b64ToBuf(encObj.salt));
-      var iv = new Uint8Array(b64ToBuf(encObj.iv));
-      var data = b64ToBuf(encObj.data);
-      var key = await deriveAdminKey(password, salt);
-      var plain = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, data);
-      return new TextDecoder().decode(plain);
-    } catch (e) { return null; }
-  }
-
   function fmtDate(s) {
     s = String(s || '');
     if (!s) return '';
@@ -144,7 +109,7 @@
     for (var i = 0; i < drafts.length; i++) if (drafts[i] && drafts[i].id === post.id) idx = i;
     var item = { id: post.id, title: post.title, date: post.date, tags: post.tags || [], excerpt: post.excerpt || '',
       cover: post.cover || '', category: post.category || '', status: post.status || 'published',
-      pinned: !!post.pinned, protected: !!post.protected, enc: post.enc || null, content: post.content || '' };
+      pinned: !!post.pinned, content: post.content || '' };
     if (idx >= 0) drafts[idx] = item; else drafts.push(item);
     localStorage.setItem('qingyu.drafts', JSON.stringify(drafts));
   }
@@ -543,13 +508,11 @@
     }
 
     var pinnedCount = posts.filter(function (p) { return !!p.pinned; }).length;
-    var lockedCount = posts.filter(function (p) { return !!p.protected; }).length;
     var stats = [
       { label: t('admin.dashboard.totalPosts'), value: total, icon: 'doc' },
       { label: t('admin.dashboard.published'), value: published, icon: 'check' },
       { label: t('admin.dashboard.drafts'), value: drafts, icon: 'pen' },
       { label: t('admin.dashboard.pinned'), value: pinnedCount, icon: 'pin' },
-      { label: t('admin.dashboard.encrypted'), value: lockedCount, icon: 'lock' },
       { label: t('admin.dashboard.totalComments'), value: cloudOn() ? commentsAll.length : '—', icon: 'quote' },
       { label: t('admin.dashboard.pendingComments'), value: cloudOn() ? pending : '—', icon: 'lock' }
     ];
@@ -686,7 +649,6 @@
       var id = p.id;
       var statusBadge = '';
       if (p.pinned) statusBadge = '<span class="ab-status published">' + icon('pin', 11) + ' ' + t('admin.postList.pin') + '</span>';
-      else if (p.protected) statusBadge = '<span class="ab-status draft">' + icon('lock', 11) + ' ' + t('admin.postList.encrypt') + '</span>';
       else statusBadge = '<span class="ab-status ' + ((p.status || 'published') === 'draft' ? 'draft' : 'published') + '">' + ((p.status || 'published') === 'draft' ? t('admin.dashboard.drafts') : t('admin.dashboard.published')) + '</span>';
       return '<tr>' +
         '<td><a class="ab-post-title" data-link="/admin/posts/' + enc(id) + '/edit">' + esc(p.title || t('admin.dashboard.noTitle')) + '</a></td>' +
@@ -697,7 +659,6 @@
         '<td class="col-actions">' +
           '<button class="ab-btn sm" data-edit="' + enc(id) + '">' + icon('pen', 13) + ' ' + t('admin.postList.edit') + '</button> ' +
           '<button class="ab-btn sm" data-pin="' + enc(id) + '">' + icon('pin', 13) + ' ' + (p.pinned ? t('admin.postList.unpin') : t('admin.postList.pin')) + '</button> ' +
-          '<button class="ab-btn sm" data-lock="' + enc(id) + '">' + icon('lock', 13) + ' ' + (p.protected ? t('admin.postList.unsetEncrypt') : t('admin.postList.encrypt')) + '</button> ' +
           '<button class="ab-btn sm danger" data-del="' + enc(id) + '">' + icon('trash', 13) + ' ' + t('admin.comments.delete') + '</button>' +
         '</td>' +
       '</tr>';
@@ -723,45 +684,6 @@
           downloadPostsJs();
         }
         toast(post.pinned ? t('admin.postList.pinnedOk') : t('admin.postList.unpinnedOk'), 'ok');
-      } catch (e) { toast(t('admin.postList.opFail') + (e.message || e), 'err'); }
-      b.disabled = false;
-      loadPosts(content, page);
-    }); });
-    body.querySelectorAll('[data-lock]').forEach(function (b) { b.addEventListener('click', async function () {
-      var pid = dec(b.getAttribute('data-lock'));
-      var isLocked = b.innerHTML.indexOf(t('admin.postList.unsetEncrypt')) >= 0;
-      b.innerHTML = '<span class="ab-spin" style="width:13px;height:13px;border-width:2px"></span> ' + (isLocked ? t('admin.postList.decrypting') : t('admin.postList.encrypting'));
-      b.disabled = true;
-      try {
-        var post = await getPost(pid);
-        if (!post) { toast(t('admin.postList.notFound'), 'err'); return; }
-        if (!post.protected) {
-          // —— 添加加密 ——
-          var pwd = prompt(t('admin.postList.setPwd'));
-          if (pwd === null) { b.disabled = false; loadPosts(content, page); return; }
-          pwd = String(pwd || '').trim();
-          if (pwd.length < 4) { toast(t('admin.postList.setPwd'), 'err'); b.disabled = false; loadPosts(content, page); return; }
-          var pwd2 = prompt(t('admin.postList.confirmPwd'));
-          if (String(pwd2 || '') !== pwd) { toast(t('admin.postList.pwdMismatch'), 'err'); b.disabled = false; loadPosts(content, page); return; }
-          var encContent = post.content || '';
-          if (!encContent) { toast(t('admin.postList.noContent'), 'err'); b.disabled = false; loadPosts(content, page); return; }
-          var encObj = await encryptText(encContent, pwd);
-          post.protected = true; post.enc = encObj; post.content = '';
-        } else {
-          // —— 取消加密 ——
-          var oldPwd = prompt(t('admin.postList.removePwd'));
-          if (oldPwd === null) { b.disabled = false; loadPosts(content, page); return; }
-          var plain = post.content ? post.content : (post.enc ? await decryptText(post.enc, String(oldPwd || '')) : null);
-          if (!plain) { toast(t('admin.postList.wrongPwd'), 'err'); b.disabled = false; loadPosts(content, page); return; }
-          post.protected = false; post.enc = null; post.content = plain;
-        }
-        if (cloudOn()) {
-          await api('api/posts/' + enc(pid), { method: 'PUT', body: JSON.stringify(post) });
-        } else {
-          saveStaticPost(post);
-          downloadPostsJs();
-        }
-        toast(post.protected ? t('admin.postList.encryptedOk') : t('admin.postList.decryptedOk'), 'ok');
       } catch (e) { toast(t('admin.postList.opFail') + (e.message || e), 'err'); }
       b.disabled = false;
       loadPosts(content, page);
@@ -797,8 +719,6 @@
         '<div class="ab-field" style="margin:0"><label class="ab-label">' + t('admin.editor.coverPlaceholder') + '</label><div class="ab-row"><input class="ab-input" id="abCover" placeholder="https://…"><button class="ab-btn sm" id="abPickCover">' + t('admin.editor.selectMedia') + '</button></div></div>' +
         '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:0">' +
           '<label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer"><input type="checkbox" id="abPinned"> ' + icon('pin', 14) + ' ' + t('admin.editor.pin') + '</label>' +
-          '<label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer"><input type="checkbox" id="abProtect"> ' + icon('lock', 14) + ' ' + t('admin.editor.encrypt') + '</label>' +
-          '<input class="ab-input" id="abProtectPwd" type="password" placeholder="' + t('admin.editor.postPwd') + '" style="display:none;max-width:260px">' +
         '</div>' +
       '</div>' +
       '<div class="ab-editor-split">' +
@@ -839,12 +759,6 @@
     if (exp) exp.addEventListener('click', downloadAllStatic);
     var pick = content.querySelector('#abPickCover');
     if (pick) pick.addEventListener('click', function () { openMediaPicker(content); });
-    // 加密勾选 → 密码框显隐
-    var protectChk = content.querySelector('#abProtect');
-    var protectPwd = content.querySelector('#abProtectPwd');
-    if (protectChk && protectPwd) {
-      protectChk.addEventListener('change', function () { protectPwd.style.display = protectChk.checked ? 'inline-block' : 'none'; });
-    }
     // 填充分类候选
     if (cloudOn()) {
       api('api/posts').then(function (d) {
@@ -882,17 +796,8 @@
     content.querySelector('#abCat').value = p.category || '';
     content.querySelector('#abTags').value = (p.tags || []).join(', ');
     content.querySelector('#abCover').value = p.cover || '';
-    // 已加密文章：尝试用空内容提示
-    if (p.protected && !p.content) {
-      content.querySelector('#abBody').value = '';
-      content.querySelector('#abBody').placeholder = t('admin.editor.encryptedNote');
-    } else {
-      content.querySelector('#abBody').value = p.content || '';
-    }
+    content.querySelector('#abBody').value = p.content || '';
     content.querySelector('#abPinned').checked = !!p.pinned;
-    var protectChk = content.querySelector('#abProtect');
-    protectChk.checked = !!p.protected;
-    if (p.protected) { content.querySelector('#abProtectPwd').style.display = 'inline-block'; }
     updatePreview(content);
   }
   async function saveEditor(content, route, status) {
@@ -902,44 +807,16 @@
     var id = route.id || slug(title);
     var tags = content.querySelector('#abTags').value.split(/[,，]/).map(function (t) { return t.trim(); }).filter(Boolean);
 
-    // 若正在编辑已有文章且该文章是加密的，先取完整对象以保留旧密文
-    var existing = null;
-    if (route.id) { try { existing = await getPost(route.id); } catch (e) {} }
-
     var wantPinned = !!content.querySelector('#abPinned').checked;
-    var wantProtect = !!content.querySelector('#abProtect').checked;
-    var protectPwd = (content.querySelector('#abProtectPwd').value || '').trim();
 
     var post = {
       id: id, title: title, date: new Date().toISOString().slice(0, 10),
       excerpt: (body.replace(/[#>*`\-!\[\]()]/g, '').slice(0, 120).trim()),
       content: body, cover: content.querySelector('#abCover').value.trim(),
-      pinned: wantPinned, protected: false, enc: null, tags: tags,
+      pinned: wantPinned, tags: tags,
       category: content.querySelector('#abCat').value.trim(),
       status: status
     };
-
-    // —— 加密逻辑 ——
-    if (wantProtect) {
-      if (protectPwd && body) {
-        // 新密码 + 有正文 → 加密
-        if (protectPwd.length < 4) { toast(t('admin.editor.pwdShort'), 'err'); return; }
-        post.enc = await encryptText(body, protectPwd);
-        post.protected = true;
-        post.content = '';
-      } else if (existing && existing.protected) {
-        // 已加密文章、未提供新密码 → 保留原密文
-        post.protected = true;
-        post.enc = existing.enc;
-        post.content = '';
-      } else {
-        toast(t('admin.editor.encryptNoPwd'), 'err'); return;
-      }
-    } else if (existing && existing.protected) {
-      // 取消加密：保留明文（编辑器里有正文）
-      post.protected = false;
-      post.enc = null;
-    }
 
     var btn = status === 'published' ? content.querySelector('#abPublish') : content.querySelector('#abSaveDraft');
     btn.disabled = true;

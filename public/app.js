@@ -1,7 +1,7 @@
 /* ============================================================================
  * Qingyu'Blog · 前端逻辑（app.js）
  * ----------------------------------------------------------------------------
- * 包含：列表 / 详情 / 写作 / 搜索 / 标签 / 归档 / 评论 / 加密 / TOC / 代码高亮 / 统计
+ * 包含：列表 / 详情 / 写作 / 搜索 / 标签 / 归档 / 评论 / TOC / 代码高亮 / 统计
  * 版本 v2.1.0 ｜ 侧边导航已集成 ｜ 2026-08-22
  * ============================================================================ */
 'use strict';
@@ -9,7 +9,6 @@
 var BLOG_VERSION = '2.4.2';
 
 /* ---------- 全局缓存 ---------- */
-var _unlocked = {};
 var _searchOpen = false;   // 顶部导航搜索是否展开
 var _searchDocBound = false;   // document 级外部点击监听是否已绑定
 var _commentsCache = {};
@@ -430,7 +429,6 @@ function globalSearch(query, limit) {
   var posts = sortPagePosts(getStaticPosts());
   var hits = [];
   posts.forEach(function (p) {
-    if (p.protected && !_unlocked[p.id]) return;
     var hay = (p.search ? p.search + ' ' : '') + (p.title || '') + ' ' + (p.excerpt || '') + ' ' + (p.content || '') + ' ' + (p.tags || []).join(' ');
     if (hay.toLowerCase().indexOf(q) >= 0) hits.push(p);
   });
@@ -450,64 +448,7 @@ function searchSnippet(post, query) {
   return (start > 0 ? '…' : '') + body.slice(start, end) + (end < body.length ? '…' : '');
 }
 
-/* ---------- 加密 ---------- */
-function bufToB64(buf) {
-  var bytes = new Uint8Array(buf);
-  var bin = '';
-  for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
-function b64ToBuf(b64) {
-  var bin = atob(b64);
-  var bytes = new Uint8Array(bin.length);
-  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes.buffer;
-}
-async function deriveKey(password, salt) {
-  var enc = new TextEncoder();
-  var keyMaterial = await (window.crypto || crypto).subtle.importKey('raw', enc.encode(String(password)), 'PBKDF2', false, ['deriveKey']);
-  return (window.crypto || crypto).subtle.deriveKey({ name: 'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256' }, keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-}
-async function encryptText(text, password) {
-  var salt = (window.crypto || crypto).getRandomValues(new Uint8Array(16));
-  var iv = (window.crypto || crypto).getRandomValues(new Uint8Array(12));
-  var key = await deriveKey(password, salt);
-  var enc = new TextEncoder();
-  var data = await (window.crypto || crypto).subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, enc.encode(String(text)));
-  return { salt: bufToB64(salt.buffer), iv: bufToB64(iv.buffer), data: bufToB64(data) };
-}
-async function decryptText(enc, password) {
-  try {
-    var salt = new Uint8Array(b64ToBuf(enc.salt));
-    var iv = new Uint8Array(b64ToBuf(enc.iv));
-    var data = b64ToBuf(enc.data);
-    var key = await deriveKey(password, salt);
-    var plain = await (window.crypto || crypto).subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, data);
-    return new TextDecoder().decode(plain);
-  } catch (e) { return null; }
-}
-function isUnlocked(id) { return !!_unlocked[id]; }
-function getUnlocked(id) { return _unlocked[id] || ''; }
-async function tryUnlock(id, password) {
-  var post = (getStaticPosts() || []).find(function (p) { return p.id === id; });
-  if (!post) return false;
-  // 云端模式：列表接口 /api/posts 不返回 enc（密文），锁屏时须先从详情接口取回
-  if (!post.enc && _cloudOn()) {
-    try {
-      var data = await apiFetch('api/posts/' + encodeURIComponent(id));
-      var full = (data && data.post) || null;
-      if (full && full.enc) post.enc = full.enc;
-    } catch (e) { /* 拉取失败则按无密文处理 */ }
-  }
-  if (!post.enc) return false;
-  var plain = await decryptText(post.enc, password);
-  if (plain !== null) {
-    _unlocked[id] = plain;
-    try { if (typeof route === 'function') route(); } catch (e) {}
-    return true;
-  }
-  return false;
-}
+
 
 /* ---------- 评论 ----------
  * 云端模式：走 D1 后端（/api/posts/:id/comments，跨用户共享）；
@@ -677,8 +618,8 @@ async function getFeaturedPosts(excludeId, count) {
       if (d && d.posts && d.posts.length) posts = d.posts;
     } catch (e) {}
   }
-  // 过滤：排除加密文章和当前文章
-  posts = posts.filter(function (p) { return !p.protected && p.id !== excludeId && (p.status || 'published') !== 'draft'; });
+  // 过滤：排除当前文章
+  posts = posts.filter(function (p) { return p.id !== excludeId && (p.status || 'published') !== 'draft'; });
   // 并行拉取每篇文章的统计和评论数
   var scored = await Promise.all(posts.map(async function (p) {
     var views = 0, likes = 0, comments = 0;
@@ -888,7 +829,7 @@ function buildFeedXmlClient(posts, maxItems) {
   var cfg = getConfig();
   var base = cfg.siteUrl || (typeof location !== 'undefined' ? location.origin : '');
   base = String(base || '').replace(/\/+$/, '');
-  var list = (posts || []).slice().sort(sortPosts).filter(function (p) { return !p.protected; }).slice(0, maxItems || 20);
+  var list = (posts || []).slice().sort(sortPosts).slice(0, maxItems || 20);
   var items = list.map(function (p) {
     var link = base + postUrl(p.id);
     // description 输出渲染后的 HTML（而非 Markdown 源码），阅读器直接显示富文本
@@ -1148,7 +1089,6 @@ function renderCardList(plist, ads, adsEnabled) {
 function renderCard(p) {
   var badges = '';
   if (p.pinned) badges += '<span class="pin">' + svgIcon('pin', 13) + ' ' + t('post.pin') + '</span>';
-  if (p.protected) badges += '<span class="pin">' + svgIcon('lock', 13) + ' ' + t('post.encrypt') + '</span>';
   var tags = normalizeTags(p).map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('');
   var excerpt = p.excerpt || stripMd(p.content || '').slice(0, 100);
   return '<a class="post-card" href="' + esc(href(postUrl(p.id))) + '">'
@@ -1215,22 +1155,8 @@ async function renderPost(id) {
     app().innerHTML = html;
     return;
   }
-  if (post.protected && !_unlocked[post.id]) {
-    html += '<div class="lock-card"><div class="big">' + svgIcon('lock', 28) + '</div><h3>' + t('post.encryptedTitle') + '</h3><p>' + t('post.encryptedHint') + '</p><div class="lock-form"><input type="password" id="lockInput" placeholder="' + t('post.passwordPlaceholder') + '"><button class="btn btn-primary" id="lockBtn">' + t('post.unlock') + '</button></div><div class="lock-msg" id="lockMsg"></div></div>';
-    html += '</div></main>' + renderFooter();
-    app().innerHTML = html;
-    var btn = document.querySelector('#lockBtn');
-    if (btn) btn.addEventListener('click', async function () {
-      var input = document.querySelector('#lockInput');
-      var msg = document.querySelector('#lockMsg');
-      if (!input) return;
-      var ok = await tryUnlock(post.id, input.value);
-      if (ok) { route(); }
-      else if (msg) msg.textContent = t('post.wrongPassword');
-    });
-    return;
-  }
-  if (_cloudOn() && !post.protected) {
+
+  if (_cloudOn()) {
     // 正文加载：优先本地缓存（首次拉取后存入，再次进入秒开）；
     // 每次进入都后台重新拉取最新正文（SWR），有更新则刷新缓存并重渲染
     var hasContent = !!post.content;
@@ -1261,7 +1187,6 @@ async function renderPost(id) {
       }
       var changed = full.content !== undefined && full.content !== post.content;
       if (full.content !== undefined) post.content = full.content;
-      if (full.enc !== undefined) post.enc = full.enc;
       if (full.content) writePostCache(post.id, full);
       post._fullLoaded = true;
       if (changed || (!hasContent && !fromCache)) route();
@@ -1273,7 +1198,7 @@ async function renderPost(id) {
     if (!post.content) return;   // 无内容（含无缓存）：等待拉取后重渲染
     // 有内容（缓存或已加载）：继续渲染正文，后台拉取完成后若有更新会重渲染
   }
-  var content = post.protected ? _unlocked[post.id] : post.content;
+  var content = post.content || '';
   var bodyHtml = renderMarkdown(content || '');
   var tocRes = buildToc(bodyHtml);
   var toc = tocRes.html;
@@ -1483,7 +1408,6 @@ function renderAbout() {
   var totalWords = 0;
   var latest = '';
   posts.forEach(function (p) {
-    if (p.protected) return;
     normalizeTags(p).forEach(function (t) { tags[t] = (tags[t] || 0) + 1; });
     totalWords += stripMd(p.content || '').length;
     if (!latest || p.date > latest) latest = p.date;
@@ -1567,7 +1491,6 @@ function renderPostList() {
       + '</div>';
   }
   var pinnedCount = posts.filter(function (p) { return p.pinned; }).length;
-  var lockedCount = posts.filter(function (p) { return p.protected; }).length;
   var html = '<div class="admin-posts-header">'
     + '<div class="admin-head-titles"><h2>' + svgIcon('doc', 20) + ' ' + t('admin.postList.title') + '</h2><p class="admin-head-sub">' + t('admin.postList.desc') + '</p></div>'
     + '<a class="btn btn-primary btn-new-post" href="' + esc(href('/admin/write')) + '">' + svgIcon('pen', 14) + ' ' + t('editor.newPost') + '</a>'
@@ -1575,20 +1498,18 @@ function renderPostList() {
   html += '<div class="admin-stats">'
     + '<div class="admin-stat"><span class="admin-stat-num">' + posts.length + '</span><span class="admin-stat-label">' + t('admin.postList.allStatus') + '</span></div>'
     + '<div class="admin-stat"><span class="admin-stat-num">' + pinnedCount + '</span><span class="admin-stat-label">' + t('admin.postList.pin') + '</span></div>'
-    + '<div class="admin-stat"><span class="admin-stat-num">' + lockedCount + '</span><span class="admin-stat-label">' + t('admin.postList.encrypt') + '</span></div>'
     + '</div>';
   html += '<table class="admin-posts-table"><thead><tr><th>' + t('admin.postList.colTitle') + '</th><th>' + t('admin.postList.colDate') + '</th><th>' + t('admin.postList.colStatus') + '</th><th>' + t('admin.postList.colActions') + '</th></tr></thead><tbody>';
   posts.forEach(function (p) {
-    var status = p.pinned ? svgIcon('pin', 12) + ' ' + t('admin.postList.pin') : (p.protected ? svgIcon('lock', 12) + ' ' + t('admin.postList.encrypt') : t('post.published'));
+    var status = p.pinned ? svgIcon('pin', 12) + ' ' + t('admin.postList.pin') : t('post.published');
     var title = p.title || t('admin.postList.noTitle');
     html += '<tr>'
       + '<td class="post-title-cell"><a class="post-title-link" href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '">' + esc(title) + svgIcon('external', 12) + '</a></td>'
       + '<td class="post-date-cell">' + esc(p.date || '') + '</td>'
-      + '<td><span class="status-badge' + (p.pinned ? ' pinned' : '') + (p.protected ? ' protected' : '') + '">' + status + '</span></td>'
+      + '<td><span class="status-badge' + (p.pinned ? ' pinned' : '') + '">' + status + '</span></td>'
       + '<td><div class="post-actions">'
       + '<a href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '" class="btn btn-sm">' + svgIcon('pen', 13) + ' ' + t('admin.postList.edit') + '</a>'
       + '<button class="btn btn-sm' + (p.pinned ? ' btn-on' : '') + '" data-pin-id="' + esc(p.id) + '" title="' + (p.pinned ? t('admin.postList.unpin') : t('admin.postList.pin')) + '">' + svgIcon('pin', 13) + ' ' + (p.pinned ? t('admin.postList.unpin') : t('admin.postList.pin')) + '</button>'
-      + '<button class="btn btn-sm' + (p.protected ? ' btn-on' : '') + '" data-lock-id="' + esc(p.id) + '" title="' + (p.protected ? t('admin.postList.unsetEncryptTitle') : t('admin.postList.setPwd')) + '">' + svgIcon('lock', 13) + ' ' + (p.protected ? t('admin.postList.unsetEncrypt') : t('admin.postList.encrypt')) + '</button>'
       + '<button class="btn btn-sm btn-danger" data-post-id="' + esc(p.id) + '" data-post-title="' + esc(title) + '">' + svgIcon('trash', 13) + ' ' + t('post.delete') + '</button>'
       + '</div></td>'
       + '</tr>';
@@ -1597,9 +1518,9 @@ function renderPostList() {
   return html;
 }
 
-/* ---------- 文章列表：置顶 / 加密切换 ---------- */
+/* ---------- 文章列表：置顶 ---------- */
 
-/** 从本地列表取文章对象（含完整数据/密文） */
+/** 从本地列表取文章对象（含完整数据） */
 function findPostForUpdate(id) {
   var arr = Array.isArray(window.BLOG_POSTS) ? window.BLOG_POSTS : [];
   for (var i = 0; i < arr.length; i++) {
@@ -1624,9 +1545,7 @@ async function savePostToCloud(post) {
     cover: post.cover || '',
     tags: Array.isArray(post.tags) ? post.tags : [],
     pinned: !!post.pinned,
-    protected: !!post.protected,
-    enc: post.enc || null,
-    content: post.protected ? '' : (post.content || '')
+    content: post.content || ''
   };
   await apiFetch('api/posts/' + encodeURIComponent(post.id), { method: 'PUT', body: JSON.stringify(body) });
 }
@@ -1678,59 +1597,8 @@ async function togglePinFromList(id) {
   route();
 }
 
-/** 列表页：添加加密（设密码，正文转密文）/ 取消加密（原密码解密恢复明文） */
-async function toggleLockFromList(id) {
-  var post = findPostForUpdate(id);
-  if (!post) { alert(t('toast.notFound')); return; }
-  try {
-    if (_cloudOn()) {
-      var full = await fetchPostDetail(id);
-      if (full) post = full;
-    }
-  } catch (e) {
-    alert(t('toast.networkError'));
-    return;
-  }
-  if (!post.protected) {
-    // —— 添加加密 ——
-    var pwd = prompt(t('admin.postList.setPwd'));
-    if (pwd === null) return;
-    pwd = String(pwd || '').trim();
-    if (pwd.length < 4) { alert(t('toast.pwdShort')); return; }
-    var pwd2 = prompt(t('admin.postList.confirmPwd'));
-    if (String(pwd2 || '') !== pwd) { alert(t('toast.pwdMismatch')); return; }
-    var content = post.content || '';
-    if (!content) { alert(t('toast.encryptEmpty')); return; }
-    var enc = await encryptText(content, pwd);
-    post.protected = true;
-    post.enc = enc;
-    post.content = '';
-  } else {
-    // —— 取消加密：需原密码解密恢复明文 ——
-    var oldPwd = prompt(t('admin.postList.removePwd'));
-    if (oldPwd === null) return;
-    var plain = post.content ? post.content : (post.enc ? await decryptText(post.enc, String(oldPwd || '')) : null);
-    if (!plain) { alert(t('toast.encryptFail')); return; }
-    post.protected = false;
-    post.enc = null;
-    post.content = plain;
-  }
-  if (_cloudOn()) {
-    try {
-      await savePostToCloud(post);
-      upsertLocalPost(post, false);
-      clearPostCache(post.id);   // 加密状态/正文已变：清除详情缓存
-      alert(post.protected ? t('toast.encryptedCloud') : t('toast.decryptedCloud'));
-    } catch (e) {
-      alert(t('toast.networkError'));
-      return;
-    }
-  } else {
-    upsertLocalPost(post, true);
-    alert(post.protected ? t('toast.encryptedLocal') : t('toast.decryptedLocal'));
-  }
-  route();
-}
+
+
 
 function renderEditorBody() {
   var _editId = currentEditId();
@@ -1758,7 +1626,6 @@ function renderEditorBody() {
     + '<div class="field field-full"><label>' + t('editor.excerptPlaceholder') + '</label><input type="text" id="excerptInput" placeholder="' + t('editor.excerptHint') + '"></div>'
     + '<div class="field field-full"><label>' + t('editor.coverPlaceholder') + '</label><input type="text" id="coverInput" placeholder="' + t('editor.coverHint') + '"></div>'
     + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' ' + t('editor.pin') + '</label></div>'
-    + '<div class="field check-label field-protect" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' ' + t('editor.encrypt') + '</label><input type="password" id="protectPwdInput" class="protect-pwd" placeholder="' + t('editor.postPassword') + '" style="display:none"></div>'
     + '</div></div>';
   body += '<div class="editor-wrap">'
     + '<section class="editor-pane"><div class="pane-head">' + svgIcon('pen', 13) + ' ' + t('editor.editing') + '<span class="pane-note">Markdown</span></div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" class="md-input" rows="18" placeholder="' + t('editor.writeHint') + '"></textarea></section>'
@@ -1892,16 +1759,9 @@ function renderWrite() {
       var excerpt = document.querySelector('#excerptInput'); if (excerpt) excerpt.value = post.excerpt || '';
       var cover = document.querySelector('#coverInput'); if (cover) cover.value = post.cover || '';
       var pin = document.querySelector('#pinnedInput'); if (pin) pin.checked = !!post.pinned;
-      var protect = document.querySelector('#protectInput'); if (protect) protect.checked = !!post.protected;
-      var pwdBox = document.querySelector('#protectPwdInput');
-      if (pwdBox) pwdBox.style.display = post.protected ? 'inline-block' : 'none';
       var md = document.querySelector('#mdInput');
       if (md) {
-        // 已加密文章：有解锁明文则填明文（保存时重新加密需原密码）；无则只显示空（需先解锁）
-        if (post.protected) {
-          md.value = _unlocked[post.id] || '';
-          if (!_unlocked[post.id]) md.placeholder = t('editor.encryptedKeep');
-        } else if (_cloudOn()) {
+        if (_cloudOn()) {
           // 云端模式：始终以云端最新正文为准（本地静态旧正文不算数），先占位再由 loadEditContent 拉取覆盖
           md.value = '';
           md.placeholder = t('editor.loadingCloud');
@@ -1963,7 +1823,7 @@ function updatePreview() {
 /** 云端模式编辑：/api/posts 列表只返回摘要（无 content），编辑时须按 id 拉取云端全文。
  *  云端是权威数据源：即使本地静态 posts.js 有旧正文，也一律用云端最新内容覆盖（拉取失败才保留本地）。 */
 function loadEditContent(post, editId) {
-  if (!post || !_cloudOn() || post.protected) return;
+  if (!post || !_cloudOn()) return;
   var st = document.querySelector('#saveStatus');
   if (st) st.textContent = t('editor.loadingCloud');
   apiFetch('api/posts/' + encodeURIComponent(editId))
@@ -1971,7 +1831,6 @@ function loadEditContent(post, editId) {
       var full = (data && data.post) || null;
       if (full) {
         if (full.content !== undefined) post.content = full.content;
-        if (full.enc !== undefined) post.enc = full.enc;
       }
       var md = document.querySelector('#mdInput');
       if (md) { md.value = post.content || ''; md.placeholder = ''; }
@@ -1996,12 +1855,6 @@ function bindWriteEvents() {
     if (st) st.textContent = t('editor.unsaved');
   });
 
-  // 加密开关 → 密码框显隐
-  var protect = document.querySelector('#protectInput');
-  if (protect) protect.addEventListener('change', function () {
-    var box = document.querySelector('#protectPwdInput');
-    if (box) box.style.display = protect.checked ? 'inline-block' : 'none';
-  });
   // “用官方编辑器”辅助按钮：新标签打开 markdown.com.cn 编辑器（跨域无法内嵌同步）
   var btnMd = document.querySelector('#btnOpenMdEditor');
   if (btnMd) btnMd.addEventListener('click', function () {
@@ -2291,14 +2144,12 @@ function renderAdmin() {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); saveStaticArticle(); }
   });
 
-  // 文章列表操作按钮（事件委托）：置顶 / 加密 切换，删除
+  // 文章列表操作按钮（事件委托）：置顶、删除
   var content = document.querySelector('.admin-content');
   if (content) {
     content.addEventListener('click', function (e) {
       var pinBtn = e.target.closest('[data-pin-id]');
       if (pinBtn) { togglePinFromList(pinBtn.dataset.pinId); return; }
-      var lockBtn = e.target.closest('[data-lock-id]');
-      if (lockBtn) { toggleLockFromList(lockBtn.dataset.lockId); return; }
       var btn = e.target.closest('.btn-danger[data-post-id]');
       if (!btn) return;
       var id = btn.dataset.postId;
@@ -2355,15 +2206,9 @@ function renderAdmin() {
       var excerpt = document.querySelector('#excerptInput'); if (excerpt) excerpt.value = post.excerpt || '';
       var cover = document.querySelector('#coverInput'); if (cover) cover.value = post.cover || '';
       var pin = document.querySelector('#pinnedInput'); if (pin) pin.checked = !!post.pinned;
-      var protect = document.querySelector('#protectInput'); if (protect) protect.checked = !!post.protected;
-      var pwdBox = document.querySelector('#protectPwdInput');
-      if (pwdBox) pwdBox.style.display = post.protected ? 'inline-block' : 'none';
       var md = document.querySelector('#mdInput');
       if (md) {
-        if (post.protected) {
-          md.value = _unlocked[post.id] || '';
-          if (!_unlocked[post.id]) md.placeholder = t('editor.encryptedKeep');
-        } else if (_cloudOn()) {
+        if (_cloudOn()) {
           // 云端模式：始终以云端最新正文为准，先占位再由 loadEditContent 拉取覆盖
           md.value = '';
           md.placeholder = t('editor.loadingCloud');
@@ -2378,7 +2223,7 @@ function renderAdmin() {
     }
   }
   // else：新建文章 —— 保持干净的空白页，不自动恢复历史草稿/上次发布内容
-  // 绑定编辑器交互：加密开关显隐密码框、正文实时预览、工具栏插入语法、官方编辑器按钮
+  // 绑定编辑器交互：正文实时预览、工具栏插入语法、官方编辑器按钮
   // （renderWrite 在内部调用，这里必须补上，否则后台编辑器无响应）
   bindWriteEvents();
 }
@@ -2399,8 +2244,6 @@ function collectEditor() {
   var cover = document.querySelector('#coverInput');
   var pin = document.querySelector('#pinnedInput');
   var md = document.querySelector('#mdInput');
-  var protect = document.querySelector('#protectInput');
-  var protectPwd = document.querySelector('#protectPwdInput');
   // 日期：datetime-local 值形如 "2025-01-01T08:30"；存库统一 "YYYY-MM-DD HH:mm"
   var dv = String((date && date.value) || '').replace('T', ' ');
   if (!dv) {
@@ -2410,9 +2253,6 @@ function collectEditor() {
     dv = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()) + ' '
       + pad2(now.getHours()) + ':' + pad2(now.getMinutes());
   }
-  // 记录当前正在编辑文章的原始加密状态/密文，供 applyEncryption 在「保持原加密」时复用
-  var _editId = currentEditId();
-  var _cur = _editId ? getStaticPosts().find(function (p) { return p.id === _editId; }) : null;
   return {
     title: title.value || t('admin.postList.noTitle'),
     date: dv,
@@ -2420,49 +2260,16 @@ function collectEditor() {
     excerpt: (excerpt && excerpt.value) || '',
     cover: String((cover && cover.value) || '').trim(),
     pinned: !!(pin && pin.checked),
-    content: md ? md.value : '',
-    // 加密意图：_wantProtect 勾选、_protectPwd 密码（异步加密在保存/发布时执行）
-    _wantProtect: !!(protect && protect.checked),
-    _protectPwd: String((protectPwd && protectPwd.value) || '').trim(),
-    // 原始文章的加密状态/密文：重发布加密文章时不重输密码也能保留加密
-    _origProtected: !!(_cur && _cur.protected),
-    _origEnc: (_cur && _cur.enc) || null
+    content: md ? md.value : ''
   };
 }
 
-/** 异步应用加密：勾选加密 + 有密码 → content 加密进 enc；否则原样返回（保留已加密状态） */
-async function applyEncryption(d) {
-  if (!d) return d;
-  if (d._wantProtect) {
-    if (d._protectPwd && d.content) {
-      d.protected = true;
-      d.enc = await encryptText(d.content, d._protectPwd);   // enc 是对象（含 salt/iv/data base64）
-      d.content = '';
-    } else if (d._origProtected && d._origEnc) {
-      // 已加密文章、未提供新密码：保留原密文，维持加密状态（无需重新输入密码/正文）
-      d.protected = true;
-      d.enc = d._origEnc;
-      d.content = '';
-    } else if (!d._origProtected) {
-      d._encErr = t('editor.encryptNoPassword');
-    }
-  } else {
-    // 取消加密：解除自身加密状态（明文已在 d.content）
-    d.protected = false;
-    d.enc = null;
-  }
-  delete d._wantProtect;
-  delete d._protectPwd;
-  delete d._origProtected;
-  delete d._origEnc;
-  return d;
-}
+
+
 
 function saveDraft() {
   var d = collectEditor();
   if (!d) return;
-  // 草稿不加密（本地明文方便找回）；仅记录加密意图开关，发布/保存时再加密
-  delete d._wantProtect; delete d._protectPwd; delete d._encErr;
   var editId = currentEditId();
   var id = editId || (d.title ? slugify(d.title) : 'draft');
   saveDraftToStore(id, d);
@@ -2470,15 +2277,9 @@ function saveDraft() {
   if (st) st.textContent = t('editor.savedDraft');
 }
 
-async function saveStaticArticle() {
-  var d = await applyEncryption(collectEditor());
+function saveStaticArticle() {
+  var d = collectEditor();
   if (!d) return;
-  if (d._encErr) {
-    var st = document.querySelector('#saveStatus');
-    if (st) st.textContent = t('editor.saveFail') + '：' + d._encErr;
-    delete d._encErr;
-    return;
-  }
   var editId = currentEditId();
   var id = editId || (d.title ? slugify(d.title) : 'draft');
   d.id = id;
@@ -2490,14 +2291,8 @@ async function saveStaticArticle() {
 /** 云端发布（新建 POST / 编辑 PUT），成功后同步本地列表（首页无需刷新即可见）。
  *  /write、/posts/:id/edit、/admin、/admin/posts/:id/edit 共用。 */
 async function cloudPublish() {
-  var d = await applyEncryption(collectEditor());
+  var d = collectEditor();
   if (!d) return;
-  if (d._encErr) {
-    var st = document.querySelector('#saveStatus');
-    if (st) st.textContent = t('editor.saveFail') + '：' + d._encErr;
-    delete d._encErr;
-    return;
-  }
   // /admin/posts/:id/edit 下 currentEditId() 解析不到，需 getEditIdFromRoute 兜底，否则误用 POST 报 409
   var editId = currentEditId() || getEditIdFromRoute();
   var id = editId || (d.title ? slugify(d.title) : 'draft');
