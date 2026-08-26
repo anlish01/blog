@@ -705,7 +705,7 @@ async function getFeaturedPosts(excludeId, count) {
   return scored.filter(function (p) { return p.id !== excludeId; }).slice(0, count || 2);
 }
 function renderFeaturedHtml(excludeId) {
-  return '<div class="featured-posts" id="featuredPosts"><div class="featured-title">' + svgIcon('pin', 16) + ' 精选文章</div><div class="featured-grid" id="featuredGrid"><div class="featured-loading">加载中…</div></div></div>';
+  return '<div class="featured-posts" id="featuredPosts"><div class="featured-title">' + svgIcon('pin', 16) + ' ' + t('featured.title') + '</div><div class="featured-grid" id="featuredGrid"><div class="featured-loading">' + t('site.loading') + '…</div></div></div>';
 }
 function loadFeaturedPosts(excludeId) {
   _featuredCache = null; // 每次进入新文章清缓存，确保过滤当前文章
@@ -938,10 +938,10 @@ function app() { return document.querySelector('#app'); }
 function renderNav(active) {
   var cfg = getConfig();
   var navs = cfg.nav.length ? cfg.nav : [
-    { text: '首页', url: '/', path: '/' },
-    { text: '标签', url: '/tags', path: '/tags' },
-    { text: '归档', url: '/archive', path: '/archive' },
-    { text: '关于', url: '/about', path: '/about' }
+    { text: t('nav.home'), url: '/', path: '/' },
+    { text: t('nav.tags'), url: '/tags', path: '/tags' },
+    { text: t('nav.archive'), url: '/archive', path: '/archive' },
+    { text: t('nav.about'), url: '/about', path: '/about' }
   ];
   var links = navs.map(function (n) {
     var raw = n.url || '/';
@@ -961,18 +961,19 @@ function renderNav(active) {
     var ext = url && /^https?:|^\/\//.test(url) ? ' target="_blank" rel="noopener"' : '';
     return '<div class="nav-item"><a href="' + esc(url) + '" class="' + cls + '"' + ext + '>' + esc(n.text || '') + '</a></div>';
   }).join('');
-  var sup = '<button class="icon-btn" id="themeToggle" aria-label="切换深色模式" title="切换深色/浅色模式">' + themeIcon() + '</button>';
-  var searchBtn = '<button class="icon-btn search-toggle" id="searchToggle" aria-label="搜索" title="搜索文章">' + searchIconSvg() + '</button>';
+  var langSwitch = '<select id="langSwitch" class="lang-switch" onchange="window.__i18n.loadLocale(this.value).then(function(){ route(); })"></select>';
+  var sup = '<button class="icon-btn" id="themeToggle" aria-label="' + t('theme.toggle') + '" title="' + t('theme.toggle') + '">' + themeIcon() + '</button>';
+  var searchBtn = '<button class="icon-btn search-toggle" id="searchToggle" aria-label="' + t('search.toggle') + '" title="' + t('search.toggle') + '">' + searchIconSvg() + '</button>';
   var searchForm = '<form class="topbar-search" id="topbarSearch" role="search" onsubmit="return false">'
     + '<span class="ts-icon">' + searchIconSvg() + '</span>'
-    + '<input id="globalSearchInput" type="search" placeholder="搜索文章…" autocomplete="off" aria-label="搜索文章">'
-    + '<button type="button" class="ts-close" id="searchClose" aria-label="关闭搜索">✕</button>'
+    + '<input id="globalSearchInput" type="search" placeholder="' + t('search.placeholder') + '" autocomplete="off" aria-label="' + t('search.toggle') + '">'
+    + '<button type="button" class="ts-close" id="searchClose" aria-label="' + t('search.close') + '">✕</button>'
     + '</form>';
   return '<header class="topbar' + (active && _searchOpen ? ' searching' : '') + '">'
     + '<div class="container topbar-inner">'
     + '<div class="topbar-left"><a class="brand" href="' + esc(href('/')) + '">Qingyu\'Blog</a></div>'
     + '<nav class="main-nav">' + links + '</nav>'
-    + '<div class="topbar-actions">' + searchBtn + sup + '</div>'
+    + '<div class="topbar-actions">' + searchBtn + langSwitch + sup + '</div>'
     + searchForm
     + '</div>'
     + '<div class="search-panel" id="searchPanel"></div>'
@@ -988,12 +989,12 @@ function renderFooter() {
   var site = f.copyrightName || cfg.title || 'Qingyu\'Blog';
   // 页脚导航行：写作后台仅管理员显示；RSS 仅普通用户显示（互斥，避免导航过长）
   var nav = [
-    { text: '首页', url: '/' },
-    { text: '标签', url: '/tags' },
-    { text: '归档', url: '/archive' },
-    { text: '关于', url: '/about' }
+    { text: t('nav.home'), url: '/' },
+    { text: t('nav.tags'), url: '/tags' },
+    { text: t('nav.archive'), url: '/archive' },
+    { text: t('nav.about'), url: '/about' }
   ];
-  if (adminOk()) nav.push({ text: '写作后台', url: '/admin' });
+  if (adminOk()) nav.push({ text: t('nav.admin'), url: '/admin' });
   function l(x) {
     var u = x.url || '/';
     if (/^#\//.test(u)) u = href(u.slice(1));
@@ -1011,10 +1012,10 @@ function renderFooter() {
   // 电脑端专属区块：自定义文字 / 站点声明 / 联系方式 / 友情链接
   var extra = '';
   if (f.text) extra += '<p class="footer-text">' + esc(f.text) + '</p>';
-  if (f.decl) extra += '<p class="footer-decl">站点声明：' + esc(f.decl) + '</p>';
+  if (f.decl) extra += '<p class="footer-decl">' + t('footer.declPrefix') + esc(f.decl) + '</p>';
   if (f.email) extra += '<p class="footer-contact">相关侵权、举报、投诉及建议等，请发邮件至 E-mail：<a href="mailto:' + esc(f.email) + '">' + esc(f.email) + '</a></p>';
   var friends = (f.links || []).map(l).join('');
-  if (friends) extra += '<p class="footer-friends">友情链接：' + friends + '</p>';
+  if (friends) extra += '<p class="footer-friends">' + t('footer.friends') + friends + '</p>';
   // 版权行（移动端仅显示此行，备案号在移动端隐藏）
   var copy = 'Copyright ©' + copyRange + ' ' + esc(site);
   var icp = f.icp ? ' <span class="footer-icp">' + esc(f.icp) + '</span>' : '';
@@ -1024,7 +1025,7 @@ function renderFooter() {
     + '<div class="footer-copy">' + copy + icp + '</div>'
     + '</div>'
     // 返回顶部：固定悬浮右下角，所有页面共用（点击仅滚回当前页顶部）
-    + '<button class="btn-top" id="backTop" aria-label="返回顶部" title="返回顶部">' + svgIcon('top', 18) + '</button>'
+    + '<button class="btn-top" id="backTop" aria-label="' + t('footer.backTop') + '" title="' + t('footer.backTop') + '">' + svgIcon('top', 18) + '</button>'
     + '</footer>';
 }
 
@@ -1041,7 +1042,7 @@ function homeListHtml(filtered, ads, adsEnabled, page, pageSize, emptyMsg) {
   if (page > totalPages) page = totalPages;
   var pageItems = pageSize > 0 ? filtered.slice((page - 1) * pageSize, page * pageSize) : filtered;
   var list = renderCardList(pageItems, ads, adsEnabled);
-  if (!pageItems.length) list = '<div class="empty"><div class="big">' + svgIcon('doc', 36) + '</div><p>' + (emptyMsg || '这里还没有文章。') + '</p></div>';
+  if (!pageItems.length) list = '<div class="empty"><div class="big">' + svgIcon('doc', 36) + '</div><p>' + (emptyMsg || t('home.noPosts')) + '</p></div>';
   return { html: '<div id="listContainer">' + list + '</div>' + pagerHtml(page, totalPages), page: page, totalPages: totalPages };
 }
 
@@ -1053,9 +1054,9 @@ function pagerHtml(page, totalPages) {
   var prevHref = href('/', tag ? { tag: tag, page: page - 1 } : { page: page - 1 });
   var nextHref = href('/', tag ? { tag: tag, page: page + 1 } : { page: page + 1 });
   var parts = [];
-  if (page > 1) parts.push('<a class="pager-btn" href="' + esc(prevHref) + '">上一页</a>');
-  parts.push('<span class="pager-info">第 ' + page + ' / ' + totalPages + ' 页</span>');
-  if (page < totalPages) parts.push('<a class="pager-btn" href="' + esc(nextHref) + '">下一页</a>');
+  if (page > 1) parts.push('<a class="pager-btn" href="' + esc(prevHref) + '">' + t('pagination.prev') + '</a>');
+  parts.push('<span class="pager-info">' + t('pagination.page', { current: page, total: totalPages }) + '</span>');
+  if (page < totalPages) parts.push('<a class="pager-btn" href="' + esc(nextHref) + '">' + t('pagination.next') + '</a>');
   return '<div class="pager">' + parts.join('') + '</div>';
 }
 
@@ -1069,7 +1070,7 @@ function renderHome() {
   var pageSize = homePageSize();
   var page = parseInt(cur.query.page, 10) || 1;
   var html = renderNav(cur.path);
-  html += '<main class="container page-fade"><div class="list-head"><h2 class="page-title">最新发布</h2></div>';
+  html += '<main class="container page-fade"><div class="list-head"><h2 class="page-title">' + t('home.latest') + '</h2></div>';
   if (tag) {
     html += '<div class="current-tag"><span class="tag-chip">' + esc(tag) + ' <a class="tag-clear" href="' + esc(href('/')) + '">✕</a></span></div>';
   }
@@ -1121,8 +1122,8 @@ function renderCardList(plist, ads, adsEnabled) {
 
 function renderCard(p) {
   var badges = '';
-  if (p.pinned) badges += '<span class="pin">' + svgIcon('pin', 13) + ' 置顶</span>';
-  if (p.protected) badges += '<span class="pin">' + svgIcon('lock', 13) + ' 加密</span>';
+  if (p.pinned) badges += '<span class="pin">' + svgIcon('pin', 13) + ' ' + t('post.pin') + '</span>';
+  if (p.protected) badges += '<span class="pin">' + svgIcon('lock', 13) + ' ' + t('post.encrypt') + '</span>';
   var tags = normalizeTags(p).map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('');
   var excerpt = p.excerpt || stripMd(p.content || '').slice(0, 100);
   return '<a class="post-card" href="' + esc(href(postUrl(p.id))) + '">'
@@ -1184,13 +1185,13 @@ async function renderPost(id) {
   var post = posts.find(function (p) { return p.id === id; });
   html += '<main class="container page-fade"><div class="post-body">';
   if (!post) {
-    html += '<div class="empty"><div class="big">' + svgIcon('question', 36) + '</div><p>内容不存在</p><p><a href="' + esc(href('/')) + '">返回首页</a></p></div></div></main>';
+    html += '<div class="empty"><div class="big">' + svgIcon('question', 36) + '</div><p>' + t('post.notFound') + '</p><p><a href="' + esc(href('/')) + '">' + t('post.backHome') + '</a></p></div></div></main>';
     html += renderFooter();
     app().innerHTML = html;
     return;
   }
   if (post.protected && !_unlocked[post.id]) {
-    html += '<div class="lock-card"><div class="big">' + svgIcon('lock', 28) + '</div><h3>这是一篇加密文章</h3><p>输入访问密码以阅读</p><div class="lock-form"><input type="password" id="lockInput" placeholder="访问密码"><button class="btn btn-primary" id="lockBtn">解锁</button></div><div class="lock-msg" id="lockMsg"></div></div>';
+    html += '<div class="lock-card"><div class="big">' + svgIcon('lock', 28) + '</div><h3>' + t('post.encryptedTitle') + '</h3><p>' + t('post.encryptedHint') + '</p><div class="lock-form"><input type="password" id="lockInput" placeholder="' + t('post.passwordPlaceholder') + '"><button class="btn btn-primary" id="lockBtn">' + t('post.unlock') + '</button></div><div class="lock-msg" id="lockMsg"></div></div>';
     html += '</div></main>' + renderFooter();
     app().innerHTML = html;
     var btn = document.querySelector('#lockBtn');
@@ -1200,7 +1201,7 @@ async function renderPost(id) {
       if (!input) return;
       var ok = await tryUnlock(post.id, input.value);
       if (ok) { route(); }
-      else if (msg) msg.textContent = '密码错误，请重试';
+      else if (msg) msg.textContent = t('post.wrongPassword');
     });
     return;
   }
@@ -1218,7 +1219,7 @@ async function renderPost(id) {
       }
     }
     if (!hasContent && !post.content) {
-      html += '<div class="empty"><div class="big">' + svgIcon('spinner', 26) + '</div><p>加载中…</p></div>';
+      html += '<div class="empty"><div class="big">' + svgIcon('spinner', 26) + '</div><p>' + t('site.loading') + '…</p></div>';
       html += '</div></main>' + renderFooter();
       app().innerHTML = html;
     }
@@ -1254,16 +1255,16 @@ async function renderPost(id) {
   var tocHeadings = tocRes.headings;
   var tags = normalizeTags(post).map(function (t) { return '<a href="' + esc(href('/', { tag: t })) + '" data-tag-link>' + esc(t) + '</a>'; }).join('');
   var minutes = Math.max(1, Math.ceil((stripMd(content || '').length / 400)));
-  html += '<div class="post-header"><h1>' + esc(post.title || '') + '</h1><div class="meta"><span class="meta-date">' + esc(post.date || '') + '</span><span class="meta-dot">·</span><span>' + minutes + ' 分钟阅读</span><span class="meta-dot">·</span><span class="meta-views">' + svgIcon('eye', 14) + ' <span id="viewCount">0</span> 次浏览</span>' + (post.pinned ? '<span class="pin">' + svgIcon('pin', 13) + ' 置顶</span>' : '') + '</div></div>';
+  html += '<div class="post-header"><h1>' + esc(post.title || '') + '</h1><div class="meta"><span class="meta-date">' + esc(post.date || '') + '</span><span class="meta-dot">·</span><span>' + minutes + ' ' + t('post.minRead') + '</span><span class="meta-dot">·</span><span class="meta-views">' + svgIcon('eye', 14) + ' <span id="viewCount">0</span> ' + t('post.views') + '</span>' + (post.pinned ? '<span class="pin">' + svgIcon('pin', 13) + ' ' + t('post.pin') + '</span>' : '') + '</div></div>';
   html += toc;
   html += '<article class="article">' + bodyHtml + '</article>';
   // 点赞：正文尾部，水平居中
   html += '<div class="like-bar"><button class="btn like-btn" id="likeBtn">' + svgIcon('heart', 15) + ' <span id="likeCount">0</span></button></div>';
   // 底部：左标签、右复制链接(+编辑)
   var afEdit = adminOk()
-    ? '<a class="btn" href="' + esc(href(postUrl(post.id) + 'edit')) + '">' + svgIcon('pen', 13) + ' 编辑</a>'
+    ? '<a class="btn" href="' + esc(href(postUrl(post.id) + 'edit')) + '">' + svgIcon('pen', 13) + ' ' + t('post.edit') + '</a>'
     : '';
-  html += '<div class="article-footer"><div class="af-tags">' + (tags || '') + '</div><div class="af-actions">' + afEdit + '<button class="btn" id="btnCopyLink">' + svgIcon('link', 14) + ' 复制链接</button></div></div>';
+  html += '<div class="article-footer"><div class="af-tags">' + (tags || '') + '</div><div class="af-actions">' + afEdit + '<button class="btn" id="btnCopyLink">' + svgIcon('link', 14) + ' ' + t('post.copyLink') + '</button></div></div>';
 
   // prev / next
   var sorted = posts.slice().sort(sortPosts);
@@ -1273,21 +1274,21 @@ async function renderPost(id) {
   html += '<div class="pn-nav">';
   if (prev && next) {
     // 两个都有：左右排列
-    html += '<a class="pn-item" href="' + esc(href(postUrl(prev.id))) + '"><span class="pn-dir">← 上一篇</span><span class="pn-title">' + esc(prev.title || '') + '</span></a>';
-    html += '<a class="pn-item" href="' + esc(href(postUrl(next.id))) + '"><span class="pn-dir">下一篇 →</span><span class="pn-title">' + esc(next.title || '') + '</span></a>';
+    html += '<a class="pn-item" href="' + esc(href(postUrl(prev.id))) + '"><span class="pn-dir">' + t('post.prev') + '</span><span class="pn-title">' + esc(prev.title || '') + '</span></a>';
+    html += '<a class="pn-item" href="' + esc(href(postUrl(next.id))) + '"><span class="pn-dir">' + t('post.next') + '</span><span class="pn-title">' + esc(next.title || '') + '</span></a>';
   } else if (prev) {
     // 只有上一篇：独占一行左对齐
-    html += '<a class="pn-item pn-single" href="' + esc(href(postUrl(prev.id))) + '"><span class="pn-dir">← 上一篇</span><span class="pn-title">' + esc(prev.title || '') + '</span></a>';
+    html += '<a class="pn-item pn-single" href="' + esc(href(postUrl(prev.id))) + '"><span class="pn-dir">' + t('post.prev') + '</span><span class="pn-title">' + esc(prev.title || '') + '</span></a>';
   } else if (next) {
     // 只有下一篇：独占一行右对齐
-    html += '<a class="pn-item pn-single" href="' + esc(href(postUrl(next.id))) + '"><span class="pn-dir">下一篇 →</span><span class="pn-title">' + esc(next.title || '') + '</span></a>';
+    html += '<a class="pn-item pn-single" href="' + esc(href(postUrl(next.id))) + '"><span class="pn-dir">' + t('post.next') + '</span><span class="pn-title">' + esc(next.title || '') + '</span></a>';
   }
   html += '</div>';
 
   // comments
-  html += '<div class="comments"><h3>评论 <span class="comment-count" id="commentCount">' + '0' + '</span></h3>';
-  html += '<p class="comment-hint">在此输入昵称与内容发表评论</p>';
-  html += '<div class="comment-form"><input type="text" id="commentAuthor" maxlength="30" placeholder="昵称"><textarea id="commentContent" rows="2" maxlength="1000" placeholder="说点什么…"></textarea><div class="comment-submit-row"><button class="btn btn-primary" id="commentSubmit">发表评论</button><span class="c-status" id="commentStatus"></span></div></div>';
+  html += '<div class="comments"><h3>' + t('comment.title') + ' <span class="comment-count" id="commentCount">' + '0' + '</span></h3>';
+  html += '<p class="comment-hint">' + t('comment.hint') + '</p>';
+  html += '<div class="comment-form"><input type="text" id="commentAuthor" maxlength="30" placeholder="' + t('comment.authorPlaceholder') + '"><textarea id="commentContent" rows="2" maxlength="1000" placeholder="' + t('comment.contentPlaceholder') + '"></textarea><div class="comment-submit-row"><button class="btn btn-primary" id="commentSubmit">' + t('comment.submit') + '</button><span class="c-status" id="commentStatus"></span></div></div>';
   html += '<ul class="comment-list" id="commentList"></ul></div>';
 
   // 精选文章（评论区下方）
@@ -1326,7 +1327,7 @@ async function renderPost(id) {
   var copyBtn = document.querySelector('#btnCopyLink');
   if (copyBtn) copyBtn.addEventListener('click', function () {
     var url = location.origin + appRoot() + postUrl(post.id);
-    navigator.clipboard && navigator.clipboard.writeText(url) && (copyBtn.textContent = '✓ 已复制');
+    navigator.clipboard && navigator.clipboard.writeText(url) && (copyBtn.textContent = t('post.copied'));
   });
 
   // load comments
@@ -1336,9 +1337,9 @@ async function renderPost(id) {
     if (cnt) cnt.textContent = String(list.length);
     if (!ul) return;
     var canDel = !_cloudOn() || adminOk();
-    if (!list.length) { ul.innerHTML = '<li class="comment-empty">暂无评论</li>'; return; }
+    if (!list.length) { ul.innerHTML = '<li class="comment-empty">' + t('comment.noComments') + '</li>'; return; }
     ul.innerHTML = list.map(function (c) {
-      return '<li class="comment"><div class="comment-head"><span class="comment-author">' + esc(c.author) + '</span><span class="comment-date">' + esc(c.date || '') + '</span>' + (canDel ? '<button class="comment-del" data-cid="' + esc(c.id) + '">删除</button>' : '') + '</div><div class="comment-content">' + esc(c.content) + '</div></li>';
+      return '<li class="comment"><div class="comment-head"><span class="comment-author">' + esc(c.author) + '</span><span class="comment-date">' + esc(c.date || '') + '</span>' + (canDel ? '<button class="comment-del" data-cid="' + esc(c.id) + '">' + t('comment.delete') + '</button>' : '') + '</div><div class="comment-content">' + esc(c.content) + '</div></li>';
     }).join('');
     ul.querySelectorAll('.comment-del').forEach(function (b) {
       b.addEventListener('click', function () { deleteComment(post.id, b.getAttribute('data-cid')).then(renderCommentsList); });
@@ -1351,12 +1352,12 @@ async function renderPost(id) {
     var c = document.querySelector('#commentContent');
     var st = document.querySelector('#commentStatus');
     if (!a || !c) return;
-    if (!a.value.trim() || !c.value.trim()) { if (st) st.textContent = '请填写昵称和内容'; return; }
+    if (!a.value.trim() || !c.value.trim()) { if (st) st.textContent = t('comment.fillBoth'); return; }
     // 防连点重复提交：提交期间禁用按钮
     submit.disabled = true;
     try {
       await saveComment(post.id, a.value, c.value);
-      if (st) st.textContent = '✓ 已发表';
+      if (st) st.textContent = t('comment.posted');
       if (c) c.value = '';
       loadComments(post.id).then(renderCommentsList);
     } finally {
@@ -1370,9 +1371,9 @@ async function renderPost(id) {
     if (cnt) cnt.textContent = String(list.length);
     if (!ul) return;
     var canDel = !_cloudOn() || adminOk();
-    if (!list.length) { ul.innerHTML = '<li class="comment-empty">暂无评论</li>'; return; }
+    if (!list.length) { ul.innerHTML = '<li class="comment-empty">' + t('comment.noComments') + '</li>'; return; }
     ul.innerHTML = list.map(function (c) {
-      return '<li class="comment"><div class="comment-head"><span class="comment-author">' + esc(c.author) + '</span><span class="comment-date">' + esc(c.date || '') + '</span>' + (canDel ? '<button class="comment-del" data-cid="' + esc(c.id) + '">删除</button>' : '') + '</div><div class="comment-content">' + esc(c.content) + '</div></li>';
+      return '<li class="comment"><div class="comment-head"><span class="comment-author">' + esc(c.author) + '</span><span class="comment-date">' + esc(c.date || '') + '</span>' + (canDel ? '<button class="comment-del" data-cid="' + esc(c.id) + '">' + t('comment.delete') + '</button>' : '') + '</div><div class="comment-content">' + esc(c.content) + '</div></li>';
     }).join('');
     ul.querySelectorAll('.comment-del').forEach(function (b) {
       b.addEventListener('click', function () { deleteComment(post.id, b.getAttribute('data-cid')).then(renderCommentsList); });
@@ -1391,12 +1392,12 @@ function renderArchive() {
     byYear[yr][mo].push(p);
   });
   var html = renderNav(currentRoute().path);
-  html += '<main class="container page-fade"><h2 class="page-title">归档</h2>';
+  html += '<main class="container page-fade"><h2 class="page-title">' + t('archive.title') + '</h2>';
   Object.keys(byYear).sort().reverse().forEach(function (yr) {
-    html += '<div class="archive-year"><h2>' + esc(yr) + ' 年</h2>';
+    html += '<div class="archive-year"><h2>' + esc(yr) + ' ' + t('archive.year') + '</h2>';
     Object.keys(byYear[yr]).sort(function (a, b) { return Number(b) - Number(a); }).forEach(function (mo) {
       var list = byYear[yr][mo];
-      html += '<div class="archive-month"><h3>' + esc(mo) + ' 月 <span class="count">' + list.length + ' 篇</span></h3><ul>';
+      html += '<div class="archive-month"><h3>' + esc(mo) + ' ' + t('archive.month') + ' <span class="count">' + list.length + ' ' + t('archive.count') + '</span></h3><ul>';
       list.forEach(function (p) {
         html += '<li><a href="' + esc(href(postUrl(p.id))) + '">' + esc(p.title || '') + '</a></li>';
       });
@@ -1421,17 +1422,17 @@ function renderAbout() {
   });
   var cfg = getConfig();
   var html = renderNav(currentRoute().path);
-  html += '<main class="container page-fade"><h2 class="page-title">关于</h2><div class="about-card card">';
+  html += '<main class="container page-fade"><h2 class="page-title">' + t('about.title') + '</h2><div class="about-card card">';
   // 站点简介：渲染「Qingyu'Blog：一个可以双击打开的原生 JS 博客」文章正文
   var intro = (posts || []).find(function (p) { return p.id === 'qingyu-blog-intro'; });
   if (intro && intro.content) {
     html += '<div class="article about-intro">' + renderMarkdown(intro.content) + '</div>';
   } else {
-    html += '<h3>Qingyu\'Blog</h3><p>一个零依赖、双击即开的轻量博客。</p>';
+    html += '<h3>Qingyu\'Blog</h3><p>' + t('about.desc') + '</p>';
   }
   html += '<hr class="about-sep">';
-  html += '<div class="stat-grid"><div class="stat"><b>' + posts.length + '</b><span>篇内容</span></div><div class="stat"><b>' + Object.keys(tags).length + '</b><span>个标签</span></div><div class="stat"><b>' + totalWords + '</b><span>总字数</span></div><div class="stat"><b>' + esc(latest || '-') + '</b><span>最新更新</span></div></div>';
-  html += '<h3>版本</h3><p>v' + esc(BLOG_VERSION) + '</p><h3>数据模式</h3><p>' + (_cloudOn() ? '云端模式' : '静态模式') + '</p><h3>首次使用</h3><p>双击 index.html 即可开始。</p>';
+  html += '<div class="stat-grid"><div class="stat"><b>' + posts.length + '</b><span>' + t('about.posts') + '</span></div><div class="stat"><b>' + Object.keys(tags).length + '</b><span>' + t('about.tags') + '</span></div><div class="stat"><b>' + totalWords + '</b><span>' + t('about.totalWords') + '</span></div><div class="stat"><b>' + esc(latest || '-') + '</b><span>' + t('about.latestUpdate') + '</span></div></div>';
+  html += '<h3>' + t('about.version') + '</h3><p>v' + esc(BLOG_VERSION) + '</p><h3>' + t('about.dataMode') + '</h3><p>' + (_cloudOn() ? t('about.cloudMode') : t('about.staticMode')) + '</p><h3>' + t('about.firstUse') + '</h3><p>双击 index.html 即可开始。</p>';
   html += '</div></main>' + renderFooter();
   return html;
 }
@@ -1443,7 +1444,7 @@ function renderTags() {
     normalizeTags(p).forEach(function (t) { counts[t] = (counts[t] || 0) + 1; });
   });
   var html = renderNav(currentRoute().path);
-  html += '<main class="container page-fade"><h2 class="page-title">' + svgIcon('tag', 20) + ' 标签</h2><div class="tag-cloud">';
+  html += '<main class="container page-fade"><h2 class="page-title">' + svgIcon('tag', 20) + ' ' + t('tags.title') + '</h2><div class="tag-cloud">';
   Object.keys(counts).sort().forEach(function (t) {
     html += '<a class="cloud-chip" href="' + esc(href('/', { tag: t })) + '">' + esc(t) + '<span class="cloud-count">' + counts[t] + '</span></a>';
   });
@@ -1484,7 +1485,7 @@ function renderAdminSidebar(active) {
     + '<a href="' + esc(href('/admin/write')) + '" class="admin-nav-item' + (active === 'write' ? ' active' : '') + '">' + svgIcon('pen', 15) + '<span>文章写作台</span></a>'
     + '</nav>'
     + '<div class="admin-sidebar-footer">'
-    + '<div class="admin-sidebar-mode">' + (_cloudOn() ? svgIcon('cloud', 12) + ' 云端模式' : svgIcon('file', 12) + ' 本地模式') + '</div>'
+    + '<div class="admin-sidebar-mode">' + (_cloudOn() ? svgIcon('cloud', 12) + ' ' + t('editor.cloudMode') : svgIcon('file', 12) + ' ' + t('editor.localMode')) + '</div>'
     + '<button class="btn btn-ghost btn-logout" id="btnLogoutSidebar">' + svgIcon('logout', 14) + ' 退出</button>'
     + '</div>'
     + '</aside>';
@@ -1501,26 +1502,26 @@ function renderPostList() {
   var lockedCount = posts.filter(function (p) { return p.protected; }).length;
   var html = '<div class="admin-posts-header">'
     + '<div class="admin-head-titles"><h2>' + svgIcon('doc', 20) + ' 所有文章</h2><p class="admin-head-sub">管理已发布的内容：点击标题编辑正文，或删除不再需要的文章。</p></div>'
-    + '<a class="btn btn-primary btn-new-post" href="' + esc(href('/admin/write')) + '">' + svgIcon('pen', 14) + ' 写新文章</a>'
+    + '<a class="btn btn-primary btn-new-post" href="' + esc(href('/admin/write')) + '">' + svgIcon('pen', 14) + ' ' + t('editor.newPost') + '</a>'
     + '</div>';
   html += '<div class="admin-stats">'
     + '<div class="admin-stat"><span class="admin-stat-num">' + posts.length + '</span><span class="admin-stat-label">全部</span></div>'
-    + '<div class="admin-stat"><span class="admin-stat-num">' + pinnedCount + '</span><span class="admin-stat-label">置顶</span></div>'
-    + '<div class="admin-stat"><span class="admin-stat-num">' + lockedCount + '</span><span class="admin-stat-label">加密</span></div>'
+    + '<div class="admin-stat"><span class="admin-stat-num">' + pinnedCount + '</span><span class="admin-stat-label">' + t('admin.postList.pin') + '</span></div>'
+    + '<div class="admin-stat"><span class="admin-stat-num">' + lockedCount + '</span><span class="admin-stat-label">' + t('admin.postList.encrypt') + '</span></div>'
     + '</div>';
-  html += '<table class="admin-posts-table"><thead><tr><th>标题</th><th>日期</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+  html += '<table class="admin-posts-table"><thead><tr><th>' + t('admin.postList.colTitle') + '</th><th>' + t('admin.postList.colDate') + '</th><th>' + t('admin.postList.colStatus') + '</th><th>' + t('admin.postList.colActions') + '</th></tr></thead><tbody>';
   posts.forEach(function (p) {
-    var status = p.pinned ? svgIcon('pin', 12) + ' 置顶' : (p.protected ? svgIcon('lock', 12) + ' 加密' : '已发布');
+    var status = p.pinned ? svgIcon('pin', 12) + ' ' + t('admin.postList.pin') : (p.protected ? svgIcon('lock', 12) + ' ' + t('admin.postList.encrypt') : t('post.published'));
     var title = p.title || '未命名';
     html += '<tr>'
       + '<td class="post-title-cell"><a class="post-title-link" href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '">' + esc(title) + svgIcon('external', 12) + '</a></td>'
       + '<td class="post-date-cell">' + esc(p.date || '') + '</td>'
       + '<td><span class="status-badge' + (p.pinned ? ' pinned' : '') + (p.protected ? ' protected' : '') + '">' + status + '</span></td>'
       + '<td><div class="post-actions">'
-      + '<a href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '" class="btn btn-sm">' + svgIcon('pen', 13) + ' 编辑</a>'
-      + '<button class="btn btn-sm' + (p.pinned ? ' btn-on' : '') + '" data-pin-id="' + esc(p.id) + '" title="' + (p.pinned ? '取消置顶' : '置顶') + '">' + svgIcon('pin', 13) + ' ' + (p.pinned ? '取消置顶' : '置顶') + '</button>'
-      + '<button class="btn btn-sm' + (p.protected ? ' btn-on' : '') + '" data-lock-id="' + esc(p.id) + '" title="' + (p.protected ? '取消加密（需原密码）' : '设置访问密码') + '">' + svgIcon('lock', 13) + ' ' + (p.protected ? '取消加密' : '加密') + '</button>'
-      + '<button class="btn btn-sm btn-danger" data-post-id="' + esc(p.id) + '" data-post-title="' + esc(title) + '">' + svgIcon('trash', 13) + ' 删除</button>'
+      + '<a href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '" class="btn btn-sm">' + svgIcon('pen', 13) + ' ' + t('admin.postList.edit') + '</a>'
+      + '<button class="btn btn-sm' + (p.pinned ? ' btn-on' : '') + '" data-pin-id="' + esc(p.id) + '" title="' + (p.pinned ? t('admin.postList.unpin') : t('admin.postList.pin')) + '">' + svgIcon('pin', 13) + ' ' + (p.pinned ? t('admin.postList.unpin') : t('admin.postList.pin')) + '</button>'
+      + '<button class="btn btn-sm' + (p.protected ? ' btn-on' : '') + '" data-lock-id="' + esc(p.id) + '" title="' + (p.protected ? '取消加密（需原密码）' : t('admin.postList.setPwd')) + '">' + svgIcon('lock', 13) + ' ' + (p.protected ? '取消加密' : t('admin.postList.encrypt')) + '</button>'
+      + '<button class="btn btn-sm btn-danger" data-post-id="' + esc(p.id) + '" data-post-title="' + esc(title) + '">' + svgIcon('trash', 13) + ' ' + t('post.delete') + '</button>'
       + '</div></td>'
       + '</tr>';
   });
@@ -1676,41 +1677,41 @@ function renderEditorBody() {
   }
   var body = '';
   body += '<div class="write-head">'
-    + '<h2 class="page-title wh-title">' + svgIcon('pen', 20) + ' 写作台</h2>'
+    + '<h2 class="page-title wh-title">' + svgIcon('pen', 20) + ' ' + t('editor.title') + '</h2>'
     + (_cloudOn()
-        ? '<span class="mode-chip cloud">' + svgIcon('cloud', 12) + ' 云端模式</span>'
-        : '<span class="mode-chip local">' + svgIcon('file', 12) + ' 本地模式</span>')
-    + (_editId ? '<span class="mode-chip editing" id="writeTitleHint">' + (_editPost ? esc('编辑：' + (_editPost.title || '')) : '新文章') + '</span>' : '')
+        ? '<span class="mode-chip cloud">' + svgIcon('cloud', 12) + ' ' + t('editor.cloudMode') + '</span>'
+        : '<span class="mode-chip local">' + svgIcon('file', 12) + ' ' + t('editor.localMode') + '</span>')
+    + (_editId ? '<span class="mode-chip editing" id="writeTitleHint">' + (_editPost ? esc(t('editor.editing') + '：' + (_editPost.title || '')) : t('editor.newPost')) + '</span>' : '')
     + '</div>';
   body += '<div class="card editor-meta"><div class="editor-grid">'
-    + '<div class="field field-full"><label>标题</label><input type="text" id="titleInput" placeholder="文章标题"></div>'
-    + '<div class="field"><label>日期（可精确到时间）</label><div style="display:flex;gap:8px;align-items:center;"><input type="datetime-local" id="dateInput" style="flex:1;"><button class="btn btn-sm btn-ghost" id="btnToday" title="设为当前时间" style="flex-shrink:0;padding:5px 10px;font-size:12px;">今天</button></div></div>'
-    + '<div class="field"><label>标签（逗号分隔）</label><input type="text" id="tagInput" placeholder="日记, 技术"></div>'
-    + '<div class="field field-full"><label>摘要（可选，不填则自动截取）</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
-    + '<div class="field field-full"><label>封面图 URL（可选，列表卡片右侧缩略图）</label><input type="text" id="coverInput" placeholder="https://… 未填写则自动取正文第一张图"></div>'
-    + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' 置顶</label></div>'
-    + '<div class="field check-label field-protect" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' 加密</label><input type="password" id="protectPwdInput" class="protect-pwd" placeholder="文章访问密码（勾选加密后设置）" style="display:none"></div>'
+    + '<div class="field field-full"><label>' + t('editor.titlePlaceholder') + '</label><input type="text" id="titleInput" placeholder="' + t('editor.titlePlaceholder') + '"></div>'
+    + '<div class="field"><label>' + t('editor.datePlaceholder') + '</label><div style="display:flex;gap:8px;align-items:center;"><input type="datetime-local" id="dateInput" style="flex:1;"><button class="btn btn-sm btn-ghost" id="btnToday" title="设为当前时间" style="flex-shrink:0;padding:5px 10px;font-size:12px;">' + t('editor.today') + '</button></div></div>'
+    + '<div class="field"><label>' + t('editor.tagsPlaceholder') + '</label><input type="text" id="tagInput" placeholder="日记, 技术"></div>'
+    + '<div class="field field-full"><label>' + t('editor.excerptPlaceholder') + '</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
+    + '<div class="field field-full"><label>' + t('editor.coverPlaceholder') + '</label><input type="text" id="coverInput" placeholder="https://… 未填写则自动取正文第一张图"></div>'
+    + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' ' + t('editor.pin') + '</label></div>'
+    + '<div class="field check-label field-protect" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' ' + t('editor.encrypt') + '</label><input type="password" id="protectPwdInput" class="protect-pwd" placeholder="' + t('editor.postPassword') + '" style="display:none"></div>'
     + '</div></div>';
   body += '<div class="editor-wrap">'
-    + '<section class="editor-pane"><div class="pane-head">' + svgIcon('pen', 13) + ' 编辑<span class="pane-note">Markdown</span></div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" class="md-input" rows="18" placeholder="用 Markdown 写作…"></textarea></section>'
-    + '<section class="editor-pane preview-pane"><div class="pane-head">' + svgIcon('eye', 13) + ' 预览<span class="pane-note">实时渲染</span></div><div class="write-preview article preview-body" id="previewPane"></div></section>'
+    + '<section class="editor-pane"><div class="pane-head">' + svgIcon('pen', 13) + ' ' + t('editor.editing') + '<span class="pane-note">Markdown</span></div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" class="md-input" rows="18" placeholder="' + t('editor.writeHint') + '"></textarea></section>'
+    + '<section class="editor-pane preview-pane"><div class="pane-head">' + svgIcon('eye', 13) + ' ' + t('editor.preview') + '<span class="pane-note">实时渲染</span></div><div class="write-preview article preview-body" id="previewPane"></div></section>'
     + '</div>';
   body += '<div class="editor-actions actions-bar">'
-    + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">' + svgIcon('cloud', 15) + ' 发布到云端</button>' : '')
-    + '<button class="btn btn-primary" id="btnSave">' + svgIcon('save', 15) + ' 保存文章</button>'
+    + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">' + svgIcon('cloud', 15) + ' ' + t('editor.cloudPublish') + '</button>' : '')
+    + '<button class="btn btn-primary" id="btnSave">' + svgIcon('save', 15) + ' ' + t('editor.savePost') + '</button>'
     + '<span class="action-sep"></span>'
-    + '<button class="btn" id="btnSaveDraft">' + svgIcon('upload', 15) + ' 存草稿</button>'
-    + '<button class="btn" id="btnImport">' + svgIcon('file', 15) + ' 导入 .md</button>'
+    + '<button class="btn" id="btnSaveDraft">' + svgIcon('upload', 15) + ' ' + t('editor.saveDraft') + '</button>'
+    + '<button class="btn" id="btnImport">' + svgIcon('file', 15) + ' ' + t('editor.importMd') + '</button>'
     + '<input type="file" id="mdFileInput" accept=".md,.markdown" hidden>'
     + '<button class="btn" id="btnOpenMdEditor">' + svgIcon('external', 15) + ' 官方编辑器</button>'
     + '<span class="action-sep"></span>'
-    + '<button class="btn" id="btnExport">' + svgIcon('download', 15) + ' 导出 posts.js</button>'
-    + '<button class="btn" id="btnExportAll" title="同时导出 posts.js / feed.xml / sitemap.xml 三个文件，一次覆盖即可全部发布">' + svgIcon('save', 15) + ' 一键导出全部</button>'
+    + '<button class="btn" id="btnExport">' + svgIcon('download', 15) + ' ' + t('editor.exportPosts') + '</button>'
+    + '<button class="btn" id="btnExportAll" title="同时导出 posts.js / feed.xml / sitemap.xml 三个文件，一次覆盖即可全部发布">' + svgIcon('save', 15) + ' ' + t('editor.exportAll') + '</button>'
     + '<button class="btn" id="btnRss">' + svgIcon('rss', 15) + ' RSS</button>'
     + '<button class="btn" id="btnSitemap">' + svgIcon('sitemap', 15) + ' Sitemap</button>'
     + '<span class="actions-right"><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span>'
-    + '<button class="btn btn-outline-danger btn-logout" id="btnClearData" title="清除所有本地数据并重置站点">' + svgIcon('trash', 14) + ' 清理数据</button>'
-    + '<button class="btn btn-ghost btn-logout" id="btnLogout">' + svgIcon('logout', 15) + ' 退出登录</button></span>'
+    + '<button class="btn btn-outline-danger btn-logout" id="btnClearData" title="清除所有本地数据并重置站点">' + svgIcon('trash', 14) + ' ' + t('editor.cleanData') + '</button>'
+    + '<button class="btn btn-ghost btn-logout" id="btnLogout">' + svgIcon('logout', 15) + ' ' + t('editor.exitLogin') + '</button></span>'
     + '</div>';
   body += '<p class="keys-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> 存草稿 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 保存文章</p>';
   body += '<h3 class="draft-hint"><b>一键导出：</b>保存文章 / RSS / Sitemap 会打开系统保存对话框，选中原文件即可原地覆盖发布。</h3>';
@@ -1725,28 +1726,28 @@ function renderWrite() {
       // 云端模式：密码校验于 Cloudflare D1 后端，此页只做登录（token 已存则直接进入编辑）
       html += '<div class="card gate-card">'
         + '<div class="gate-badge">' + svgIcon('lock', 26) + '</div>'
-        + '<h3 class="gate-title">管理员登录</h3>'
-        + '<p class="gate-sub">输入管理员密码以继续写作</p>'
-        + '<div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码" autocomplete="current-password"><button class="btn btn-primary" id="btnGate">' + svgIcon('logout', 15) + ' 登 录</button></div>'
+        + '<h3 class="gate-title">' + t('admin.login') + '</h3>'
+        + '<p class="gate-sub">' + t('admin.loginHint') + '</p>'
+        + '<div class="gate-form"><input type="password" id="gatePwd" placeholder="' + t('admin.pwdLabel') + '" autocomplete="current-password"><button class="btn btn-primary" id="btnGate">' + svgIcon('logout', 15) + ' ' + t('admin.loginBtn') + '</button></div>'
         + '<div class="gate-msg alert-strip" id="gateMsg"></div>'
-        + '<div class="gate-foot"><a href="' + esc(href('/')) + '">← 返回首页</a></div>'
+        + '<div class="gate-foot"><a href="' + esc(href('/')) + '">' + t('admin.backHome') + '</a></div>'
         + '</div>';
     } else if (needAdminSetup()) {
       html += '<div class="card gate-card">'
         + '<div class="gate-badge">' + svgIcon('lock', 26) + '</div>'
-        + '<h3 class="gate-title">设置管理密码</h3>'
+        + '<h3 class="gate-title">' + t('admin.setupPwd') + '</h3>'
         + '<p class="gate-sub">首次使用请设置一个至少 4 位的管理密码<br>仅保存在本机浏览器，不上传服务器</p>'
-        + '<div class="gate-form"><input type="password" id="setupPwd" placeholder="管理密码" autocomplete="new-password"><button class="btn btn-primary" id="btnSetup">设置并进入</button></div>'
+        + '<div class="gate-form"><input type="password" id="setupPwd" placeholder="' + t('admin.pwdLabel') + '" autocomplete="new-password"><button class="btn btn-primary" id="btnSetup">' + t('admin.setupBtn') + '</button></div>'
         + '<div class="gate-msg alert-strip" id="gateMsg"></div>'
         + '</div>';
     } else {
       html += '<div class="card gate-card">'
         + '<div class="gate-badge">' + svgIcon('lock', 26) + '</div>'
-        + '<h3 class="gate-title">管理员验证</h3>'
+        + '<h3 class="gate-title">' + t('admin.loginTitle') + '</h3>'
         + '<p class="gate-sub">请输入管理密码以继续写作<br>验证通过后会保持登录状态，可随时退出</p>'
-        + '<div class="gate-form"><input type="password" id="gatePwd" placeholder="管理密码" autocomplete="current-password"><button class="btn btn-primary" id="btnGate">进 入</button></div>'
+        + '<div class="gate-form"><input type="password" id="gatePwd" placeholder="' + t('admin.pwdLabel') + '" autocomplete="current-password"><button class="btn btn-primary" id="btnGate">' + t('admin.enterBtn') + '</button></div>'
         + '<div class="gate-msg alert-strip" id="gateMsg"></div>'
-        + '<div class="gate-foot"><a href="' + esc(href('/')) + '">← 返回首页</a></div>'
+        + '<div class="gate-foot"><a href="' + esc(href('/')) + '">' + t('admin.backHome') + '</a></div>'
         + '<p class="gate-hint">提示：可在 <code>public/config.js</code> 配置 adminPwd。</p>'
         + '</div>';
     }
@@ -2568,9 +2569,15 @@ function parseQuery(source) {
   return q;
 }
 
+var _i18nReady = false;
 async function route() {
   _searchOpen = false;   // 进入新页面时收起顶部搜索
   _featuredCache = null; // 清除精选缓存，确保每页重新计算
+  // 首次路由时加载语言文件（同步读 localStorage，异步加载 JSON）
+  if (!_i18nReady && window.__i18n && window.__i18n.loadLocale) {
+    await window.__i18n.loadLocale(window.__i18n.getLocale());
+    _i18nReady = true;
+  }
   var r = currentRoute();
   var path = r.path;
   var q = r.query;
@@ -2610,7 +2617,7 @@ async function route() {
   else if (path === '/about') { app().innerHTML = renderAbout(); }
   else if (path === '/tags') { app().innerHTML = renderTags(); }
   else {
-    app().innerHTML = renderNav(path) + '<main class="container page-fade"><div class="empty"><div class="big">' + svgIcon('question', 36) + '</div><p>内容不存在</p><p><a href="' + esc(href('/')) + '">返回首页</a></p></div></main>' + renderFooter();
+    app().innerHTML = renderNav(path) + '<main class="container page-fade"><div class="empty"><div class="big">' + svgIcon('question', 36) + '</div><p>' + t('post.notFound') + '</p><p><a href="' + esc(href('/')) + '">' + t('post.backHome') + '</a></p></div></main>' + renderFooter();
   }
   bindGlobal();
 }
@@ -2621,6 +2628,22 @@ function bindGlobal() {
   bindTocScroll();
   bindSearch();
   bindBackTop();
+  populateLangSwitch();
+}
+
+function populateLangSwitch() {
+  var sel = document.querySelector('#langSwitch');
+  if (!sel || !window.__i18n || typeof window.__i18n.getLanguages !== 'function') return;
+  var langs = window.__i18n.getLanguages();
+  var current = window.__i18n.getLocale ? window.__i18n.getLocale() : 'zh-CN';
+  sel.innerHTML = '';
+  langs.forEach(function (lang) {
+    var opt = document.createElement('option');
+    opt.value = lang.code;
+    opt.textContent = lang.flag + ' ' + lang.name;
+    if (lang.code === current) opt.selected = true;
+    sel.appendChild(opt);
+  });
 }
 
 /* 返回顶部悬浮按钮：滚动超过一屏出现，点击平滑滚回当前页顶部（不跳转页面） */
