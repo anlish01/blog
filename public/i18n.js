@@ -65,20 +65,47 @@
     if (!lang) lang = DEFAULT_LANG;
     var base = _baseDir();
     var url = base + '/locales/' + lang + '.json';
+    var loaded = false;
     try {
       var resp = await fetch(url);
       if (resp.ok) {
         _translations = await resp.json();
-      } else {
-        // 加载失败回退中文
-        if (lang !== DEFAULT_LANG) {
-          var fallbackUrl = base + '/locales/' + DEFAULT_LANG + '.json';
-          var fallback = await fetch(fallbackUrl);
-          if (fallback.ok) _translations = await fallback.json();
-        }
+        loaded = true;
       }
-    } catch (e) {
-      console.warn('[i18n] Failed to load locale:', lang, e);
+    } catch (e) {}
+    // fetch 失败时回退 XMLHttpRequest（file:// 本地预览兼容）
+    if (!loaded) {
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, false); // 同步
+        xhr.send();
+        if (xhr.status === 200 || xhr.status === 0) {
+          _translations = JSON.parse(xhr.responseText);
+          loaded = true;
+        }
+      } catch (e) {}
+    }
+    // 回退中文
+    if (!loaded && lang !== DEFAULT_LANG) {
+      var fallbackUrl = base + '/locales/' + DEFAULT_LANG + '.json';
+      try {
+        var resp2 = await fetch(fallbackUrl);
+        if (resp2.ok) { _translations = await resp2.json(); loaded = true; }
+      } catch (e) {}
+      if (!loaded) {
+        try {
+          var xhr2 = new XMLHttpRequest();
+          xhr2.open('GET', fallbackUrl, false);
+          xhr2.send();
+          if (xhr2.status === 200 || xhr2.status === 0) {
+            _translations = JSON.parse(xhr2.responseText);
+            loaded = true;
+          }
+        } catch (e) {}
+      }
+    }
+    if (!loaded) {
+      console.warn('[i18n] Failed to load locale:', lang);
       _translations = {};
     }
     _locale = lang;
