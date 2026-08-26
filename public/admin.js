@@ -82,7 +82,7 @@
     return String(s || '').toLowerCase().replace(/[^\w\u4e00-\u9fa5-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) || ('p' + Date.now().toString(36));
   }
   async function api(url, opts) {
-    if (!window.apiFetch) throw new Error('apiFetch 不可用');
+    if (!window.apiFetch) throw new Error(t('admin.error.apiFetchUnavailable'));
     return await window.apiFetch(url, opts || {});
   }
   function toast(msg, type) {
@@ -166,7 +166,7 @@
     return { ok: true };
   }
   function downloadPostsJs() {
-    if (!window.buildPostsJs) { toast('当前环境不支持导出', 'err'); return; }
+    if (!window.buildPostsJs) { toast(t('admin.toast.exportNotSupported'), 'err'); return; }
     // posts.js
     var txt = window.buildPostsJs();
     var blob = new Blob([txt], { type: 'text/javascript' });
@@ -175,7 +175,7 @@
     a.download = 'posts.js';
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-    toast('已导出 posts.js', 'ok');
+    toast(t('admin.toast.exportedPostsJs'), 'ok');
   }
   /** 一键导出全部：posts.js + feed.xml + sitemap.xml（静态模式发布三件套） */
   function downloadAllStatic() {
@@ -194,7 +194,7 @@
         setTimeout(function () { URL.revokeObjectURL(sa.href); }, 1000);
       }, 400);
     }
-    toast('已导出 posts.js + feed.xml + sitemap.xml，覆盖 public/ 即可发布', 'ok');
+    toast(t('admin.toast.exportedAll'), 'ok');
   }
 
   /* ----------------------- 登录门禁 ----------------------- */
@@ -375,6 +375,7 @@
 
   function mount(root, path) {
     if (!isAdmin()) { renderGate(root); return; }
+    // 确保 i18n 已加载
     var route = parseRoute(path);
     // 异步拉取待审核数量用于角标
     var pendingCount = 0;
@@ -392,7 +393,7 @@
         '<div class="ab-main">' +
           renderHeader(crumbs) +
           '<main class="ab-content" id="abContent"></main>' +
-          '<footer class="ab-footer" style="text-align:center;padding:18px;color:var(--ab-muted);font-size:12.5px;border-top:1px solid var(--ab-border);background:var(--ab-card)">博客管理后台 © 2026</footer>' +
+          '<footer class="ab-footer" style="text-align:center;padding:18px;color:var(--ab-muted);font-size:12.5px;border-top:1px solid var(--ab-border);background:var(--ab-card)">' + t('admin.footer.copyright') + '</footer>' +
         '</div>' +
       '</div>';
     if (siderCollapsed) root.querySelector('#abSider').classList.add('collapsed');
@@ -688,7 +689,7 @@
         '<td class="col-actions">' +
           '<button class="ab-btn sm" data-edit="' + enc(id) + '">' + icon('pen', 13) + ' ' + t('admin.postList.edit') + '</button> ' +
           '<button class="ab-btn sm" data-pin="' + enc(id) + '">' + icon('pin', 13) + ' ' + (p.pinned ? t('admin.postList.unpin') : t('admin.postList.pin')) + '</button> ' +
-          '<button class="ab-btn sm" data-lock="' + enc(id) + '">' + icon('lock', 13) + ' ' + (p.protected ? '取消加密' : t('admin.postList.encrypt')) + '</button> ' +
+          '<button class="ab-btn sm" data-lock="' + enc(id) + '">' + icon('lock', 13) + ' ' + (p.protected ? t('admin.postList.unsetEncrypt') : t('admin.postList.encrypt')) + '</button> ' +
           '<button class="ab-btn sm danger" data-del="' + enc(id) + '">' + icon('trash', 13) + ' ' + t('admin.comments.delete') + '</button>' +
         '</td>' +
       '</tr>';
@@ -720,7 +721,7 @@
     }); });
     body.querySelectorAll('[data-lock]').forEach(function (b) { b.addEventListener('click', async function () {
       var pid = dec(b.getAttribute('data-lock'));
-      var isLocked = b.innerHTML.indexOf('取消加密') >= 0;
+      var isLocked = b.innerHTML.indexOf(t('admin.postList.unsetEncrypt')) >= 0;
       b.innerHTML = '<span class="ab-spin" style="width:13px;height:13px;border-width:2px"></span> ' + (isLocked ? t('admin.postList.decrypting') : t('admin.postList.encrypting'));
       b.disabled = true;
       try {
@@ -1217,17 +1218,17 @@
       pa.addEventListener('input', function () { pv.src = pa.value; });
     } else if (tab === 'nav') {
       var defaultNav = [
-        { text: '首页', url: '/' },
-        { text: '归档', url: '/archive' },
-        { text: '关于', url: '/about' },
-        { text: '友链', url: '/links' }
+        { text: t('admin.settings.defaultHome'), url: '/' },
+        { text: t('admin.settings.defaultArchive'), url: '/archive' },
+        { text: t('admin.settings.defaultAbout'), url: '/about' },
+        { text: t('admin.settings.defaultFriends'), url: '/links' }
       ];
       var exJson = JSON.stringify(settingsCache.nav ? (typeof settingsCache.nav === 'string' ? JSON.parse(settingsCache.nav || '[]') : settingsCache.nav) : (cfg().nav || defaultNav), null, 2);
       body.innerHTML = '<div class="ab-card" style="max-width:720px">' +
         '<div class="ab-section-title">' + icon('list', 15) + ' ' + t('admin.settings.visualEditor') + '</div>' +
         '<div id="abNavVisual" class="ab-nav-editor"></div>' +
         '<div class="ab-section-title" style="margin-top:16px">' + icon('doc', 15) + ' ' + t('admin.settings.jsonEditor') + '</div>' +
-        '<div class="ab-hint" style="margin-bottom:8px">直接编辑 JSON。每项格式：<code>{ "text": "菜单名", "url": "/路径" }</code>。支持子菜单：<code>{ "text": "更多", "children": [ ... ] }</code>。</div>' +
+        '<div class="ab-hint" style="margin-bottom:8px">' + t('admin.settings.navJsonHint') + '</div>' +
         '<textarea class="ab-textarea" id="abNavJson" style="min-height:180px;font-family:monospace;font-size:13px"></textarea>' +
         '<div class="ab-row" style="margin-top:8px;gap:8px">' +
           '<button class="ab-btn sm" id="abNavFormat">' + t('admin.settings.formatJson') + '</button>' +

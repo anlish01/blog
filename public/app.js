@@ -126,7 +126,7 @@ function parseMdFile(text, filename) {
   var id = slugify(meta.id || base || 'post-' + Date.now());
   return {
     id: id,
-    title: meta.title || base || '未命名文章',
+    title: meta.title || base || t('post.defaultTitle'),
     date: meta.date || new Date().toISOString().slice(0, 10),
     tags: meta.tags || '',
     excerpt: meta.excerpt || '',
@@ -333,7 +333,7 @@ function buildToc(html) {
   }).join('');
   return {
     headings: sections,
-    html: '<details class="toc"><summary>' + svgIcon('list', 14) + ' 目录</summary><div class="toc-list">' + hs + '</div></details>'
+    html: '<details class="toc"><summary>' + svgIcon('list', 14) + ' ' + t('toc.title') + '</summary><div class="toc-list">' + hs + '</div></details>'
   };
 }
 
@@ -698,7 +698,7 @@ async function getFeaturedPosts(excludeId, count) {
         if (cl) comments = JSON.parse(cl).length;
       }
     } catch (e) {}
-    return { id: p.id, title: p.title || '(无标题)', score: likes * 3 + views + comments * 5, views: views, likes: likes, comments: comments };
+    return { id: p.id, title: p.title || t('post.untitled'), score: likes * 3 + views + comments * 5, views: views, likes: likes, comments: comments };
   }));
   scored.sort(function (a, b) { return b.score - a.score; });
   _featuredCache = scored;
@@ -808,12 +808,12 @@ async function tryAdmin(pwd) {
 async function cloudLogin(pwd) {
   try {
     var data = await apiFetch('api/admin/login', { method: 'POST', body: JSON.stringify({ password: String(pwd || '') }) });
-    if (!data || !data.token) return { ok: false, message: (data && data.error) || '登录失败' };
+    if (!data || !data.token) return { ok: false, message: (data && data.error) || t('admin.loginFail') };
     _setSessionToken(data.token);
     _setAdminSession(true);
     return { ok: true, mustChange: !!data.mustChange, defaultPassword: data.defaultPassword || '' };
   } catch (e) {
-    return { ok: false, message: '登录失败（HTTP ' + (e && e.message ? e.message.replace('HTTP ', '') : '') + '）' };
+    return { ok: false, message: t('admin.loginFail') + '（HTTP ' + (e && e.message ? e.message.replace('HTTP ', '') : '') + '）' };
   }
 }
 /** 云端登出：调用 /api/admin/logout 并清除本地 token */
@@ -893,7 +893,7 @@ function buildFeedXmlClient(posts, maxItems) {
     var content = renderMarkdown(p.content || '').replace(/\]\]>/g, ']]&gt;');
     return '<item>\n      <title>' + esc(p.title) + '</title>\n      <link>' + esc(link) + '</link>\n      <guid isPermaLink="false">' + esc(p.id) + '</guid>\n      <pubDate>' + rfc822(p.date) + '</pubDate>\n      <description><![CDATA[' + content + ']]></description>\n    </item>';
   }).join('\n    ');
-  return '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>' + esc(cfg.title || 'Qingyu\'Blog') + '</title>\n    <link>' + esc(base || 'https://blog.example') + '</link>\n    <description>' + esc(cfg.description || '一个零依赖的轻量博客') + '</description>\n    <language>zh-CN</language>\n    <lastBuildDate>' + new Date().toUTCString() + '</lastBuildDate>\n    ' + items + '\n  </channel>\n</rss>\n';
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>' + esc(cfg.title || 'Qingyu\'Blog') + '</title>\n    <link>' + esc(base || 'https://blog.example') + '</link>\n    <description>' + esc(cfg.description || t('site.desc')) + '</description>\n    <language>zh-CN</language>\n    <lastBuildDate>' + new Date().toUTCString() + '</lastBuildDate>\n    ' + items + '\n  </channel>\n</rss>\n';
 }
 function rfc822(dateStr) {
   try {
@@ -935,7 +935,18 @@ async function saveFileFriendly(name, content, doneText, failText) {
  * ============================================================ */
 function app() { return document.querySelector('#app'); }
 
-function renderNav(active) {
+  /** 翻译导航项的 text 字段（config.js 中的原始文本会被翻译） */
+  var _navTextMap = {
+    '首页': 'nav.home', '标签': 'nav.tags', '归档': 'nav.archive',
+    '关于': 'nav.about', '写作后台': 'nav.admin'
+  };
+  function tNav(text) {
+    if (!text) return text;
+    var key = _navTextMap[text];
+    return key ? t(key) : text;
+  }
+
+  function renderNav(active) {
   var cfg = getConfig();
   var navs = cfg.nav.length ? cfg.nav : [
     { text: t('nav.home'), url: '/', path: '/' },
@@ -943,6 +954,18 @@ function renderNav(active) {
     { text: t('nav.archive'), url: '/archive', path: '/archive' },
     { text: t('nav.about'), url: '/about', path: '/about' }
   ];
+  // 如果 nav 来自 config.js，翻译已知的中文文本
+  if (cfg.nav.length) {
+    navs = navs.map(function (n) {
+      var item = { text: tNav(n.text), url: n.url, path: n.path };
+      if (n.children && n.children.length) {
+        item.children = n.children.map(function (c) {
+          return { text: tNav(c.text), url: c.url };
+        });
+      }
+      return item;
+    });
+  }
   var links = navs.map(function (n) {
     var raw = n.url || '/';
     var pathKey = n.path || (/^#\//.test(raw) ? raw.slice(1) : (/^\//.test(raw) ? raw : null));
@@ -1013,7 +1036,7 @@ function renderFooter() {
   var extra = '';
   if (f.text) extra += '<p class="footer-text">' + esc(f.text) + '</p>';
   if (f.decl) extra += '<p class="footer-decl">' + t('footer.declPrefix') + esc(f.decl) + '</p>';
-  if (f.email) extra += '<p class="footer-contact">相关侵权、举报、投诉及建议等，请发邮件至 E-mail：<a href="mailto:' + esc(f.email) + '">' + esc(f.email) + '</a></p>';
+  if (f.email) extra += '<p class="footer-contact">' + t('footer.contactPrefix') + '<a href="mailto:' + esc(f.email) + '">' + esc(f.email) + '</a></p>';
   var friends = (f.links || []).map(l).join('');
   if (friends) extra += '<p class="footer-friends">' + t('footer.friends') + friends + '</p>';
   // 版权行（移动端仅显示此行，备案号在移动端隐藏）
@@ -1075,7 +1098,7 @@ function renderHome() {
     html += '<div class="current-tag"><span class="tag-chip">' + esc(tag) + ' <a class="tag-clear" href="' + esc(href('/')) + '">✕</a></span></div>';
   }
   html += renderHomeTagRow(posts, tag);
-  if (adsEnabled && ads.belowSearch) html += '<div class="ad-slot"><span class="ad-label">广告</span>' + ads.belowSearch + '</div>';
+  if (adsEnabled && ads.belowSearch) html += '<div class="ad-slot"><span class="ad-label">' + t('ad.label') + '</span>' + ads.belowSearch + '</div>';
   var filtered = tag ? posts.filter(function (p) { return (p.tags || []).indexOf(tag) >= 0; }) : posts;
   var body = homeListHtml(filtered, ads, adsEnabled, page, pageSize);
   html += '<div id="homeBody">' + body.html + '</div>';
@@ -1100,7 +1123,7 @@ function renderHomeTagRow(posts, activeTag) {
   });
   if (!order.length) return '';
   var html = '<div class="home-tags">';
-  html += '<span class="home-tags-label">分类</span>';
+  html += '<span class="home-tags-label">' + t('home.categoryLabel') + '</span>';
   order.forEach(function (t) {
     var on = t === activeTag;
     html += '<a class="home-tag' + (on ? ' active' : '') + '" href="' + esc(href('/', { tag: t })) + '" data-home-tag>' + esc(t) + '<span class="home-tag-count">' + counts[t] + '</span></a>';
@@ -1114,7 +1137,7 @@ function renderCardList(plist, ads, adsEnabled) {
   var every = Number(ads.betweenEvery) || 3;
   var out = '';
   plist.forEach(function (p, idx) {
-    if (adsEnabled && ads.between && idx > 0 && idx % every === 0) out += '<div class="ad-slot"><span class="ad-label">广告</span>' + ads.between + '</div>';
+    if (adsEnabled && ads.between && idx > 0 && idx % every === 0) out += '<div class="ad-slot"><span class="ad-label">' + t('ad.label') + '</span>' + ads.between + '</div>';
     out += renderCard(p);
   });
   return out;
@@ -1142,7 +1165,7 @@ function renderPostThumb(p) {
   var url = String((p && p.cover) || '').trim() || firstImageFrom(p && p.content);
   var title = (p && p.title) || '';
   if (url) {
-    return '<span class="post-thumb has-img"><img src="' + esc(url) + '" alt="' + esc(title || '文章缩略图') + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"></span>';
+    return '<span class="post-thumb has-img"><img src="' + esc(url) + '" alt="' + esc(title || t('post.thumbnailAlt')) + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"></span>';
   }
   return '<span class="post-thumb ph"><span class="post-thumb-ph">' + svgIcon('image', 26) + '</span></span>';
 }
@@ -1295,7 +1318,7 @@ async function renderPost(id) {
   html += renderFeaturedHtml(post.id);
 
   var adCfg = getConfig().ads || {};
-  if (adCfg.enabled && adCfg.content) html += '<div class="ad-slot"><span class="ad-label">广告</span>' + adCfg.content + '</div>';
+  if (adCfg.enabled && adCfg.content) html += '<div class="ad-slot"><span class="ad-label">' + t('ad.label') + '</span>' + adCfg.content + '</div>';
 
   html += '</div></main>' + renderFooter();
   app().innerHTML = html;
@@ -1385,7 +1408,7 @@ function renderArchive() {
   var posts = sortPagePosts(getStaticPosts());
   var byYear = {};
   posts.forEach(function (p) {
-    var yr = (p.date || '').slice(0, 4) || '未知';
+    var yr = (p.date || '').slice(0, 4) || t('archive.unknown');
     var mo = Number((p.date || '').slice(5, 7) || 0);
     if (!byYear[yr]) byYear[yr] = {};
     if (!byYear[yr][mo]) byYear[yr][mo] = [];
@@ -1432,7 +1455,7 @@ function renderAbout() {
   }
   html += '<hr class="about-sep">';
   html += '<div class="stat-grid"><div class="stat"><b>' + posts.length + '</b><span>' + t('about.posts') + '</span></div><div class="stat"><b>' + Object.keys(tags).length + '</b><span>' + t('about.tags') + '</span></div><div class="stat"><b>' + totalWords + '</b><span>' + t('about.totalWords') + '</span></div><div class="stat"><b>' + esc(latest || '-') + '</b><span>' + t('about.latestUpdate') + '</span></div></div>';
-  html += '<h3>' + t('about.version') + '</h3><p>v' + esc(BLOG_VERSION) + '</p><h3>' + t('about.dataMode') + '</h3><p>' + (_cloudOn() ? t('about.cloudMode') : t('about.staticMode')) + '</p><h3>' + t('about.firstUse') + '</h3><p>双击 index.html 即可开始。</p>';
+  html += '<h3>' + t('about.version') + '</h3><p>v' + esc(BLOG_VERSION) + '</p><h3>' + t('about.dataMode') + '</h3><p>' + (_cloudOn() ? t('about.cloudMode') : t('about.staticMode')) + '</p><h3>' + t('about.firstUse') + '</h3><p>' + t('about.firstUseHint') + '</p>';
   html += '</div></main>' + renderFooter();
   return html;
 }
@@ -1476,17 +1499,17 @@ function renderAdminSidebar(active) {
   return '<aside class="admin-sidebar">'
     + '<div class="admin-sidebar-brand">'
     + '<span class="admin-brand-badge">' + svgIcon('pen', 15) + '</span>'
-    + '<span class="admin-brand-text">管理后台<span class="admin-sidebar-ver">v' + esc(BLOG_VERSION) + '</span></span>'
+    + '<span class="admin-brand-text">' + t('admin.brand') + '<span class="admin-sidebar-ver">v' + esc(BLOG_VERSION) + '</span></span>'
     + '</div>'
     + '<nav class="admin-sidebar-nav">'
-    + '<div class="admin-nav-group">' + svgIcon('doc', 12) + ' 内容</div>'
-    + '<a href="' + esc(href('/admin/posts')) + '" class="admin-nav-item' + (active === 'posts' || isEdit ? ' active' : '') + '">' + svgIcon('doc', 15) + '<span>文章</span><span class="admin-nav-count">' + postCount + '</span></a>'
-    + '<div class="admin-nav-group">' + svgIcon('pen', 12) + ' 创作</div>'
-    + '<a href="' + esc(href('/admin/write')) + '" class="admin-nav-item' + (active === 'write' ? ' active' : '') + '">' + svgIcon('pen', 15) + '<span>文章写作台</span></a>'
+    + '<div class="admin-nav-group">' + svgIcon('doc', 12) + ' ' + t('admin.nav.content') + '</div>'
+    + '<a href="' + esc(href('/admin/posts')) + '" class="admin-nav-item' + (active === 'posts' || isEdit ? ' active' : '') + '">' + svgIcon('doc', 15) + '<span>' + t('admin.sidebar.allPosts') + '</span><span class="admin-nav-count">' + postCount + '</span></a>'
+    + '<div class="admin-nav-group">' + svgIcon('pen', 12) + ' ' + t('admin.nav.write') + '</div>'
+    + '<a href="' + esc(href('/admin/write')) + '" class="admin-nav-item' + (active === 'write' ? ' active' : '') + '">' + svgIcon('pen', 15) + '<span>' + t('editor.title') + '</span></a>'
     + '</nav>'
     + '<div class="admin-sidebar-footer">'
     + '<div class="admin-sidebar-mode">' + (_cloudOn() ? svgIcon('cloud', 12) + ' ' + t('editor.cloudMode') : svgIcon('file', 12) + ' ' + t('editor.localMode')) + '</div>'
-    + '<button class="btn btn-ghost btn-logout" id="btnLogoutSidebar">' + svgIcon('logout', 14) + ' 退出</button>'
+    + '<button class="btn btn-ghost btn-logout" id="btnLogoutSidebar">' + svgIcon('logout', 14) + ' ' + t('admin.sidebar.logout') + '</button>'
     + '</div>'
     + '</aside>';
 }
@@ -1495,24 +1518,24 @@ function renderPostList() {
   var posts = getStaticPosts();
   if (!posts || !posts.length) {
     return '<div class="admin-posts-header">'
-      + '<div class="admin-head-titles"><h2>' + svgIcon('doc', 20) + ' 所有文章</h2><p class="admin-head-sub">还没有文章，去 <a href="' + esc(href('/admin/write')) + '">写一篇</a> 吧。</p></div>'
+      + '<div class="admin-head-titles"><h2>' + svgIcon('doc', 20) + ' ' + t('admin.postList.title') + '</h2><p class="admin-head-sub">' + t('admin.postList.emptyHint') + ' <a href="' + esc(href('/admin/write')) + '">' + t('editor.newPost') + '</a></p></div>'
       + '</div>';
   }
   var pinnedCount = posts.filter(function (p) { return p.pinned; }).length;
   var lockedCount = posts.filter(function (p) { return p.protected; }).length;
   var html = '<div class="admin-posts-header">'
-    + '<div class="admin-head-titles"><h2>' + svgIcon('doc', 20) + ' 所有文章</h2><p class="admin-head-sub">管理已发布的内容：点击标题编辑正文，或删除不再需要的文章。</p></div>'
+    + '<div class="admin-head-titles"><h2>' + svgIcon('doc', 20) + ' ' + t('admin.postList.title') + '</h2><p class="admin-head-sub">' + t('admin.postList.desc') + '</p></div>'
     + '<a class="btn btn-primary btn-new-post" href="' + esc(href('/admin/write')) + '">' + svgIcon('pen', 14) + ' ' + t('editor.newPost') + '</a>'
     + '</div>';
   html += '<div class="admin-stats">'
-    + '<div class="admin-stat"><span class="admin-stat-num">' + posts.length + '</span><span class="admin-stat-label">全部</span></div>'
+    + '<div class="admin-stat"><span class="admin-stat-num">' + posts.length + '</span><span class="admin-stat-label">' + t('admin.postList.allStatus') + '</span></div>'
     + '<div class="admin-stat"><span class="admin-stat-num">' + pinnedCount + '</span><span class="admin-stat-label">' + t('admin.postList.pin') + '</span></div>'
     + '<div class="admin-stat"><span class="admin-stat-num">' + lockedCount + '</span><span class="admin-stat-label">' + t('admin.postList.encrypt') + '</span></div>'
     + '</div>';
   html += '<table class="admin-posts-table"><thead><tr><th>' + t('admin.postList.colTitle') + '</th><th>' + t('admin.postList.colDate') + '</th><th>' + t('admin.postList.colStatus') + '</th><th>' + t('admin.postList.colActions') + '</th></tr></thead><tbody>';
   posts.forEach(function (p) {
     var status = p.pinned ? svgIcon('pin', 12) + ' ' + t('admin.postList.pin') : (p.protected ? svgIcon('lock', 12) + ' ' + t('admin.postList.encrypt') : t('post.published'));
-    var title = p.title || '未命名';
+    var title = p.title || t('admin.postList.noTitle');
     html += '<tr>'
       + '<td class="post-title-cell"><a class="post-title-link" href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '">' + esc(title) + svgIcon('external', 12) + '</a></td>'
       + '<td class="post-date-cell">' + esc(p.date || '') + '</td>'
@@ -1520,7 +1543,7 @@ function renderPostList() {
       + '<td><div class="post-actions">'
       + '<a href="' + esc(href('/admin/posts/' + encodeURIComponent(p.id) + '/edit')) + '" class="btn btn-sm">' + svgIcon('pen', 13) + ' ' + t('admin.postList.edit') + '</a>'
       + '<button class="btn btn-sm' + (p.pinned ? ' btn-on' : '') + '" data-pin-id="' + esc(p.id) + '" title="' + (p.pinned ? t('admin.postList.unpin') : t('admin.postList.pin')) + '">' + svgIcon('pin', 13) + ' ' + (p.pinned ? t('admin.postList.unpin') : t('admin.postList.pin')) + '</button>'
-      + '<button class="btn btn-sm' + (p.protected ? ' btn-on' : '') + '" data-lock-id="' + esc(p.id) + '" title="' + (p.protected ? '取消加密（需原密码）' : t('admin.postList.setPwd')) + '">' + svgIcon('lock', 13) + ' ' + (p.protected ? '取消加密' : t('admin.postList.encrypt')) + '</button>'
+      + '<button class="btn btn-sm' + (p.protected ? ' btn-on' : '') + '" data-lock-id="' + esc(p.id) + '" title="' + (p.protected ? t('admin.postList.unsetEncryptTitle') : t('admin.postList.setPwd')) + '">' + svgIcon('lock', 13) + ' ' + (p.protected ? t('admin.postList.unsetEncrypt') : t('admin.postList.encrypt')) + '</button>'
       + '<button class="btn btn-sm btn-danger" data-post-id="' + esc(p.id) + '" data-post-title="' + esc(title) + '">' + svgIcon('trash', 13) + ' ' + t('post.delete') + '</button>'
       + '</div></td>'
       + '</tr>';
@@ -1582,7 +1605,7 @@ function upsertLocalPost(post, exportStatic) {
 /** 列表页：切换置顶（云端 PUT / 静态改本地并导出） */
 async function togglePinFromList(id) {
   var post = findPostForUpdate(id);
-  if (!post) { alert('未找到该文章（可能已删除或不同步）'); return; }
+  if (!post) { alert(t('toast.notFound')); return; }
   var target = !post.pinned;
   try {
     if (_cloudOn()) {
@@ -1590,7 +1613,7 @@ async function togglePinFromList(id) {
       if (full) post = full;
     }
   } catch (e) {
-    alert('操作失败，请检查网络或登录状态');
+    alert(t('toast.networkError'));
     return;
   }
   post.pinned = target;
@@ -1598,14 +1621,14 @@ async function togglePinFromList(id) {
     try {
       await savePostToCloud(post);
       upsertLocalPost(post, false);
-      alert(target ? '已置顶（云端已更新）' : '已取消置顶（云端已更新）');
+      alert(target ? t('toast.pinnedCloud') : t('toast.unpinnedCloud'));
     } catch (e) {
-      alert('操作失败，请检查网络或登录状态');
+      alert(t('toast.networkError'));
       return;
     }
   } else {
     upsertLocalPost(post, true);
-    alert(target ? '已置顶：请用下载的 posts.js 覆盖站点文件' : '已取消置顶：请用下载的 posts.js 覆盖站点文件');
+    alert(target ? t('toast.pinnedLocal') : t('toast.unpinnedLocal'));
   }
   route();
 }
@@ -1613,36 +1636,36 @@ async function togglePinFromList(id) {
 /** 列表页：添加加密（设密码，正文转密文）/ 取消加密（原密码解密恢复明文） */
 async function toggleLockFromList(id) {
   var post = findPostForUpdate(id);
-  if (!post) { alert('未找到该文章（可能已删除或不同步）'); return; }
+  if (!post) { alert(t('toast.notFound')); return; }
   try {
     if (_cloudOn()) {
       var full = await fetchPostDetail(id);
       if (full) post = full;
     }
   } catch (e) {
-    alert('操作失败，请检查网络或登录状态');
+    alert(t('toast.networkError'));
     return;
   }
   if (!post.protected) {
     // —— 添加加密 ——
-    var pwd = prompt('设置文章访问密码（至少 4 位）：');
+    var pwd = prompt(t('admin.postList.setPwd'));
     if (pwd === null) return;
     pwd = String(pwd || '').trim();
-    if (pwd.length < 4) { alert('密码至少 4 位'); return; }
-    var pwd2 = prompt('再次输入密码确认：');
-    if (String(pwd2 || '') !== pwd) { alert('两次密码不一致'); return; }
+    if (pwd.length < 4) { alert(t('toast.pwdShort')); return; }
+    var pwd2 = prompt(t('admin.postList.confirmPwd'));
+    if (String(pwd2 || '') !== pwd) { alert(t('toast.pwdMismatch')); return; }
     var content = post.content || '';
-    if (!content) { alert('文章正文为空，无法加密'); return; }
+    if (!content) { alert(t('toast.encryptEmpty')); return; }
     var enc = await encryptText(content, pwd);
     post.protected = true;
     post.enc = enc;
     post.content = '';
   } else {
     // —— 取消加密：需原密码解密恢复明文 ——
-    var oldPwd = prompt('输入该文章的原密码以取消加密：');
+    var oldPwd = prompt(t('admin.postList.removePwd'));
     if (oldPwd === null) return;
     var plain = post.content ? post.content : (post.enc ? await decryptText(post.enc, String(oldPwd || '')) : null);
-    if (!plain) { alert('密码错误或无法解密'); return; }
+    if (!plain) { alert(t('toast.encryptFail')); return; }
     post.protected = false;
     post.enc = null;
     post.content = plain;
@@ -1652,14 +1675,14 @@ async function toggleLockFromList(id) {
       await savePostToCloud(post);
       upsertLocalPost(post, false);
       clearPostCache(post.id);   // 加密状态/正文已变：清除详情缓存
-      alert(post.protected ? '已加密（云端已更新）' : '已取消加密（云端已更新）');
+      alert(post.protected ? t('toast.encryptedCloud') : t('toast.decryptedCloud'));
     } catch (e) {
-      alert('操作失败，请检查网络或登录状态');
+      alert(t('toast.networkError'));
       return;
     }
   } else {
     upsertLocalPost(post, true);
-    alert(post.protected ? '已加密：请用下载的 posts.js 覆盖站点文件' : '已取消加密：请用下载的 posts.js 覆盖站点文件');
+    alert(post.protected ? t('toast.encryptedLocal') : t('toast.decryptedLocal'));
   }
   route();
 }
@@ -1685,16 +1708,16 @@ function renderEditorBody() {
     + '</div>';
   body += '<div class="card editor-meta"><div class="editor-grid">'
     + '<div class="field field-full"><label>' + t('editor.titlePlaceholder') + '</label><input type="text" id="titleInput" placeholder="' + t('editor.titlePlaceholder') + '"></div>'
-    + '<div class="field"><label>' + t('editor.datePlaceholder') + '</label><div style="display:flex;gap:8px;align-items:center;"><input type="datetime-local" id="dateInput" style="flex:1;"><button class="btn btn-sm btn-ghost" id="btnToday" title="设为当前时间" style="flex-shrink:0;padding:5px 10px;font-size:12px;">' + t('editor.today') + '</button></div></div>'
-    + '<div class="field"><label>' + t('editor.tagsPlaceholder') + '</label><input type="text" id="tagInput" placeholder="日记, 技术"></div>'
-    + '<div class="field field-full"><label>' + t('editor.excerptPlaceholder') + '</label><input type="text" id="excerptInput" placeholder="显示在列表与 RSS 中的一段话"></div>'
-    + '<div class="field field-full"><label>' + t('editor.coverPlaceholder') + '</label><input type="text" id="coverInput" placeholder="https://… 未填写则自动取正文第一张图"></div>'
+    + '<div class="field"><label>' + t('editor.datePlaceholder') + '</label><div style="display:flex;gap:8px;align-items:center;"><input type="datetime-local" id="dateInput" style="flex:1;"><button class="btn btn-sm btn-ghost" id="btnToday" title="' + t('editor.setNow') + '" style="flex-shrink:0;padding:5px 10px;font-size:12px;">' + t('editor.today') + '</button></div></div>'
+    + '<div class="field"><label>' + t('editor.tagsPlaceholder') + '</label><input type="text" id="tagInput" placeholder="' + t('editor.tagsExample') + '"></div>'
+    + '<div class="field field-full"><label>' + t('editor.excerptPlaceholder') + '</label><input type="text" id="excerptInput" placeholder="' + t('editor.excerptHint') + '"></div>'
+    + '<div class="field field-full"><label>' + t('editor.coverPlaceholder') + '</label><input type="text" id="coverInput" placeholder="' + t('editor.coverHint') + '"></div>'
     + '<div class="field check-label"><label><input type="checkbox" id="pinnedInput"> ' + svgIcon('pin', 13) + ' ' + t('editor.pin') + '</label></div>'
     + '<div class="field check-label field-protect" style="margin-left:auto"><label><input type="checkbox" id="protectInput"> ' + svgIcon('lock', 13) + ' ' + t('editor.encrypt') + '</label><input type="password" id="protectPwdInput" class="protect-pwd" placeholder="' + t('editor.postPassword') + '" style="display:none"></div>'
     + '</div></div>';
   body += '<div class="editor-wrap">'
     + '<section class="editor-pane"><div class="pane-head">' + svgIcon('pen', 13) + ' ' + t('editor.editing') + '<span class="pane-note">Markdown</span></div><div id="toolbar" class="toolbar">' + toolbarHtml() + '</div><textarea id="mdInput" class="md-input" rows="18" placeholder="' + t('editor.writeHint') + '"></textarea></section>'
-    + '<section class="editor-pane preview-pane"><div class="pane-head">' + svgIcon('eye', 13) + ' ' + t('editor.preview') + '<span class="pane-note">实时渲染</span></div><div class="write-preview article preview-body" id="previewPane"></div></section>'
+    + '<section class="editor-pane preview-pane"><div class="pane-head">' + svgIcon('eye', 13) + ' ' + t('editor.preview') + '<span class="pane-note">' + t('editor.realtimeRender') + '</span></div><div class="write-preview article preview-body" id="previewPane"></div></section>'
     + '</div>';
   body += '<div class="editor-actions actions-bar">'
     + (_cloudOn() ? '<button class="btn btn-primary" id="btnCloud">' + svgIcon('cloud', 15) + ' ' + t('editor.cloudPublish') + '</button>' : '')
@@ -1703,18 +1726,18 @@ function renderEditorBody() {
     + '<button class="btn" id="btnSaveDraft">' + svgIcon('upload', 15) + ' ' + t('editor.saveDraft') + '</button>'
     + '<button class="btn" id="btnImport">' + svgIcon('file', 15) + ' ' + t('editor.importMd') + '</button>'
     + '<input type="file" id="mdFileInput" accept=".md,.markdown" hidden>'
-    + '<button class="btn" id="btnOpenMdEditor">' + svgIcon('external', 15) + ' 官方编辑器</button>'
+    + '<button class="btn" id="btnOpenMdEditor">' + svgIcon('external', 15) + ' ' + t('editor.officialEditor') + '</button>'
     + '<span class="action-sep"></span>'
     + '<button class="btn" id="btnExport">' + svgIcon('download', 15) + ' ' + t('editor.exportPosts') + '</button>'
-    + '<button class="btn" id="btnExportAll" title="同时导出 posts.js / feed.xml / sitemap.xml 三个文件，一次覆盖即可全部发布">' + svgIcon('save', 15) + ' ' + t('editor.exportAll') + '</button>'
+    + '<button class="btn" id="btnExportAll" title="' + t('editor.exportAllTitle') + '">' + svgIcon('save', 15) + ' ' + t('editor.exportAll') + '</button>'
     + '<button class="btn" id="btnRss">' + svgIcon('rss', 15) + ' RSS</button>'
     + '<button class="btn" id="btnSitemap">' + svgIcon('sitemap', 15) + ' Sitemap</button>'
     + '<span class="actions-right"><span class="word-count" id="wordCount"></span><span class="save-status" id="saveStatus"></span>'
-    + '<button class="btn btn-outline-danger btn-logout" id="btnClearData" title="清除所有本地数据并重置站点">' + svgIcon('trash', 14) + ' ' + t('editor.cleanData') + '</button>'
+    + '<button class="btn btn-outline-danger btn-logout" id="btnClearData" title="' + t('editor.clearDataTitle') + '">' + svgIcon('trash', 14) + ' ' + t('editor.cleanData') + '</button>'
     + '<button class="btn btn-ghost btn-logout" id="btnLogout">' + svgIcon('logout', 15) + ' ' + t('editor.exitLogin') + '</button></span>'
     + '</div>';
-  body += '<p class="keys-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> 存草稿 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 保存文章</p>';
-  body += '<h3 class="draft-hint"><b>一键导出：</b>保存文章 / RSS / Sitemap 会打开系统保存对话框，选中原文件即可原地覆盖发布。</h3>';
+  body += '<p class="keys-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> ' + t('editor.saveDraft') + ' · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> ' + t('editor.savePost') + '</p>';
+  body += '<h3 class="draft-hint"><b>' + t('editor.exportAll') + ':</b> ' + t('editor.exportHint') + '</h3>';
   return body;
 }
 
@@ -1736,7 +1759,7 @@ function renderWrite() {
       html += '<div class="card gate-card">'
         + '<div class="gate-badge">' + svgIcon('lock', 26) + '</div>'
         + '<h3 class="gate-title">' + t('admin.setupPwd') + '</h3>'
-        + '<p class="gate-sub">首次使用请设置一个至少 4 位的管理密码<br>仅保存在本机浏览器，不上传服务器</p>'
+        + '<p class="gate-sub">' + t('admin.setupHint') + '</p>'
         + '<div class="gate-form"><input type="password" id="setupPwd" placeholder="' + t('admin.pwdLabel') + '" autocomplete="new-password"><button class="btn btn-primary" id="btnSetup">' + t('admin.setupBtn') + '</button></div>'
         + '<div class="gate-msg alert-strip" id="gateMsg"></div>'
         + '</div>';
@@ -1744,11 +1767,11 @@ function renderWrite() {
       html += '<div class="card gate-card">'
         + '<div class="gate-badge">' + svgIcon('lock', 26) + '</div>'
         + '<h3 class="gate-title">' + t('admin.loginTitle') + '</h3>'
-        + '<p class="gate-sub">请输入管理密码以继续写作<br>验证通过后会保持登录状态，可随时退出</p>'
+        + '<p class="gate-sub">' + t('admin.loginDesc') + '</p>'
         + '<div class="gate-form"><input type="password" id="gatePwd" placeholder="' + t('admin.pwdLabel') + '" autocomplete="current-password"><button class="btn btn-primary" id="btnGate">' + t('admin.enterBtn') + '</button></div>'
         + '<div class="gate-msg alert-strip" id="gateMsg"></div>'
         + '<div class="gate-foot"><a href="' + esc(href('/')) + '">' + t('admin.backHome') + '</a></div>'
-        + '<p class="gate-hint">提示：可在 <code>public/config.js</code> 配置 adminPwd。</p>'
+        + '<p class="gate-hint">' + t('admin.hint') + '</p>'
         + '</div>';
     }
     html += '</main>' + renderFooter();
@@ -1759,18 +1782,18 @@ function renderWrite() {
       var msg = document.querySelector('#gateMsg');
       if (!inp) return;
       if (await setupAdmin(inp.value)) { route(); }
-      else if (msg) msg.textContent = '密码太短，至少 4 位';
+      else if (msg) msg.textContent = t('admin.pwdTooShort');
     });
     var btnGate = document.querySelector('#btnGate');
     if (btnGate) btnGate.addEventListener('click', async function () {
       var inp = document.querySelector('#gatePwd');
       var msg = document.querySelector('#gateMsg');
-      if (!inp || !inp.value) { if (msg) msg.textContent = '请输入密码'; return; }
+      if (!inp || !inp.value) { if (msg) msg.textContent = t('admin.pwdRequired'); return; }
       if (_cloudOn()) {
         // 加载态：防重复提交，spinner 反馈
         var orig = btnGate.innerHTML;
         btnGate.disabled = true;
-        btnGate.innerHTML = svgIcon('spinner', 14) + ' 登录中…';
+        btnGate.innerHTML = svgIcon('spinner', 14) + ' ' + t('admin.logging');
         cloudLogin(inp.value).then(function (r) {
           btnGate.disabled = false;
           btnGate.innerHTML = orig;
@@ -1778,7 +1801,7 @@ function renderWrite() {
             if (r.mustChange) {
               // 首次部署自动初始化：显示默认密码 + 跳转强制改密
               if (r.defaultPassword) {
-                if (msg) { msg.className = 'gate-msg alert-strip ok'; msg.textContent = '默认密码：' + r.defaultPassword + '（请登录后立即修改）'; }
+                if (msg) { msg.className = 'gate-msg alert-strip ok'; msg.textContent = t('admin.defaultPwdHint') + r.defaultPassword + t('admin.changeHint'); }
               }
               setTimeout(function () { route(); }, 800);
             } else {
@@ -1786,12 +1809,12 @@ function renderWrite() {
             }
           }
           else {
-            if (msg) msg.textContent = r.message || '密码错误';
+            if (msg) msg.textContent = r.message || t('admin.wrongPwd');
             try { inp.focus(); inp.select(); } catch (e2) {}
           }
         });
       } else if (await tryAdmin(inp.value)) { route(); }
-      else if (msg) msg.textContent = '密码错误';
+      else if (msg) msg.textContent = t('admin.wrongPwd');
     });
     // 回车即提交 + 自动聚焦密码框
     [['#setupPwd', '#btnSetup'], ['#gatePwd', '#btnGate']].forEach(function (pair) {
@@ -1832,18 +1855,18 @@ function renderWrite() {
         // 已加密文章：有解锁明文则填明文（保存时重新加密需原密码）；无则只显示空（需先解锁）
         if (post.protected) {
           md.value = _unlocked[post.id] || '';
-          if (!_unlocked[post.id]) md.placeholder = '这是一篇加密文章，请先在详情页解锁后编辑';
+          if (!_unlocked[post.id]) md.placeholder = t('editor.encryptedKeep');
         } else if (_cloudOn()) {
           // 云端模式：始终以云端最新正文为准（本地静态旧正文不算数），先占位再由 loadEditContent 拉取覆盖
           md.value = '';
-          md.placeholder = '正在从云端加载正文…';
+          md.placeholder = t('editor.loadingCloud');
         } else {
           md.value = post.content || '';
         }
       }
-      var st = document.querySelector('#saveStatus'); if (st) st.textContent = '正在编辑：' + (post.title || '');
+      var st = document.querySelector('#saveStatus'); if (st) st.textContent = t('editor.editingStatus') + (post.title || '');
       // also update page title for tests
-      var hTitle = document.querySelector('#writeTitleHint'); if (hTitle) hTitle.textContent = '正在编辑：' + (post.title || '');
+      var hTitle = document.querySelector('#writeTitleHint'); if (hTitle) hTitle.textContent = t('editor.editingStatus') + (post.title || '');
       updatePreview();
       loadEditContent(post, editId);
     }
@@ -1888,7 +1911,7 @@ function updatePreview() {
   if (!md || !pv) return;
   pv.innerHTML = renderMarkdown(md.value || '');
   var wc = document.querySelector('#wordCount');
-  if (wc) wc.textContent = stripMd(md.value || '').length + ' 字';
+  if (wc) wc.textContent = stripMd(md.value || '').length + ' ' + t('editor.wordUnit');
   autoGrowMd();
 }
 
@@ -1897,7 +1920,7 @@ function updatePreview() {
 function loadEditContent(post, editId) {
   if (!post || !_cloudOn() || post.protected) return;
   var st = document.querySelector('#saveStatus');
-  if (st) st.textContent = '正在加载正文…';
+  if (st) st.textContent = t('editor.loadingCloud');
   apiFetch('api/posts/' + encodeURIComponent(editId))
     .then(function (data) {
       var full = (data && data.post) || null;
@@ -1908,14 +1931,14 @@ function loadEditContent(post, editId) {
       var md = document.querySelector('#mdInput');
       if (md) { md.value = post.content || ''; md.placeholder = ''; }
       updatePreview();
-      if (st) st.textContent = '正在编辑：' + (post.title || '');
+      if (st) st.textContent = t('editor.editingStatus') + (post.title || '');
     })
     .catch(function () {
       // 拉取失败：回退到本地静态内容（如有），避免编辑器空白
       var md = document.querySelector('#mdInput');
       if (md && !md.value) { md.value = post.content || ''; md.placeholder = ''; }
       updatePreview();
-      if (st) st.textContent = '正文加载失败，已显示本地内容（请检查网络）';
+      if (st) st.textContent = t('editor.loadFailLocal');
     });
 }
 
@@ -1925,7 +1948,7 @@ function bindWriteEvents() {
     updatePreview();
     autoGrowMd();
     var st = document.querySelector('#saveStatus');
-    if (st) st.textContent = '未保存';
+    if (st) st.textContent = t('editor.unsaved');
   });
 
   // 加密开关 → 密码框显隐
@@ -1954,7 +1977,7 @@ function bindWriteEvents() {
       var selStart = ta.selectionStart || 0;
       var selEnd = ta.selectionEnd || 0;
       var val = ta.value;
-      var selected = val.slice(selStart, selEnd) || '文本';
+      var selected = val.slice(selStart, selEnd) || t('editor.textBtn');
       var insert = '';
       var offset = 0;
       switch (cmd) {
@@ -1977,7 +2000,7 @@ function bindWriteEvents() {
       ta.setSelectionRange(pos, pos + selected.length);
       updatePreview();
       var st = document.querySelector('#saveStatus');
-      if (st) st.textContent = '未保存';
+      if (st) st.textContent = t('editor.unsaved');
     });
   });
 
@@ -1989,25 +2012,25 @@ function bindWriteEvents() {
 
   var btnExport = document.querySelector('#btnExport');
   if (btnExport) btnExport.addEventListener('click', function () {
-    saveFileFriendly('posts.js', buildPostsJs(), '已导出 posts.js', '已下载 posts.js');
+    saveFileFriendly('posts.js', buildPostsJs(), t('export.exported') + ' posts.js', t('export.downloaded') + ' posts.js');
   });
 
   var btnRss = document.querySelector('#btnRss');
   if (btnRss) btnRss.addEventListener('click', function () {
-    saveFileFriendly('feed.xml', buildFeedXmlClient(getStaticPosts(), 20), '已导出 feed.xml', '已下载 feed.xml');
+    saveFileFriendly('feed.xml', buildFeedXmlClient(getStaticPosts(), 20), t('export.exported') + ' feed.xml', t('export.downloaded') + ' feed.xml');
   });
 
   var btnSitemap = document.querySelector('#btnSitemap');
   if (btnSitemap) btnSitemap.addEventListener('click', function () {
-    saveFileFriendly('sitemap.xml', buildSitemapClient(), '已导出 sitemap.xml', '已下载 sitemap.xml');
+    saveFileFriendly('sitemap.xml', buildSitemapClient(), t('export.exported') + ' sitemap.xml', t('export.downloaded') + ' sitemap.xml');
   });
 
   // 一键导出全部：posts.js + feed.xml + sitemap.xml 三件套一次导出（静态发布只需覆盖这三个文件）
   var btnExportAll = document.querySelector('#btnExportAll');
   if (btnExportAll) btnExportAll.addEventListener('click', function () {
-    saveFileFriendly('posts.js', buildPostsJs(), '已导出 posts.js', '已下载 posts.js');
-    saveFileFriendly('feed.xml', buildFeedXmlClient(getStaticPosts(), 20), '已导出 feed.xml', '已下载 feed.xml');
-    saveFileFriendly('sitemap.xml', buildSitemapClient(), '已导出 sitemap.xml', '已下载 sitemap.xml');
+    saveFileFriendly('posts.js', buildPostsJs(), t('export.exported') + ' posts.js', t('export.downloaded') + ' posts.js');
+    saveFileFriendly('feed.xml', buildFeedXmlClient(getStaticPosts(), 20), t('export.exported') + ' feed.xml', t('export.downloaded') + ' feed.xml');
+    saveFileFriendly('sitemap.xml', buildSitemapClient(), t('export.exported') + ' sitemap.xml', t('export.downloaded') + ' sitemap.xml');
   });
 
   // 退出登录：清除本地会话（云端同时撤销服务端 token），回到登录门
@@ -2019,7 +2042,7 @@ function bindWriteEvents() {
 
   var btnClearData = document.querySelector('#btnClearData');
   if (btnClearData) btnClearData.addEventListener('click', function () {
-    if (!confirm('确定要清空当前编辑内容吗？（不会影响已保存的文章和草稿）')) return;
+    if (!confirm(t('editor.clearConfirm'))) return;
     // 仅清空编辑器表单，保留登录态和所有存储数据
     var title = document.querySelector('#titleInput');
     var date = document.querySelector('#dateInput');
@@ -2035,8 +2058,8 @@ function bindWriteEvents() {
     if (excerpt) excerpt.value = '';
     if (md) { md.value = ''; md.dispatchEvent(new Event('input')); }
     if (preview) preview.innerHTML = '';
-    if (wordCount) wordCount.textContent = '0 字';
-    if (hint) hint.textContent = '新文章';
+    if (wordCount) wordCount.textContent = '0 ' + t('editor.wordUnit');
+    if (hint) hint.textContent = t('editor.newPost');
     // 清除当前编辑 id（如有），重置为新文章状态
     localStorage.removeItem('qingyu.edit.id');
   });
@@ -2116,7 +2139,7 @@ function renderAdmin() {
   // --- 绑定编辑器事件（与 renderWrite 保持一致） ---
   var btnClearData = document.querySelector('#btnClearData');
   if (btnClearData) btnClearData.addEventListener('click', function () {
-    if (!confirm('确定要清空当前编辑内容吗？（不会影响已保存的文章和草稿）')) return;
+    if (!confirm(t('editor.clearConfirm'))) return;
     var title = document.querySelector('#titleInput');
     var date = document.querySelector('#dateInput');
     var tags = document.querySelector('#tagInput');
@@ -2131,8 +2154,8 @@ function renderAdmin() {
     if (excerpt) excerpt.value = '';
     if (md) { md.value = ''; md.dispatchEvent(new Event('input')); }
     if (preview) preview.innerHTML = '';
-    if (wordCount) wordCount.textContent = '0 字';
-    if (hint) hint.textContent = '新文章';
+    if (wordCount) wordCount.textContent = '0 ' + t('editor.wordUnit');
+    if (hint) hint.textContent = t('editor.newPost');
     localStorage.removeItem('qingyu.edit.id');
   });
 
@@ -2184,25 +2207,25 @@ function renderAdmin() {
 
   var btnExport = document.querySelector('#btnExport');
   if (btnExport) btnExport.addEventListener('click', function () {
-    saveFileFriendly('posts.js', buildPostsJs(), '已导出 posts.js', '已下载 posts.js');
+    saveFileFriendly('posts.js', buildPostsJs(), t('export.exported') + ' posts.js', t('export.downloaded') + ' posts.js');
   });
 
   var btnRss = document.querySelector('#btnRss');
   if (btnRss) btnRss.addEventListener('click', function () {
-    saveFileFriendly('feed.xml', buildFeedXmlClient(getStaticPosts(), 20), '已导出 feed.xml', '已下载 feed.xml');
+    saveFileFriendly('feed.xml', buildFeedXmlClient(getStaticPosts(), 20), t('export.exported') + ' feed.xml', t('export.downloaded') + ' feed.xml');
   });
 
   var btnSitemap = document.querySelector('#btnSitemap');
   if (btnSitemap) btnSitemap.addEventListener('click', function () {
-    saveFileFriendly('sitemap.xml', buildSitemapClient(), '已导出 sitemap.xml', '已下载 sitemap.xml');
+    saveFileFriendly('sitemap.xml', buildSitemapClient(), t('export.exported') + ' sitemap.xml', t('export.downloaded') + ' sitemap.xml');
   });
 
   // 一键导出全部：posts.js + feed.xml + sitemap.xml 三件套一次导出（静态发布只需覆盖这三个文件）
   var btnExportAll = document.querySelector('#btnExportAll');
   if (btnExportAll) btnExportAll.addEventListener('click', function () {
-    saveFileFriendly('posts.js', buildPostsJs(), '已导出 posts.js', '已下载 posts.js');
-    saveFileFriendly('feed.xml', buildFeedXmlClient(getStaticPosts(), 20), '已导出 feed.xml', '已下载 feed.xml');
-    saveFileFriendly('sitemap.xml', buildSitemapClient(), '已导出 sitemap.xml', '已下载 sitemap.xml');
+    saveFileFriendly('posts.js', buildPostsJs(), t('export.exported') + ' posts.js', t('export.downloaded') + ' posts.js');
+    saveFileFriendly('feed.xml', buildFeedXmlClient(getStaticPosts(), 20), t('export.exported') + ' feed.xml', t('export.downloaded') + ' feed.xml');
+    saveFileFriendly('sitemap.xml', buildSitemapClient(), t('export.exported') + ' sitemap.xml', t('export.downloaded') + ' sitemap.xml');
   });
 
   var btnLogout = document.querySelector('#btnLogout');
@@ -2234,8 +2257,8 @@ function renderAdmin() {
       var btn = e.target.closest('.btn-danger[data-post-id]');
       if (!btn) return;
       var id = btn.dataset.postId;
-      var title = btn.dataset.postTitle || '未命名';
-      if (!confirm('确定要删除文章「' + title + '」吗？此操作不可恢复！')) return;
+      var title = btn.dataset.postTitle || t('admin.postList.noTitle');
+      if (!confirm(t('admin.postList.deleteConfirm', { title: title }))) return;
       if (_cloudOn()) {
         // 删除走 /api/posts/:id 的 DELETE（携带会话 token；旧代码误用 /api/admin/posts/:id 返回 404）
         apiFetch('api/posts/' + encodeURIComponent(id), { method: 'DELETE', body: '{}' }).then(function (res) {
@@ -2246,13 +2269,13 @@ function renderAdmin() {
             if (Array.isArray(arr)) {
               window.BLOG_POSTS = arr.filter(function (p) { return p && p.id !== id; });
             }
-            alert('删除成功');
+            alert(t('admin.postList.deletedOk'));
             route();
           } else {
-            alert('删除失败，请重试');
+            alert(t('admin.postList.deleteFailRetry'));
           }
         }).catch(function () {
-          alert('删除失败，请检查网络');
+          alert(t('admin.postList.deleteFailNetwork'));
         });
       } else {
         var posts = getStaticPosts();
@@ -2267,10 +2290,10 @@ function renderAdmin() {
           a.click();
           // 延迟释放 URL：立即 revoke 会让部分浏览器（尤其 file://）取消下载，导致「删了却导出不了」
           setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (e) {} }, 3000);
-          alert('删除成功：请用下载的 posts.js 覆盖站点文件，刷新后删除生效');
+          alert(t('admin.postList.deleteSuccessLocal'));
           route();
         } else {
-          alert('未找到该文章（可能已删除或不同步）');
+          alert(t('toast.notFound'));
         }
       }
     });
@@ -2294,17 +2317,17 @@ function renderAdmin() {
       if (md) {
         if (post.protected) {
           md.value = _unlocked[post.id] || '';
-          if (!_unlocked[post.id]) md.placeholder = '这是一篇加密文章，请先在详情页解锁后编辑';
+          if (!_unlocked[post.id]) md.placeholder = t('editor.encryptedKeep');
         } else if (_cloudOn()) {
           // 云端模式：始终以云端最新正文为准，先占位再由 loadEditContent 拉取覆盖
           md.value = '';
-          md.placeholder = '正在从云端加载正文…';
+          md.placeholder = t('editor.loadingCloud');
         } else {
           md.value = post.content || '';
         }
       }
-      var st = document.querySelector('#saveStatus'); if (st) st.textContent = '正在编辑：' + (post.title || '');
-      var hTitle = document.querySelector('#writeTitleHint'); if (hTitle) hTitle.textContent = '正在编辑：' + (post.title || '');
+      var st = document.querySelector('#saveStatus'); if (st) st.textContent = t('editor.editingStatus') + (post.title || '');
+      var hTitle = document.querySelector('#writeTitleHint'); if (hTitle) hTitle.textContent = t('editor.editingStatus') + (post.title || '');
       updatePreview();
       loadEditContent(post, editId);
     }
@@ -2346,7 +2369,7 @@ function collectEditor() {
   var _editId = currentEditId();
   var _cur = _editId ? getStaticPosts().find(function (p) { return p.id === _editId; }) : null;
   return {
-    title: title.value || '未命名',
+    title: title.value || t('admin.postList.noTitle'),
     date: dv,
     tags: String((tags && tags.value) || '').split(/[,，]/).map(function (t) { return t.trim(); }).filter(Boolean),
     excerpt: (excerpt && excerpt.value) || '',
@@ -2376,7 +2399,7 @@ async function applyEncryption(d) {
       d.enc = d._origEnc;
       d.content = '';
     } else if (!d._origProtected) {
-      d._encErr = '勾选了加密但未填写文章访问密码';
+      d._encErr = t('editor.encryptNoPassword');
     }
   } else {
     // 取消加密：解除自身加密状态（明文已在 d.content）
@@ -2399,7 +2422,7 @@ function saveDraft() {
   var id = editId || (d.title ? slugify(d.title) : 'draft');
   saveDraftToStore(id, d);
   var st = document.querySelector('#saveStatus');
-  if (st) st.textContent = '已保存草稿';
+  if (st) st.textContent = t('editor.savedDraft');
 }
 
 async function saveStaticArticle() {
@@ -2407,7 +2430,7 @@ async function saveStaticArticle() {
   if (!d) return;
   if (d._encErr) {
     var st = document.querySelector('#saveStatus');
-    if (st) st.textContent = '保存失败：' + d._encErr;
+    if (st) st.textContent = t('editor.saveFail') + '：' + d._encErr;
     delete d._encErr;
     return;
   }
@@ -2416,7 +2439,7 @@ async function saveStaticArticle() {
   d.id = id;
   saveDraftToStore('__new', d);
   var st2 = document.querySelector('#saveStatus');
-  if (st2) st2.textContent = '已保存，点击「导出 posts.js」发布';
+  if (st2) st2.textContent = t('editor.savedLocal');
 }
 
 /** 云端发布（新建 POST / 编辑 PUT），成功后同步本地列表（首页无需刷新即可见）。
@@ -2426,7 +2449,7 @@ async function cloudPublish() {
   if (!d) return;
   if (d._encErr) {
     var st = document.querySelector('#saveStatus');
-    if (st) st.textContent = '发布失败：' + d._encErr;
+    if (st) st.textContent = t('editor.saveFail') + '：' + d._encErr;
     delete d._encErr;
     return;
   }
@@ -2435,7 +2458,7 @@ async function cloudPublish() {
   var id = editId || (d.title ? slugify(d.title) : 'draft');
   d.id = id;
   var st = document.querySelector('#saveStatus');
-  if (st) st.textContent = '发布中…';
+  if (st) st.textContent = t('editor.publishing');
   try {
     // 新建用 POST，编辑用 PUT（幂等）
     var method = editId ? 'PUT' : 'POST';
@@ -2450,18 +2473,18 @@ async function cloudPublish() {
     var idx = arr.findIndex(function (p) { return p && p.id === d.id; });
     if (idx >= 0) arr[idx] = d; else arr.push(d);
     window.BLOG_POSTS = arr;
-    if (st) st.innerHTML = svgIcon('check', 14) + ' 已发布到云端';
+    if (st) st.innerHTML = svgIcon('check', 14) + ' ' + t('editor.publishedCloud');
   } catch (e) {
-    var em = (e && e.message) || '未知错误';
+    var em = (e && e.message) || t('editor.unknownError');
     // 会话过期/无效：清掉本地旧 token，跳回登录页重新拿新令牌
     if (/401/.test(em)) {
       _setSessionToken('');
       _setAdminSession(false);
-      if (st) st.textContent = '登录已过期，正在前往重新登录…';
+      if (st) st.textContent = t('editor.loginExpired');
       setTimeout(function () { route(); }, 900);
       return;
     }
-    if (st) st.textContent = '发布失败：' + em;
+    if (st) st.textContent = t('editor.saveFail') + '：' + em;
   }
 }
 
@@ -2792,7 +2815,7 @@ function renderSearchPanel(query) {
   if (!q) { panel.innerHTML = ''; panel.classList.remove('open'); return; }
   var hits = globalSearch(q, 20);
   if (!hits.length) {
-    panel.innerHTML = '<div class="search-empty">没有匹配的文章</div>';
+    panel.innerHTML = '<div class="search-empty">' + t('search.noMatch') + '</div>';
   } else {
     panel.innerHTML = hits.map(function (p) {
       var snip = searchSnippet(p, q);
@@ -2813,6 +2836,13 @@ window.__bootPromise = (async function () {
   var cfg = getConfig();
   applyTheme(getTheme());
   bindNavClicks();
+
+  // 确保 i18n 翻译数据在首次渲染前加载完成
+  if (window.__i18n && window.__i18n.loadLocale && !window.__i18n.isReady()) {
+    await window.__i18n.loadLocale(window.__i18n.getLocale());
+    _i18nReady = true;
+  }
+
   route();
   window.addEventListener('hashchange', function () { route(); });
   window.addEventListener('popstate', function () { route(); });
