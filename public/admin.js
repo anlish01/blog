@@ -260,25 +260,29 @@
   }
 
   /* ----------------------- 侧边栏菜单 ----------------------- */
-  var NAV = [
-    { group: t('admin.sidebar.overview'), items: [{ key: 'dashboard', label: t('admin.sidebar.dashboard'), icon: 'sitemap', href: '/admin' }] },
-    { group: t('admin.sidebar.postManage'), items: [
-      { key: 'posts', label: t('admin.sidebar.allPosts'), icon: 'list', href: '/admin/posts' },
-      { key: 'write', label: t('admin.sidebar.writeNew'), icon: 'pen', href: '/admin/posts/new' },
-      { key: 'categories', label: t('admin.sidebar.catManage'), icon: 'tag', href: '/admin/categories' },
-      { key: 'tags', label: t('admin.sidebar.tagManage'), icon: 'tag', href: '/admin/tags' }
-    ] },
-    { group: t('admin.sidebar.commentManage'), items: [
-      { key: 'comments', label: t('admin.sidebar.allComments'), icon: 'quote', href: '/admin/comments' },
-      { key: 'comments-pending', label: t('admin.sidebar.pendingComments'), icon: 'lock', href: '/admin/comments/pending', badge: 'pending' }
-    ] },
-    { group: t('admin.sidebar.contentSettings'), items: [
-      { key: 'media', label: t('admin.sidebar.media'), icon: 'image', href: '/admin/media' },
-      { key: 'settings', label: t('admin.sidebar.settings'), icon: 'sitemap', href: '/admin/settings' }
-    ] }
-  ];
+  /* NAV 改为函数，每次调用时重新执行 t()，语言切换后自动更新 */
+  function getNav() {
+    return [
+      { group: t('admin.sidebar.overview'), items: [{ key: 'dashboard', label: t('admin.sidebar.dashboard'), icon: 'sitemap', href: '/admin' }] },
+      { group: t('admin.sidebar.postManage'), items: [
+        { key: 'posts', label: t('admin.sidebar.allPosts'), icon: 'list', href: '/admin/posts' },
+        { key: 'write', label: t('admin.sidebar.writeNew'), icon: 'pen', href: '/admin/posts/new' },
+        { key: 'categories', label: t('admin.sidebar.catManage'), icon: 'tag', href: '/admin/categories' },
+        { key: 'tags', label: t('admin.sidebar.tagManage'), icon: 'tag', href: '/admin/tags' }
+      ] },
+      { group: t('admin.sidebar.commentManage'), items: [
+        { key: 'comments', label: t('admin.sidebar.allComments'), icon: 'quote', href: '/admin/comments' },
+        { key: 'comments-pending', label: t('admin.sidebar.pendingComments'), icon: 'lock', href: '/admin/comments/pending', badge: 'pending' }
+      ] },
+      { group: t('admin.sidebar.contentSettings'), items: [
+        { key: 'media', label: t('admin.sidebar.media'), icon: 'image', href: '/admin/media' },
+        { key: 'settings', label: t('admin.sidebar.settings'), icon: 'sitemap', href: '/admin/settings' }
+      ] }
+    ];
+  }
 
   function renderSider(activeKey, pendingCount) {
+    var NAV = getNav();
     var groups = NAV.map(function (g) {
       var items = g.items.map(function (it) {
         var badge = (it.badge === 'pending' && pendingCount > 0) ? '<span class="ab-nav-count">' + pendingCount + '</span>' : '';
@@ -359,6 +363,7 @@
     return { key: 'dashboard', page: 'dashboard' };
   }
   function crumbsFor(route) {
+    var NAV = getNav();
     for (var i = 0; i < NAV.length; i++) {
       for (var j = 0; j < NAV[i].items.length; j++) {
         if (NAV[i].items[j].key === route.key) {
@@ -407,13 +412,16 @@
       a.addEventListener('click', function (e) { e.preventDefault(); go(a.getAttribute('data-link')); });
     });
 
-    // 语言切换
+    // 语言切换：加载新语言后重新挂载整个管理面板（无刷新）
     var langSwitch = root.querySelector('#adminLangSwitch');
     if (langSwitch && window.__i18n && window.__i18n.loadLocale) {
       langSwitch.value = (window.__i18n.getLocale && window.__i18n.getLocale()) || 'zh-CN';
       langSwitch.addEventListener('change', function () {
         var val = langSwitch.value;
-        window.__i18n.loadLocale(val).then(function () { location.reload(); });
+        var currentPath = (typeof window.currentRoute === 'function') ? window.currentRoute().path : '/admin';
+        window.__i18n.loadLocale(val).then(function () {
+          mount(root, currentPath);
+        });
       });
     }
 
