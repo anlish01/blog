@@ -956,7 +956,7 @@ function app() { return document.querySelector('#app'); }
     + '<button class="icon-btn sidebar-theme" id="themeToggleSide" aria-label="' + t('theme.toggle') + '" title="' + t('theme.toggle') + '">' + themeIcon() + '</button>'
     + '<button class="sidebar-close" id="sidebarClose" aria-label="' + t('search.close') + '">✕</button></div>'
     + '<nav class="sidebar-nav">' + sidebarLinks + '</nav>'
-    + '<div class="sidebar-footer"><select id="langSwitchSide" class="lang-switch" onchange="window.__i18n.loadLocale(this.value).then(function(){ route(); })"></select></div>'
+    + '<div class="sidebar-footer"><select id="langSwitchSide" class="lang-switch"></select></div>'
     + '</aside>';
 
   var searchForm = '<form class="topbar-search" id="topbarSearch" role="search" onsubmit="return false">'
@@ -2467,6 +2467,8 @@ var _i18nReady = false;
 async function route() {
   _searchOpen = false;   // 进入新页面时收起顶部搜索
   _featuredCache = null; // 清除精选缓存，确保每页重新计算
+  // 重置 body overflow，防止侧边栏打开时切换语言导致页面无法滚动
+  document.body.style.overflow = '';
   // 首次路由时加载语言文件（同步读 localStorage，异步加载 JSON）
   if (!_i18nReady && window.__i18n && window.__i18n.loadLocale) {
     await window.__i18n.loadLocale(window.__i18n.getLocale());
