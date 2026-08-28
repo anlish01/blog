@@ -62,7 +62,7 @@ window.BLOG_CONFIG = {
    * 支持二级下拉：children 数组；url 可填站内真实路径（/archive、/posts/x/ 等）
    * 或外链（https://…）；兼容旧写法 #/about。 */
   nav: [
-    // { text: '首页', url: '/' },
+    // { text: '测试', url: '/' },
     // { text: '更多', url: '/about', children: [
     //   { text: '写作', url: '/write' },
     //   { text: '示例外链', url: 'https://example.com' }
