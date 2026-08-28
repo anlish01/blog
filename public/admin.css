@@ -262,6 +262,8 @@
 .ab-table tbody tr:last-child td { border-bottom: none; }
 .ab-table tbody tr:hover { background: var(--ab-hover); }
 .ab-table .col-actions { text-align: right; white-space: nowrap; }
+/* 评论列表：标注“回复了某人”的回复层级关系 */
+.ab-cmt-replyto { display: inline-block; margin-top: 4px; font-size: 12px; color: var(--ab-primary); background: var(--ab-primary-weak); padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
 /* 文章列表：分类/标签/日期/状态列不换行，超长截断 */
 .ab-table .ab-td-cat,
 .ab-table .ab-td-tags,

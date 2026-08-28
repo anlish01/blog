@@ -955,14 +955,24 @@
     var kw = (content.querySelector('#abCmtKw').value || '').trim().toLowerCase();
     if (kw) list = list.filter(function (c) { return ((c.author || '') + ' ' + (c.content || '')).toLowerCase().indexOf(kw) >= 0; });
     if (!list.length) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:34px" class="ab-muted">' + t('admin.dashboard.noComments') + '</td></tr>'; return; }
+    // 建立 id → 评论 映射，以便展示“回复了某人”的父子关系
+    var cmtById = {};
+    list.forEach(function (c) { cmtById[c.id] = c; });
     body.innerHTML = list.map(function (c) {
       var st = c.status || 'approved';
+      // 二级及以上回复：标注其父评论，便于后台追踪回复链
+      var replyTag = '';
+      if (c.parent_id) {
+        var parent = cmtById[c.parent_id];
+        if (parent) replyTag = ' <span class="ab-cmt-replyto">' + esc(t('comment.replyTo', { author: parent.author || t('admin.comments.anonymous') })) + '</span>';
+        else replyTag = ' <span class="ab-cmt-replyto">#' + esc(c.parent_id) + '</span>';
+      }
       var actions = '';
       if (st === 'pending') actions += '<button class="ab-btn sm primary" data-approve="' + enc(c.id) + '">' + icon('check', 13) + ' ' + t('admin.comments.approve') + '</button> ';
       actions += '<button class="ab-btn sm danger" data-delcmt="' + enc(c.id) + '">' + icon('trash', 13) + ' ' + t('admin.comments.delete') + '</button>';
       return '<tr>' +
         '<td>' + esc(c.author || t('admin.comments.anonymous')) + '</td>' +
-        '<td style="max-width:320px">' + esc((c.content || '').slice(0, 120)) + '</td>' +
+        '<td style="max-width:320px">' + esc((c.content || '').slice(0, 120)) + replyTag + '</td>' +
         '<td>' + esc(c.post_title || c.post_id || '—') + '</td>' +
         '<td>' + esc(fmtDate(c.date)) + '</td>' +
         '<td><span class="ab-status ' + st + '">' + (st === 'pending' ? t('admin.comments.pendingStatus') : t('admin.comments.approved')) + '</span></td>' +

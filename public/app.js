@@ -1174,6 +1174,54 @@ function clearPostCache(id) {
   try { localStorage.removeItem(postCacheKey(id)); } catch (e) {}
 }
 
+/**
+ * 将评论列表渲染为「评论树」（顶层 + 多级嵌套回复）。
+ * 统一供首次加载与发表/删除后的刷新使用，保证嵌套结构、缩进与“回复”按钮一致。
+ * 注意：若父评论被删除或不在列表内，其子孙评论会归并到顶层，避免丢失。
+ */
+function renderCommentTree(list, canDel) {
+  if (!Array.isArray(list) || !list.length) return '<li class="comment-empty">' + t('comment.noComments') + '</li>';
+  var roots = [];
+  var childMap = {};
+  var byId = {};
+  list.forEach(function (c) { byId[c.id] = c; childMap[c.id] = []; });
+  list.forEach(function (c) {
+    // 只有父评论存在且在同一列表内才作为子评论挂靠，否则归到顶层
+    if (c.parent_id && byId[c.parent_id]) childMap[c.parent_id].push(c);
+    else roots.push(c);
+  });
+
+  // 递归渲染单个评论及其子评论
+  function renderOne(c, depth) {
+    var replies = childMap[c.id] || [];
+    var replyBtn = (depth < 3)
+      ? '<button class="comment-reply-btn" data-reply-id="' + esc(c.id) + '" data-reply-author="' + esc(c.author) + '">' + t('comment.reply') + '</button>'
+      : '';
+    var delBtn = canDel
+      ? '<button class="comment-del" data-cid="' + esc(c.id) + '">' + t('comment.delete') + '</button>'
+      : '';
+    // 在内容下方标注“回复了某人”（若该评论是回复）
+    var replyToLabel = '';
+    if (c.parent_id && byId[c.parent_id]) {
+      replyToLabel = '<div class="comment-reply-to">' + t('comment.replyTo', { author: byId[c.parent_id].author }) + '</div>';
+    }
+    var childrenHtml = replies.length
+      ? '<ul class="comment-children">' + replies.map(function (r) { return renderOne(r, depth + 1); }).join('') + '</ul>'
+      : '';
+    return '<li class="comment" data-id="' + esc(c.id) + '"><div class="comment-head">'
+      + '<span class="comment-author">' + esc(c.author) + '</span>'
+      + '<span class="comment-date">' + esc(c.date || '') + '</span>'
+      + replyBtn
+      + delBtn
+      + '</div>'
+      + replyToLabel
+      + '<div class="comment-content">' + esc(c.content) + '</div>'
+      + childrenHtml + '</li>';
+  }
+
+  return roots.map(function (c) { return renderOne(c, 0); }).join('');
+}
+
 async function renderPost(id) {
   var cur = currentRoute();
   var html = renderNav(cur.path);
@@ -1312,40 +1360,22 @@ async function renderPost(id) {
     navigator.clipboard && navigator.clipboard.writeText(url) && (copyBtn.textContent = t('post.copied'));
   });
 
-  // load comments
-  loadComments(post.id).then(function (list) {
+  // load comments（构建评论树：顶层 + 嵌套回复统一渲染）
+  function refreshComments(list) {
     var ul = document.querySelector('#commentList');
     var cnt = document.querySelector('#commentCount');
-    if (cnt) cnt.textContent = String(list.length);
     if (!ul) return;
+    if (cnt) cnt.textContent = String(list ? list.length : 0);
     var canDel = !_cloudOn() || adminOk();
-    if (!list.length) { ul.innerHTML = '<li class="comment-empty">' + t('comment.noComments') + '</li>'; return; }
-    // 构建评论树
-    var roots = [], childMap = {};
-    list.forEach(function (c) { childMap[c.id] = []; });
-    list.forEach(function (c) {
-      if (c.parent_id && childMap[c.parent_id]) { childMap[c.parent_id].push(c); }
-      else if (c.parent_id) { roots.push(c); }
-      else { roots.push(c); }
-    });
-    function renderComment(c, depth) {
-      var replies = childMap[c.id] || [];
-      var replyBtn = '<button class="comment-reply-btn" data-reply-id="' + esc(c.id) + '" data-reply-author="' + esc(c.author) + '">' + t('comment.reply') + '</button>';
-      var delBtn = canDel ? '<button class="comment-del" data-cid="' + esc(c.id) + '">' + t('comment.delete') + '</button>' : '';
-      var childrenHtml = replies.length ? '<ul class="comment-children">' + replies.map(function (r) { return renderComment(r, depth + 1); }).join('') + '</ul>' : '';
-      return '<li class="comment" data-id="' + esc(c.id) + '"><div class="comment-head">'
-        + '<span class="comment-author">' + esc(c.author) + '</span>'
-        + '<span class="comment-date">' + esc(c.date || '') + '</span>'
-        + (depth < 3 ? replyBtn : '')
-        + delBtn
-        + '</div><div class="comment-content">' + esc(c.content) + '</div>' + childrenHtml + '</li>';
-    }
-    ul.innerHTML = roots.map(function (c) { return renderComment(c, 0); }).join('');
+    if (!list || !list.length) { ul.innerHTML = '<li class="comment-empty">' + t('comment.noComments') + '</li>'; return; }
+    ul.innerHTML = renderCommentTree(list, canDel);
     // 删除按钮
     ul.querySelectorAll('.comment-del').forEach(function (b) {
-      b.addEventListener('click', function () { deleteComment(post.id, b.getAttribute('data-cid')).then(renderCommentsList); });
+      b.addEventListener('click', function () {
+        deleteComment(post.id, b.getAttribute('data-cid')).then(refreshComments);
+      });
     });
-    // 回复按钮
+    // 回复按钮（含二级/三级回复，均可继续回复）
     ul.querySelectorAll('.comment-reply-btn').forEach(function (b) {
       b.addEventListener('click', function () {
         var indicator = document.querySelector('#replyIndicator');
@@ -1359,7 +1389,8 @@ async function renderPost(id) {
         }
       });
     });
-  });
+  }
+  loadComments(post.id).then(refreshComments);
 
   // 取消回复
   var replyCancel = document.querySelector('#replyCancel');
@@ -1383,26 +1414,11 @@ async function renderPost(id) {
       if (st) st.textContent = t('comment.posted');
       if (c) c.value = '';
       if (indicator) { indicator.style.display = 'none'; indicator.removeAttribute('data-reply-id'); }
-      loadComments(post.id).then(renderCommentsList);
+      loadComments(post.id).then(refreshComments);
     } finally {
       submit.disabled = false;
     }
   });
-
-  function renderCommentsList(list) {
-    var ul = document.querySelector('#commentList');
-    var cnt = document.querySelector('#commentCount');
-    if (cnt) cnt.textContent = String(list.length);
-    if (!ul) return;
-    var canDel = !_cloudOn() || adminOk();
-    if (!list.length) { ul.innerHTML = '<li class="comment-empty">' + t('comment.noComments') + '</li>'; return; }
-    ul.innerHTML = list.map(function (c) {
-      return '<li class="comment"><div class="comment-head"><span class="comment-author">' + esc(c.author) + '</span><span class="comment-date">' + esc(c.date || '') + '</span>' + (canDel ? '<button class="comment-del" data-cid="' + esc(c.id) + '">' + t('comment.delete') + '</button>' : '') + '</div><div class="comment-content">' + esc(c.content) + '</div></li>';
-    }).join('');
-    ul.querySelectorAll('.comment-del').forEach(function (b) {
-      b.addEventListener('click', function () { deleteComment(post.id, b.getAttribute('data-cid')).then(renderCommentsList); });
-    });
-  }
 }
 
 function renderArchive() {

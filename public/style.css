@@ -1384,6 +1384,8 @@ kbd {
 }
 .comment-del:hover { opacity: 1; color: var(--danger, #c0392b); background: var(--bg-soft); }
 .comment-content { margin: 4px 0 0; font-size: 14.5px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+/* “回复了某人”小标签：标明该评论是对谁的回复，直观呈现回复层级 */
+.comment-reply-to { display: inline-block; margin: 6px 0 0; font-size: 12px; color: var(--accent); background: var(--accent-soft); padding: 1px 8px; border-radius: 999px; line-height: 1.5; }
 .comment-empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
 /* 评论回复 */
 .comment-children { list-style: none; margin: 8px 0 0; padding: 0 0 0 20px; }
@@ -1932,16 +1934,23 @@ kbd {
   .brand { font-size: 17px; letter-spacing: 0.3px; }
   .main-nav { gap: 0; }
   .main-nav .nav-link { padding: 6px 9px; font-size: 14px; }
-  /* 分类标签在手机上改为单行横向滑动，可滑出更多标签 */
+  /* 分类标签在手机上改为 4 列网格：每个手机厂商宽度自适应（相对宽度），一行固定 4 个 */
   .home-tags {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    align-items: stretch;
     padding: 10px 14px;
   }
-  .home-tags::-webkit-scrollbar { display: none; }
-  .home-tag { flex: 0 0 auto; }
+  .home-tags-label { grid-column: 1 / -1; margin-bottom: 2px; }
+  .home-tag {
+    justify-content: flex-start;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .home-tag-count { flex-shrink: 0; }
   .article-footer { justify-content: center; }
   .af-actions { margin-left: 0; width: 100%; justify-content: center; flex-wrap: wrap; }
   .like-bar { margin-top: 22px; }
