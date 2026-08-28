@@ -336,6 +336,7 @@
   "admin.settings.newMenu": "新菜单",
   "admin.settings.subMenu": "子菜单",
   "admin.settings.addMenuItem": "添加菜单项",
+  "admin.settings.resetDefault": "重置为默认导航",
 
   "admin.error.apiFetchUnavailable": "apiFetch 不可用",
   "admin.toast.exportNotSupported": "当前环境不支持导出",

@@ -336,6 +336,7 @@
   "admin.settings.newMenu": "새 메뉴",
   "admin.settings.subMenu": "서브메뉴",
   "admin.settings.addMenuItem": "메뉴 항목 추가",
+  "admin.settings.resetDefault": "기본 내비로 초기화",
 
   "admin.error.apiFetchUnavailable": "apiFetch를 사용할 수 없습니다",
   "admin.toast.exportNotSupported": "현재 환경에서는 내보내기가 지원되지 않습니다",

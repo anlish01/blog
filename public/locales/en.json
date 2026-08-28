@@ -336,6 +336,7 @@
   "admin.settings.newMenu": "New Menu",
   "admin.settings.subMenu": "Submenu",
   "admin.settings.addMenuItem": "Add menu item",
+  "admin.settings.resetDefault": "Reset to default nav",
 
   "admin.error.apiFetchUnavailable": "apiFetch unavailable",
   "admin.toast.exportNotSupported": "Export not supported in current environment",

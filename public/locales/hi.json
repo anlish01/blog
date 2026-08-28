@@ -336,6 +336,7 @@
   "admin.settings.newMenu": "नया मेन्यू",
   "admin.settings.subMenu": "सबमेन्यू",
   "admin.settings.addMenuItem": "मेन्यू आइटम जोड़ें",
+  "admin.settings.resetDefault": "डिफ़ॉल्ट नेव पर रीसेट करें",
 
   "admin.error.apiFetchUnavailable": "apiFetch उपलब्ध नहीं है",
   "admin.toast.exportNotSupported": "वर्तमान वातावरण में निर्यात समर्थित नहीं है",

@@ -336,6 +336,7 @@
   "admin.settings.newMenu": "新しいメニュー",
   "admin.settings.subMenu": "サブメニュー",
   "admin.settings.addMenuItem": "メニューアイテムを追加",
+  "admin.settings.resetDefault": "デフォルトナビに戻す",
 
   "admin.error.apiFetchUnavailable": "apiFetch が利用できません",
   "admin.toast.exportNotSupported": "現在の環境ではエクスポートがサポートされていません",

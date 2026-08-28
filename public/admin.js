@@ -1090,11 +1090,22 @@
     };
     settingsDraft.nav = parseNav(s.nav);
   }
-  /** 把导航字段解析为数组（兼容字符串 JSON / 对象 / 数组） */
+  /** 默认导航列表（与首页渲染兜底一致）：站点未自定义导航时作为基础项 */
+  function defaultNavItems() {
+    return [
+      { text: t('nav.home'), url: '/' },
+      { text: t('nav.tags'), url: '/tags' },
+      { text: t('nav.archive'), url: '/archive' },
+      { text: t('nav.about'), url: '/about' }
+    ];
+  }
+  /** 把导航字段解析为数组（兼容字符串 JSON / 对象 / 数组）；为空时回退默认导航，避免丢失默认项 */
   function parseNav(v) {
-    if (Array.isArray(v)) return v;
-    if (typeof v === 'string' && v.trim()) { try { var a = JSON.parse(v); return Array.isArray(a) ? a : (cfg().nav || []); } catch (e) { return (cfg().nav || []); } }
-    return (cfg().nav || []);
+    if (Array.isArray(v) && v.length) return v;
+    if (typeof v === 'string' && v.trim()) {
+      try { var a = JSON.parse(v); if (Array.isArray(a) && a.length) return a; } catch (e) {}
+    }
+    return defaultNavItems();
   }
   // 从当前 DOM 把可见 tab 的输入保存进草稿（tab 切换/保存前调用，保证不丢数据）
   function saveTabToDraft(content) {
@@ -1227,10 +1238,10 @@
   function renderNavVisual(content) {
     var wrap = content.querySelector('#abNavVisual');
     if (!wrap) return;
-    // 优先本地草稿，其次内存数组，最后默认导航
+    // 优先本地草稿，其次内存数组，最后默认导航（保证默认项不丢失，用户在其基础上增删）
     var saved = loadNavDraft();
     var items = saved ? saved : settingsDraft.nav;
-    if (!Array.isArray(items) || !items.length) items = [];
+    if (!Array.isArray(items) || !items.length) items = defaultNavItems();
     settingsDraft.nav = items;
 
     wrap.innerHTML = (items.length ? '<div class="ab-nav-list">' + items.map(function (it, i) {
@@ -1251,7 +1262,10 @@
       '</div>' + children;
     }).join('') + '</div>' : '<div class="ab-hint">' + t('admin.settings.navEmpty') + '</div>');
 
-    wrap.innerHTML += '<button class="ab-btn sm" id="abNavAddItem" style="margin-top:8px">' + icon('plus', 13) + ' ' + t('admin.settings.addMenuItem') + '</button>';
+    wrap.innerHTML += '<div class="ab-nav-actions" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button class="ab-btn sm" id="abNavAddItem">' + icon('plus', 13) + ' ' + t('admin.settings.addMenuItem') + '</button>' +
+      '<button class="ab-btn sm ghost" id="abNavReset">' + icon('refresh', 13) + ' ' + t('admin.settings.resetDefault') + '</button>' +
+    '</div>';
 
     // 把当前 items 写入本地临时草稿（跨模块刷新也不丢）
     function persist() { try { localStorage.setItem(navDraftKey(), JSON.stringify(settingsDraft.nav)); } catch (e) {} }
@@ -1262,6 +1276,14 @@
     // 添加菜单项
     wrap.querySelector('#abNavAddItem').addEventListener('click', function () {
       settingsDraft.nav.push({ text: t('admin.settings.newMenu'), url: '/' });
+      persist();
+      renderNavVisual(content);
+    });
+
+    // 重置为默认导航：清空自定义项，恢复首页/标签/归档/关于基础导航
+    var resetBtn = wrap.querySelector('#abNavReset');
+    if (resetBtn) resetBtn.addEventListener('click', function () {
+      settingsDraft.nav = defaultNavItems();
       persist();
       renderNavVisual(content);
     });
