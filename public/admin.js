@@ -1172,6 +1172,9 @@
       var pa = body.querySelector('#abProfileAvatar');
       var pv = body.querySelector('#abProfPrev');
       pa.addEventListener('input', function () { pv.src = pa.value; });
+      // 重新打开设置 / 切回该 tab 时，fillSettings 会在 renderSettingsTab 末尾填充输入框，
+      // 但不会触发 input 事件；此处延迟同步一次，保证头像预览立即显示已保存的头像
+      setTimeout(function () { if (pa && pv) pv.src = pa.value; }, 0);
     } else if (tab === 'nav') {
       body.innerHTML = '<div class="ab-card" style="max-width:720px">' +
         '<div class="ab-section-title">' + icon('list', 15) + ' ' + t('admin.settings.visualEditor') + '</div>' +

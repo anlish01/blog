@@ -353,8 +353,26 @@ function stampHeadingNumbers(headings) {
 }
 
 /* ---------- 配置与数据 ---------- */
+// 云端模式下从 D1 加载的运行时站点设置（由 bootstrap 拉取并合并进 getConfig）
+var _siteSettings = null;
+function getSiteSettings() { return _siteSettings; }
+function parseJsonSafe(v) {
+  if (v == null) return {};
+  if (typeof v === 'object') return v;
+  try { return JSON.parse(v); } catch (e) { return {}; }
+}
+
 function getConfig() {
   var cfg = (typeof window !== 'undefined' && window.BLOG_CONFIG) || {};
+  var s = _siteSettings;
+  var siteInfo = (s && s.site_info != null) ? parseJsonSafe(s.site_info) : {};
+  var prof = (s && s.profile != null) ? parseJsonSafe(s.profile) : {};
+  var navRaw = (s && s.nav != null) ? s.nav : null;
+  var nav = Array.isArray(navRaw) ? navRaw : (typeof navRaw === 'string' && navRaw.trim() ? parseJsonSafe(navRaw) : null);
+  // 站点信息覆盖静态页脚：版权署名 / 站点声明
+  var footer = cfg.footer || {};
+  if (siteInfo.copyright) footer = Object.assign({}, footer, { copyrightName: siteInfo.copyright });
+  if (siteInfo.footerText) footer = Object.assign({}, footer, { decl: siteInfo.footerText });
   return {
     mode: cfg.mode || 'auto',
     apiBase: cfg.apiBase || '',
@@ -362,8 +380,10 @@ function getConfig() {
     writeToken: cfg.writeToken || '',
     adminPwd: cfg.adminPwd || '',
     pageSize: (typeof cfg.pageSize === 'number' && cfg.pageSize >= 0) ? cfg.pageSize : 8,
-    nav: Array.isArray(cfg.nav) ? cfg.nav : [],
-    footer: cfg.footer || {},
+    nav: Array.isArray(nav) ? nav : (Array.isArray(cfg.nav) ? cfg.nav : []),
+    footer: footer,
+    site: siteInfo,        // 站点信息（头像/名称/简介）供关于页等使用
+    profile: prof,         // 个人信息（头像/昵称/简介/邮箱）供关于页等使用
     ads: cfg.ads || {}
   };
 }
@@ -1533,6 +1553,20 @@ function renderAbout() {
     html += '<div class="article about-intro">' + renderMarkdown(intro.content) + '</div>';
   } else {
     html += '<h3>Qingyu\'Blog</h3><p>' + t('about.desc') + '</p>';
+  }
+  // 作者资料卡：展示后台「博客设置 → 个人资料」中保存的头像/昵称/简介（来自 D1 设置）
+  var prof = cfg.profile || {};
+  var siteName = cfg.site && cfg.site.name ? cfg.site.name : '';
+  var profName = prof.name || siteName || '';
+  var profAvatar = prof.avatar || (cfg.site && cfg.site.avatar) || '';
+  var profBio = prof.bio || '';
+  if (profName || profAvatar || profBio) {
+    html += '<div class="about-author card">';
+    if (profAvatar) html += '<img class="about-author-avatar" src="' + esc(profAvatar) + '" alt="' + esc(profName || 'avatar') + '">';
+    html += '<div class="about-author-info">';
+    if (profName) html += '<div class="about-author-name">' + esc(profName) + '</div>';
+    if (profBio) html += '<div class="about-author-bio">' + esc(profBio) + '</div>';
+    html += '</div></div>';
   }
   html += '<hr class="about-sep">';
   html += '<div class="stat-grid"><div class="stat"><b>' + posts.length + '</b><span>' + t('about.posts') + '</span></div><div class="stat"><b>' + Object.keys(tags).length + '</b><span>' + t('about.tags') + '</span></div><div class="stat"><b>' + totalWords + '</b><span>' + t('about.totalWords') + '</span></div><div class="stat"><b>' + esc(latest || '-') + '</b><span>' + t('about.latestUpdate') + '</span></div></div>';
@@ -2992,5 +3026,16 @@ window.__bootPromise = (async function () {
         if (!wasCloud || data.posts.length) route();
       }
     } catch (e) { /* 超时/失败 → 保持静态模式 */ }
+
+    // 拉取站点设置（导航菜单 / 站点信息 / 个人资料），合并进运行时配置并重渲染一次。
+    // GET /api/settings 为公开接口；失败时保持静态配置，不影响站点运行。
+    try {
+      var sResp = await apiFetch('api/settings');
+      if (sResp && sResp.settings) {
+        var firstLoad = !_siteSettings;
+        _siteSettings = sResp.settings;
+        if (firstLoad) route();   // 首次加载设置后重渲染：导航/页脚/关于页生效
+      }
+    } catch (e) { /* 设置获取失败 → 使用静态配置 */ }
   }
 })();

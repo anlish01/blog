@@ -1139,6 +1139,16 @@ footer { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--
 .about-card p { margin: 0.5em 0; }
 /* 站点简介（Markdown 渲染）与统计信息之间的分隔 */
 .about-sep { border: none; border-top: 1px dashed var(--border); margin: 22px 0 18px; }
+/* 作者资料卡：展示后台「个人资料」设置（头像/昵称/简介） */
+.about-author { display: flex; align-items: center; gap: 16px; padding: 16px; margin: 16px 0; }
+.about-author-avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; background: var(--bg-soft); border: 1px solid var(--border); }
+.about-author-info { min-width: 0; }
+.about-author-name { font-size: 17px; font-weight: 700; letter-spacing: 0.3px; }
+.about-author-bio { margin-top: 4px; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+@media (max-width: 640px) {
+  .about-author { gap: 12px; padding: 14px; }
+  .about-author-avatar { width: 54px; height: 54px; }
+}
 
 /* ---------- 回到顶部 ---------- */
 /* ---------- 回到顶部（悬浮右下角，滚动后出现） ---------- */
