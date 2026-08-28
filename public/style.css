@@ -1662,6 +1662,105 @@ kbd {
 .gate-hint { margin: 14px auto 0; max-width: 340px; font-size: 12px; color: var(--muted); line-height: 1.7; }
 .gate-hint code { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-family: var(--mono); font-size: 11.5px; }
 
+/* ---------- 首次登录默认密码提示框（模态） ---------- */
+.flp-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: flpFade .2s ease;
+}
+@keyframes flpFade { from { opacity: 0; } to { opacity: 1; } }
+.flp-modal {
+  position: relative;
+  background: var(--card);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+  max-width: 420px;
+  width: 100%;
+  padding: 28px 26px 24px;
+  text-align: center;
+}
+.flp-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.flp-close:hover { color: var(--fg); }
+.flp-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.flp-title { margin: 0 0 6px; font-size: 20px; letter-spacing: 0.4px; }
+.flp-desc { margin: 0 0 16px; font-size: 14px; color: var(--muted); line-height: 1.7; }
+.flp-pwd-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.flp-pwd {
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--accent);
+  background: var(--bg-soft);
+  border: 1px dashed var(--accent);
+  border-radius: 8px;
+  padding: 8px 14px;
+  user-select: all;
+  word-break: break-all;
+}
+.flp-copy {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity .15s ease;
+}
+.flp-copy:hover { opacity: .88; }
+.flp-warn { margin: 0 0 18px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+.flp-actions { display: flex; gap: 10px; justify-content: center; }
+.flp-btn {
+  flex: 1;
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+.flp-btn.ghost { background: transparent; color: var(--muted); }
+.flp-btn.ghost:hover { color: var(--fg); border-color: var(--muted); }
+.flp-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.flp-btn.primary:hover { opacity: .9; }
+.flp-leave { opacity: 0; transition: opacity .2s ease; }
+
 /* ---------- 管理后台：两栏布局（左侧边栏 + 右内容区） ---------- */
 .admin-layout {
   display: grid;

@@ -200,11 +200,9 @@
           var r = await window.cloudLogin(pwd);
           if (r && r.ok) {
             if (r.mustChange) {
-              // 首次部署自动初始化：显示默认密码 + 强制改密
-              var msg = r.defaultPassword ? '（' + t('admin.defaultPwdHint') + r.defaultPassword + '）' : '';
-              toast(t('admin.logging') + msg, 'ok');
-              go('/admin');
-              setTimeout(function () { openPasswordModal(); }, 500);
+              // 首次部署自动初始化：弹出清晰的默认密码提示框，供查看/复制后改密（不再一闪而过）
+              if (window.showFirstLoginPwd) window.showFirstLoginPwd(r.defaultPassword || '');
+              else { toast(t('admin.logging'), 'ok'); go('/admin'); }
             } else {
               toast(t('admin.logging'), 'ok'); go('/admin');
             }
@@ -1305,7 +1303,7 @@
   }
 
   /* ----------------------- 导出 ----------------------- */
-  window.QingyuAdmin = { mount: mount };
+  window.QingyuAdmin = { mount: mount, openPwdModal: openPasswordModal };
 
   /* app.js 先于本脚本执行时，初次 route() 因 QingyuAdmin 尚未定义而走了旧后台渲染。
    * 本脚本加载完成后，若当前已在后台路由，重新分发一次路由以挂载新版后台 UI。 */

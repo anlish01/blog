@@ -130,6 +130,13 @@
   "admin.logging": "Logging in…",
   "admin.wrongPwd": "Wrong password",
   "admin.defaultPwdHint": "Default password:",
+  "admin.firstLoginTitle": "Welcome, first login",
+  "admin.firstLoginDesc": "A random default password has been generated. Please note or copy it before changing:",
+  "admin.copyPwd": "Copy password",
+  "admin.copied": "✓ Copied",
+  "admin.firstLoginWarn": "For security, please change your password right after login. Shown once only.",
+  "admin.firstLoginLater": "Later",
+  "admin.firstLoginChange": "Change password",
 
   "admin.sidebar.overview": "Overview",
   "admin.sidebar.dashboard": "Dashboard",

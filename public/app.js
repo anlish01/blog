@@ -779,6 +779,69 @@ function adminLogout() {
   else { _setAdminSession(false); }
 }
 
+/**
+ * 首次登录默认密码提示：模态框化、不会自动消失，确保随机默认密码清晰可读、可复制，
+ * 避免以前“闪现一下看不清”的问题。用户可选择立刻改密或暂不改密进入后台。
+ */
+function showFirstLoginPwd(defaultPassword) {
+  var pwd = String(defaultPassword || '');
+  // 已有打开的提示框则避免重复叠加
+  var existing = document.querySelector('.flp-mask');
+  if (existing) existing.remove();
+  var mask = document.createElement('div');
+  mask.className = 'flp-mask';
+  mask.innerHTML =
+    '<div class="flp-modal">'
+    + '<button class="flp-close" data-act="close" aria-label="关闭">✕</button>'
+    + '<div class="flp-icon">' + svgIcon('lock', 26) + '</div>'
+    + '<h3 class="flp-title">' + t('admin.firstLoginTitle') + '</h3>'
+    + '<p class="flp-desc">' + t('admin.firstLoginDesc') + '</p>'
+    + (pwd
+      ? '<div class="flp-pwd-row"><span class="flp-pwd" id="flpPwd" title="' + t('admin.copyPwd') + '">' + esc(pwd) + '</span>'
+        + '<button class="flp-copy" id="flpCopyBtn">' + t('admin.copyPwd') + '</button></div>'
+      : '')
+    + '<p class="flp-warn">' + t('admin.firstLoginWarn') + '</p>'
+    + '<div class="flp-actions">'
+    + '<button class="flp-btn ghost" data-act="later">' + t('admin.firstLoginLater') + '</button>'
+    + '<button class="flp-btn primary" data-act="change">' + t('admin.firstLoginChange') + '</button>'
+    + '</div></div>';
+  document.body.appendChild(mask);
+
+  // 复制密码
+  var copyBtn = mask.querySelector('#flpCopyBtn');
+  if (copyBtn) copyBtn.addEventListener('click', function () {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = pwd;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      copyBtn.textContent = t('admin.copied');
+      setTimeout(function () { copyBtn.textContent = t('admin.copyPwd'); }, 1500);
+    } catch (e) {}
+  });
+
+  function close() {
+    mask.classList.add('flp-leave');
+    setTimeout(function () { if (mask.parentNode) mask.parentNode.removeChild(mask); }, 200);
+  }
+
+  // 点击遮罩空白处、关闭按钮、暂不修改 → 关闭（保持登录态，进入后台）
+  function goAdmin() {
+    if (typeof navigate === 'function') navigate('/admin'); else { try { location.href = href('/admin'); } catch (e) {} }
+  }
+  mask.addEventListener('click', function (e) {
+    var act = e.target && e.target.getAttribute && e.target.getAttribute('data-act');
+    if (e.target === mask || act === 'close' || act === 'later') { close(); goAdmin(); }
+    else if (act === 'change') { close(); goAdmin(); setTimeout(function () { if (window.QingyuAdmin && window.QingyuAdmin.openPwdModal) window.QingyuAdmin.openPwdModal(); }, 350); }
+  });
+}
+
+window.showFirstLoginPwd = showFirstLoginPwd;
+
 /* ---------- 导出 ---------- */
 function buildPostsJs() {
   var drafts = [];
@@ -1760,11 +1823,8 @@ function renderWrite() {
           btnGate.innerHTML = orig;
           if (r.ok) {
             if (r.mustChange) {
-              // 首次部署自动初始化：显示默认密码 + 跳转强制改密
-              if (r.defaultPassword) {
-                if (msg) { msg.className = 'gate-msg alert-strip ok'; msg.textContent = t('admin.defaultPwdHint') + r.defaultPassword + t('admin.changeHint'); }
-              }
-              setTimeout(function () { route(); }, 800);
+              // 首次部署自动初始化：弹出清晰的默认密码提示框，供查看/复制后改密（不再一闪而过）
+              window.showFirstLoginPwd(r.defaultPassword || '');
             } else {
               route();
             }

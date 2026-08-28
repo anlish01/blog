@@ -130,6 +130,13 @@
   "admin.logging": "लॉगिन हो रहा है…",
   "admin.wrongPwd": "गलत पासवर्ड",
   "admin.defaultPwdHint": "डिफ़ॉल्ट पासवर्ड:",
+  "admin.firstLoginTitle": "स्वागत है, पहला लॉगिन",
+  "admin.firstLoginDesc": "यादृच्छिक डिफ़ॉल्ट पासवर्ड बनाया गया है। बदलने से पहले इसे नोट करें या कॉपी करें:",
+  "admin.copyPwd": "पासवर्ड कॉपी करें",
+  "admin.copied": "✓ कॉपी हो गया",
+  "admin.firstLoginWarn": "सुरक्षा के लिए, लॉगिन के तुरंत बाद पासवर्ड बदलें। यह केवल एक बार दिखाया जाएगा।",
+  "admin.firstLoginLater": "बाद में बदलें",
+  "admin.firstLoginChange": "पासवर्ड बदलें",
 
   "admin.sidebar.overview": "अवलोकन",
   "admin.sidebar.dashboard": "डैशबोर्ड",

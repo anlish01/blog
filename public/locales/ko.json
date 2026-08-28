@@ -130,6 +130,13 @@
   "admin.logging": "로그인 중…",
   "admin.wrongPwd": "비밀번호가 잘못되었습니다",
   "admin.defaultPwdHint": "기본 비밀번호:",
+  "admin.firstLoginTitle": "환영합니다, 첫 로그인",
+  "admin.firstLoginDesc": "임의의 초기 비밀번호가 생성되었습니다. 변경 전에 기록하거나 복사하세요:",
+  "admin.copyPwd": "비밀번호 복사",
+  "admin.copied": "✓ 복사됨",
+  "admin.firstLoginWarn": "보안을 위해 로그인 후 즉시 비밀번호를 변경하시기 바랍니다. 이 안내는 한 번만 표시됩니다.",
+  "admin.firstLoginLater": "나중에 변경",
+  "admin.firstLoginChange": "비밀번호 변경",
 
   "admin.sidebar.overview": "개요",
   "admin.sidebar.dashboard": "대시보드",
