@@ -53,7 +53,7 @@ The entire blog = **4 core files** (`index.html` + `style.css` + `app.js` + `pos
 ```
 ├── public/                          # Site assets (static)
 │   ├── index.html                   # Entry point (double-click / deploy)
-│   ├── config.js                    # Site config (nav / footer / ads / mode)
+│   ├── config.js                    # Site config (footer / ads / mode)
 │   ├── style.css                    # Frontend styles (dark mode + responsive)
 │   ├── app.js                       # Frontend logic (routing / comments / encryption / search)
 │   ├── admin.js                     # Admin panel SPA (dashboard / posts / comments / settings)
@@ -131,7 +131,7 @@ The entire blog = **4 core files** (`index.html` + `style.css` + `app.js` + `pos
 | Comment Management | Global comment list, approve / delete |
 | Category / Tag Management | Rename / delete (bulk update all related articles) |
 | Media Library | Image upload (base64 to D1) |
-| Blog Settings | Site info / profile / navigation menu (visual + JSON) |
+| Blog Settings | Site info / profile |
 | Responsive | Fixed sidebar on desktop, drawer navigation on mobile |
 
 ---
@@ -280,18 +280,7 @@ window.BLOG_CONFIG = {
   pageSize: 5,            // Posts per page (0 = no pagination)
   adminPwd: '',           // Static mode local password (leave empty for cloud)
 
-  // ====== Navigation ======
-  nav: [
-    { text: 'Home', url: '/' },
-    { text: 'Archive', url: '/archive' },
-    { text: 'Tags', url: '/tags' },
-    { text: 'About', url: '/about' },
-    // Nested menu supported:
-    // { text: 'More', children: [
-    //   { text: 'Example', url: '/about' },
-    //   { text: 'External', url: 'https://example.com' }
-    // ]}
-  ],
+  // Navigation items live in public/app.js (NAV array, single source of truth)
 
   // ====== Footer ======
   footer: {

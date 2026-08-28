@@ -58,17 +58,6 @@ window.BLOG_CONFIG = {
    * 本地双击 public/index.html 仍可用（file:// 自动退化为 #/ 内部路由）。 */
   adminPwd: '',
 
-  /* 自定义导航（可选）：留空数组 = 默认（首页 / 标签 / 归档 / 关于）。
-   * 支持二级下拉：children 数组；url 可填站内真实路径（/archive、/posts/x/ 等）
-   * 或外链（https://…）；兼容旧写法 #/about。 */
-  nav: [
-    // { text: '测试', url: '/' },
-    // { text: '更多', url: '/about', children: [
-    //   { text: '写作', url: '/write' },
-    //   { text: '示例外链', url: 'https://example.com' }
-    // ]}
-  ],
-
   /* 页脚（可选）：links 为友情链接（电脑端显示「友情链接：…」）；icp 为备案号。
    *   decl：站点声明（电脑端显示）；email：侵权/举报联系邮箱（电脑端显示）。
    *   startYear：版权起始年（固定）；copyrightName：版权署名。版权为「©起始年-当前年 署名」。 */

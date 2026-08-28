@@ -965,13 +965,28 @@ async function saveFileFriendly(name, content, doneText, failText) {
  * ============================================================ */
 function app() { return document.querySelector('#app'); }
 
-  function renderNav(active) {
-  var navs = [
-    { text: t('nav.home'), url: '/', path: '/' },
-    { text: t('nav.tags'), url: '/tags', path: '/tags' },
-    { text: t('nav.archive'), url: '/archive', path: '/archive' },
-    { text: t('nav.about'), url: '/about', path: '/about' }
+  // 站点主导航：单一数据源。新增导航只需在此数组追加一项（可选 children 子菜单）。
+  // 文本用 i18n key，渲染时经 t() 解析，切换语言即时生效。
+  var NAV = [
+    { i18n: 'nav.home',    url: '/',        path: '/' },
+    { i18n: 'nav.tags',    url: '/tags',    path: '/tags' },
+    { i18n: 'nav.archive', url: '/archive', path: '/archive' },
+    { i18n: 'nav.about',   url: '/about',   path: '/about' }
   ];
+
+  // 将 NAV 配置解析为带翻译文本的导航项（含可选子菜单）。
+  function resolveNav(items) {
+    return items.map(function (it) {
+      var n = { text: t(it.i18n), url: it.url, path: it.path };
+      if (it.children && it.children.length) {
+        n.children = it.children.map(function (c) { return { text: t(c.i18n), url: c.url }; });
+      }
+      return n;
+    });
+  }
+
+  function renderNav(active) {
+  var navs = resolveNav(NAV);
   var links = navs.map(function (n) {
     var raw = n.url || '/';
     var pathKey = n.path || (/^#\//.test(raw) ? raw.slice(1) : (/^\//.test(raw) ? raw : null));
@@ -1042,12 +1057,7 @@ function renderFooter() {
   var copyRange = (startYear && startYear < year) ? (startYear + '-' + year) : ('' + year);
   var site = f.copyrightName || cfg.title || 'Qingyu\'Blog';
   // 页脚导航行：写作后台仅管理员显示；RSS 仅普通用户显示（互斥，避免导航过长）
-  var nav = [
-    { text: t('nav.home'), url: '/' },
-    { text: t('nav.tags'), url: '/tags' },
-    { text: t('nav.archive'), url: '/archive' },
-    { text: t('nav.about'), url: '/about' }
-  ];
+  var nav = resolveNav(NAV);
   if (adminOk()) nav.push({ text: t('nav.admin'), url: '/admin' });
   function l(x) {
     var u = x.url || '/';
