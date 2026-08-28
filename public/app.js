@@ -1098,10 +1098,12 @@ function renderHomeTagRow(posts, activeTag) {
   if (!order.length) return '';
   var html = '<div class="home-tags">';
   html += '<span class="home-tags-label">' + t('home.categoryLabel') + '</span>';
+  html += '<div class="home-tags-track">';
   order.forEach(function (t) {
     var on = t === activeTag;
     html += '<a class="home-tag' + (on ? ' active' : '') + '" href="' + esc(href('/', { tag: t })) + '" data-home-tag>' + '<span class="home-tag-text">' + esc(t) + '</span>' + '<span class="home-tag-count">' + counts[t] + '</span></a>';
   });
+  html += '</div>';
   html += '</div>';
   return html;
 }
