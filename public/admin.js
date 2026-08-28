@@ -1059,32 +1059,95 @@
       '<div class="ab-tab" data-tab="profile">' + t('admin.settings.profile') + '</div>' +
       '<div class="ab-tab" data-tab="nav">' + t('admin.settings.navMenu') + '</div>' +
       '</div><div id="abSettingsBody"></div>';
-    content.querySelectorAll('.ab-tab').forEach(function (t) { t.addEventListener('click', function () { content.querySelectorAll('.ab-tab').forEach(function (x) { x.classList.remove('active'); }); t.classList.add('active'); renderSettingsTab(content, t.getAttribute('data-tab')); }); });
+    content.querySelectorAll('.ab-tab').forEach(function (t) { t.addEventListener('click', function () { saveTabToDraft(content); content.querySelectorAll('.ab-tab').forEach(function (x) { x.classList.remove('active'); }); t.classList.add('active'); renderSettingsTab(content, t.getAttribute('data-tab')); }); });
     renderSettingsTab(content, 'site');
     content.querySelector('#abSaveSettings').addEventListener('click', function () { saveSettings(content); });
     loadSettings(content);
   }
   var settingsCache = {};
+  // 内存草稿：各 tab 未保存的输入在此暂存，切换 tab 不丢失数据
+  var settingsDraft = { site: {}, profile: {}, nav: [] };
   async function loadSettings(content) {
     try { var d = await api('api/settings'); settingsCache = (d && d.settings) || {}; } catch (e) { settingsCache = {}; }
+    syncDraftFromServer();
     fillSettings(content);
   }
-  function fillSettings(content) {
+  /** 从服务端数据初始化草稿（仅首次或重置时调用，避免覆盖用户未保存的输入） */
+  function syncDraftFromServer() {
     var s = settingsCache;
     var site = safeJson(s.site_info);
     var prof = safeJson(s.profile);
-    var navRaw = s.nav;
-    if (content.querySelector('#abSiteName')) content.querySelector('#abSiteName').value = site.name || (cfg().footer && cfg().footer.copyrightName) || '';
+    settingsDraft.site = {
+      name: site.name || (cfg().footer && cfg().footer.copyrightName) || '',
+      desc: site.desc || '',
+      avatar: site.avatar || '',
+      copyright: site.copyright || (cfg().footer && cfg().footer.copyrightName) || '',
+      footerText: site.footerText || (cfg().footer && cfg().footer.decl) || '',
+      moderate: s.moderate_comments === '1'
+    };
+    settingsDraft.profile = {
+      name: prof.name || '', bio: prof.bio || '', avatar: prof.avatar || '', email: prof.email || ''
+    };
+    settingsDraft.nav = parseNav(s.nav);
+  }
+  /** 把导航字段解析为数组（兼容字符串 JSON / 对象 / 数组） */
+  function parseNav(v) {
+    if (Array.isArray(v)) return v;
+    if (typeof v === 'string' && v.trim()) { try { var a = JSON.parse(v); return Array.isArray(a) ? a : (cfg().nav || []); } catch (e) { return (cfg().nav || []); } }
+    return (cfg().nav || []);
+  }
+  // 从当前 DOM 把可见 tab 的输入保存进草稿（tab 切换/保存前调用，保证不丢数据）
+  function saveTabToDraft(content) {
+    if (content.querySelector('#abSiteName') !== null) {
+      settingsDraft.site = {
+        name: val(content, '#abSiteName'), desc: val(content, '#abSiteDesc'), avatar: val(content, '#abSiteAvatar'),
+        copyright: val(content, '#abFooterCopyright'), footerText: val(content, '#abFooterText'),
+        moderate: content.querySelector('#abModerate') ? content.querySelector('#abModerate').checked : settingsDraft.site.moderate
+      };
+    }
+    if (content.querySelector('#abProfileName') !== null) {
+      settingsDraft.profile = {
+        name: val(content, '#abProfileName'), bio: val(content, '#abProfileBio'),
+        avatar: val(content, '#abProfileAvatar'), email: val(content, '#abProfileEmail')
+      };
+    }
+    // nav 可视化：若 DOM 存在则立即收集回 settingsDraft.nav
+    if (content.querySelector('#abNavVisual')) collectNavFromDom(content);
+  }
+  /** 从 nav 可视化 DOM 收集当前编辑结果到 settingsDraft.nav 并持久化草稿 */
+  function collectNavFromDom(content) {
+    var wrap = content.querySelector('#abNavVisual');
+    if (!wrap) return;
+    var newItems = [];
+    wrap.querySelectorAll('.ab-nav-row').forEach(function (row) {
+      if (row.classList.contains('child')) return; // 子项在父项中处理
+      var idx = parseInt(row.querySelector('[data-idx]').getAttribute('data-idx'), 10);
+      var text = (row.querySelector('.ab-nav-text') || {}).value || '';
+      var url = (row.querySelector('.ab-nav-url') || {}).value || '';
+      var children = [];
+      wrap.querySelectorAll('.ab-nav-row.child[data-idx="' + idx + '"]').forEach(function (cr) {
+        children.push({ text: (cr.querySelector('.ab-nav-text') || {}).value || '', url: (cr.querySelector('.ab-nav-url') || {}).value || '' });
+      });
+      var item = { text: text, url: url };
+      if (children.length) item.children = children;
+      newItems.push(item);
+    });
+    settingsDraft.nav = newItems;
+    try { localStorage.setItem(navDraftKey(), JSON.stringify(settingsDraft.nav)); } catch (e) {}
+  }
+  function fillSettings(content) {
+    var site = settingsDraft.site || {};
+    var prof = settingsDraft.profile || {};
+    if (content.querySelector('#abSiteName')) content.querySelector('#abSiteName').value = site.name || '';
     if (content.querySelector('#abSiteDesc')) content.querySelector('#abSiteDesc').value = site.desc || '';
     if (content.querySelector('#abSiteAvatar')) content.querySelector('#abSiteAvatar').value = site.avatar || '';
-    if (content.querySelector('#abFooterCopyright')) content.querySelector('#abFooterCopyright').value = site.copyright || (cfg().footer && cfg().footer.copyrightName) || '';
-    if (content.querySelector('#abFooterText')) content.querySelector('#abFooterText').value = site.footerText || (cfg().footer && cfg().footer.decl) || '';
-    if (content.querySelector('#abModerate')) content.querySelector('#abModerate').checked = s.moderate_comments === '1';
+    if (content.querySelector('#abFooterCopyright')) content.querySelector('#abFooterCopyright').value = site.copyright || '';
+    if (content.querySelector('#abFooterText')) content.querySelector('#abFooterText').value = site.footerText || '';
+    if (content.querySelector('#abModerate')) content.querySelector('#abModerate').checked = !!site.moderate;
     if (content.querySelector('#abProfileName')) content.querySelector('#abProfileName').value = prof.name || '';
     if (content.querySelector('#abProfileBio')) content.querySelector('#abProfileBio').value = prof.bio || '';
     if (content.querySelector('#abProfileAvatar')) content.querySelector('#abProfileAvatar').value = prof.avatar || '';
     if (content.querySelector('#abProfileEmail')) content.querySelector('#abProfileEmail').value = prof.email || '';
-    if (content.querySelector('#abNavJson')) content.querySelector('#abNavJson').value = navRaw ? (typeof navRaw === 'string' ? navRaw : JSON.stringify(navRaw, null, 2)) : JSON.stringify(cfg().nav || [], null, 2);
   }
   function safeJson(v) { if (!v) return {}; if (typeof v === 'object') return v; try { return JSON.parse(v); } catch (e) { return {}; } }
   function renderSettingsTab(content, tab) {
@@ -1110,141 +1173,105 @@
       var pv = body.querySelector('#abProfPrev');
       pa.addEventListener('input', function () { pv.src = pa.value; });
     } else if (tab === 'nav') {
-      var defaultNav = [
-        { text: t('admin.settings.defaultHome'), url: '/' },
-        { text: t('admin.settings.defaultArchive'), url: '/archive' },
-        { text: t('admin.settings.defaultAbout'), url: '/about' },
-        { text: t('admin.settings.defaultFriends'), url: '/links' }
-      ];
-      var exJson = JSON.stringify(settingsCache.nav ? (typeof settingsCache.nav === 'string' ? JSON.parse(settingsCache.nav || '[]') : settingsCache.nav) : (cfg().nav || defaultNav), null, 2);
       body.innerHTML = '<div class="ab-card" style="max-width:720px">' +
         '<div class="ab-section-title">' + icon('list', 15) + ' ' + t('admin.settings.visualEditor') + '</div>' +
+        '<div class="ab-hint" style="margin-bottom:8px">' + t('admin.settings.navVisualHint') + '</div>' +
         '<div id="abNavVisual" class="ab-nav-editor"></div>' +
-        '<div class="ab-section-title" style="margin-top:16px">' + icon('doc', 15) + ' ' + t('admin.settings.jsonEditor') + '</div>' +
-        '<div class="ab-hint" style="margin-bottom:8px">' + t('admin.settings.navJsonHint') + '</div>' +
-        '<textarea class="ab-textarea" id="abNavJson" style="min-height:180px;font-family:monospace;font-size:13px"></textarea>' +
-        '<div class="ab-row" style="margin-top:8px;gap:8px">' +
-          '<button class="ab-btn sm" id="abNavFormat">' + t('admin.settings.formatJson') + '</button>' +
-          '<button class="ab-btn sm" id="abNavReset">' + t('admin.settings.resetDefault') + '</button>' +
-        '</div>' +
       '</div>';
-      renderNavVisual(content, exJson);
-      // JSON 格式化
-      var fmtBtn = content.querySelector('#abNavFormat');
-      if (fmtBtn) fmtBtn.addEventListener('click', function () {
-        var ta = content.querySelector('#abNavJson');
-        try { ta.value = JSON.stringify(JSON.parse(ta.value), null, 2); toast(t('admin.settings.formatted'), 'ok'); } catch (e) { toast(t('admin.settings.jsonError'), 'err'); }
-      });
-      // 恢复默认
-      var rstBtn = content.querySelector('#abNavReset');
-      if (rstBtn) rstBtn.addEventListener('click', function () {
-        content.querySelector('#abNavJson').value = JSON.stringify(defaultNav, null, 2);
-        renderNavVisual(content, JSON.stringify(defaultNav, null, 2));
-        toast(t('admin.settings.resetDone'), 'ok');
-      });
-      // 双向同步：JSON textarea → 可视化
-      content.querySelector('#abNavJson').addEventListener('input', debounce(function () {
-        renderNavVisual(content, content.querySelector('#abNavJson').value);
-      }, 400));
+      renderNavVisual(content);
     }
     fillSettings(content);
   }
   async function saveSettings(content) {
-    var site = {
-      name: val(content, '#abSiteName'), desc: val(content, '#abSiteDesc'), avatar: val(content, '#abSiteAvatar'),
-      copyright: val(content, '#abFooterCopyright'), footerText: val(content, '#abFooterText')
-    };
-    var prof = {
-      name: val(content, '#abProfileName'), bio: val(content, '#abProfileBio'),
-      avatar: val(content, '#abProfileAvatar'), email: val(content, '#abProfileEmail')
-    };
-    var navRaw = val(content, '#abNavJson');
-    try { JSON.parse(navRaw); } catch (e) { toast(t('admin.settings.jsonError'), 'err'); return; }
+    // 先把当前可见 tab 的输入并入草稿，确保跨 tab 的数据都不遗漏
+    saveTabToDraft(content);
+    var site = settingsDraft.site || {};
+    var prof = settingsDraft.profile || {};
+    // 导航直接取可视化编辑的内存数组（无 JSON 中转，避免空解析报错）
+    var navArr = Array.isArray(settingsDraft.nav) ? settingsDraft.nav : [];
     var payload = {
-      site_info: site, profile: prof, nav: navRaw,
-      moderate_comments: content.querySelector('#abModerate') && content.querySelector('#abModerate').checked ? '1' : '0'
+      site_info: {
+        name: site.name || '', desc: site.desc || '', avatar: site.avatar || '',
+        copyright: site.copyright || '', footerText: site.footerText || ''
+      },
+      profile: {
+        name: prof.name || '', bio: prof.bio || '', avatar: prof.avatar || '', email: prof.email || ''
+      },
+      nav: JSON.stringify(navArr),
+      moderate_comments: site.moderate ? '1' : '0'
     };
     try {
       await api('api/settings', { method: 'PUT', body: JSON.stringify(payload) });
+      // 保存成功后清除导航临时草稿，同步服务端缓存
+      try { localStorage.removeItem(navDraftKey()); } catch (e) {}
+      settingsCache = Object.assign({}, settingsCache, {
+        site_info: JSON.stringify(payload.site_info), profile: JSON.stringify(payload.profile),
+        nav: payload.nav, moderate_comments: payload.moderate_comments
+      });
       toast(t('admin.settings.saved'), 'ok');
     } catch (e) { toast(t('admin.settings.saveFail') + (e.message || e), 'err'); }
   }
   function val(content, sel) { var el = content.querySelector(sel); return el ? el.value : ''; }
 
-  /* ---------- 可视化导航编辑器 ---------- */
-  function renderNavVisual(content, jsonStr) {
+  /* ---------- 可视化导航编辑器 ----------
+   * 直接读写内存 settingsDraft.nav 数组，无需 JSON 中转，保存时由 saveSettings 统一取用。
+   * 保留 localStorage 临时草稿，刷新/切页不丢失未保存的导航编辑。 */
+  function navDraftKey() { return 'qingyu.settingsNavDraft'; }
+  function loadNavDraft() {
+    try { var v = JSON.parse(localStorage.getItem(navDraftKey()) || 'null'); if (Array.isArray(v)) return v; } catch (e) {}
+    return null;
+  }
+  function renderNavVisual(content) {
     var wrap = content.querySelector('#abNavVisual');
     if (!wrap) return;
-    var items = [];
-    try { items = JSON.parse(jsonStr || '[]'); } catch (e) { wrap.innerHTML = '<div class="ab-hint">' + t('admin.settings.jsonError') + '</div>'; return; }
-    if (!items.length) { wrap.innerHTML = '<div class="ab-hint">' + t('admin.settings.resetDone') + '</div>'; }
-    else {
-      wrap.innerHTML = '<div class="ab-nav-list">' + items.map(function (it, i) {
-        var children = (it.children || []).map(function (ch, ci) {
-          return '<div class="ab-nav-row child">' +
-            '<span class="ab-nav-ico">└</span>' +
-            '<input class="ab-input ab-nav-text" data-idx="' + i + '" data-cidx="' + ci + '" value="' + esc(ch.text || '') + '" placeholder="' + t('admin.settings.subMenu') + '">' +
-            '<input class="ab-input ab-nav-url" data-idx="' + i + '" data-cidx="' + ci + '" value="' + esc(ch.url || '') + '" placeholder="/path">' +
-            '<button class="ab-btn-icon danger" data-rmchild="' + i + '-' + ci + '" title="' + t('admin.comments.delete') + '">' + icon('trash', 14) + '</button>' +
-          '</div>';
-        }).join('');
-        return '<div class="ab-nav-row">' +
-          '<span class="ab-nav-ico">' + icon('list', 14) + '</span>' +
-          '<input class="ab-input ab-nav-text" data-idx="' + i + '" value="' + esc(it.text || '') + '" placeholder="' + t('admin.settings.newMenu') + '">' +
-          '<input class="ab-input ab-nav-url" data-idx="' + i + '" value="' + esc(it.url || '') + '" placeholder="/path">' +
-          '<button class="ab-btn-icon" data-addchild="' + i + '" title="' + t('admin.settings.subMenu') + '">' + icon('plus', 14) + '</button>' +
-          '<button class="ab-btn-icon danger" data-rmitem="' + i + '" title="' + t('admin.comments.delete') + '">' + icon('trash', 14) + '</button>' +
-        '</div>' + children;
-      }).join('') + '</div>';
-    }
-    // 添加按钮
+    // 优先本地草稿，其次内存数组，最后默认导航
+    var saved = loadNavDraft();
+    var items = saved ? saved : settingsDraft.nav;
+    if (!Array.isArray(items) || !items.length) items = [];
+    settingsDraft.nav = items;
+
+    wrap.innerHTML = (items.length ? '<div class="ab-nav-list">' + items.map(function (it, i) {
+      var children = (it.children || []).map(function (ch, ci) {
+        return '<div class="ab-nav-row child">' +
+          '<span class="ab-nav-ico">└</span>' +
+          '<input class="ab-input ab-nav-text" data-idx="' + i + '" data-cidx="' + ci + '" value="' + esc(ch.text || '') + '" placeholder="' + t('admin.settings.subMenu') + '">' +
+          '<input class="ab-input ab-nav-url" data-idx="' + i + '" data-cidx="' + ci + '" value="' + esc(ch.url || '') + '" placeholder="/path">' +
+          '<button class="ab-btn-icon danger" data-rmchild="' + i + '-' + ci + '" title="' + t('admin.comments.delete') + '">' + icon('trash', 14) + '</button>' +
+        '</div>';
+      }).join('');
+      return '<div class="ab-nav-row">' +
+        '<span class="ab-nav-ico">' + icon('list', 14) + '</span>' +
+        '<input class="ab-input ab-nav-text" data-idx="' + i + '" value="' + esc(it.text || '') + '" placeholder="' + t('admin.settings.newMenu') + '">' +
+        '<input class="ab-input ab-nav-url" data-idx="' + i + '" value="' + esc(it.url || '') + '" placeholder="/path">' +
+        '<button class="ab-btn-icon" data-addchild="' + i + '" title="' + t('admin.settings.subMenu') + '">' + icon('plus', 14) + '</button>' +
+        '<button class="ab-btn-icon danger" data-rmitem="' + i + '" title="' + t('admin.comments.delete') + '">' + icon('trash', 14) + '</button>' +
+      '</div>' + children;
+    }).join('') + '</div>' : '<div class="ab-hint">' + t('admin.settings.navEmpty') + '</div>');
+
     wrap.innerHTML += '<button class="ab-btn sm" id="abNavAddItem" style="margin-top:8px">' + icon('plus', 13) + ' ' + t('admin.settings.addMenuItem') + '</button>';
 
-    // 事件：编辑文本 → 同步到 JSON
-    function syncToJSON() {
-      var rows = wrap.querySelectorAll('.ab-nav-row');
-      var newItems = [];
-      rows.forEach(function (row) {
-        if (row.classList.contains('child')) return; // 子项在父项循环中处理
-        var idx = parseInt(row.querySelector('[data-idx]').getAttribute('data-idx'), 10);
-        var text = (row.querySelector('.ab-nav-text') || {}).value || '';
-        var url = (row.querySelector('.ab-nav-url') || {}).value || '';
-        var children = [];
-        wrap.querySelectorAll('.ab-nav-row.child[data-idx="' + idx + '"]').forEach(function (cr) {
-          children.push({ text: (cr.querySelector('.ab-nav-text') || {}).value || '', url: (cr.querySelector('.ab-nav-url') || {}).value || '' });
-        });
-        var item = { text: text, url: url };
-        if (children.length) item.children = children;
-        newItems.push(item);
-      });
-      content.querySelector('#abNavJson').value = JSON.stringify(newItems, null, 2);
-    }
-    wrap.querySelectorAll('input').forEach(function (inp) { inp.addEventListener('input', debounce(syncToJSON, 300)); });
+    // 把当前 items 写入本地临时草稿（跨模块刷新也不丢）
+    function persist() { try { localStorage.setItem(navDraftKey(), JSON.stringify(settingsDraft.nav)); } catch (e) {} }
+
+    // 编辑文本框：统一从 DOM 收集回 settingsDraft.nav 并持久化草稿
+    wrap.querySelectorAll('input').forEach(function (inp) { inp.addEventListener('input', debounce(function () { collectNavFromDom(content); }, 250)); });
 
     // 添加菜单项
     wrap.querySelector('#abNavAddItem').addEventListener('click', function () {
-      var ta = content.querySelector('#abNavJson');
-      try {
-        var arr = JSON.parse(ta.value || '[]');
-        arr.push({ text: t('admin.settings.newMenu'), url: '/' });
-        ta.value = JSON.stringify(arr, null, 2);
-        renderNavVisual(content, ta.value);
-      } catch (e) { toast(t('admin.settings.jsonError'), 'err'); }
+      settingsDraft.nav.push({ text: t('admin.settings.newMenu'), url: '/' });
+      persist();
+      renderNavVisual(content);
     });
 
     // 添加子菜单
     wrap.querySelectorAll('[data-addchild]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var idx = parseInt(btn.getAttribute('data-addchild'), 10);
-        var ta = content.querySelector('#abNavJson');
-        try {
-          var arr = JSON.parse(ta.value || '[]');
-          if (!arr[idx]) return;
-          if (!arr[idx].children) arr[idx].children = [];
-          arr[idx].children.push({ text: t('admin.settings.subMenu'), url: '/' });
-          ta.value = JSON.stringify(arr, null, 2);
-          renderNavVisual(content, ta.value);
-        } catch (e) { toast(t('admin.settings.jsonError'), 'err'); }
+        if (!settingsDraft.nav[idx]) return;
+        if (!settingsDraft.nav[idx].children) settingsDraft.nav[idx].children = [];
+        settingsDraft.nav[idx].children.push({ text: t('admin.settings.subMenu'), url: '/' });
+        persist();
+        renderNavVisual(content);
       });
     });
 
@@ -1252,13 +1279,9 @@
     wrap.querySelectorAll('[data-rmitem]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var idx = parseInt(btn.getAttribute('data-rmitem'), 10);
-        var ta = content.querySelector('#abNavJson');
-        try {
-          var arr = JSON.parse(ta.value || '[]');
-          arr.splice(idx, 1);
-          ta.value = JSON.stringify(arr, null, 2);
-          renderNavVisual(content, ta.value);
-        } catch (e) { toast(t('admin.settings.jsonError'), 'err'); }
+        settingsDraft.nav.splice(idx, 1);
+        persist();
+        renderNavVisual(content);
       });
     });
 
@@ -1267,13 +1290,9 @@
       btn.addEventListener('click', function () {
         var parts = btn.getAttribute('data-rmchild').split('-');
         var idx = parseInt(parts[0], 10), cidx = parseInt(parts[1], 10);
-        var ta = content.querySelector('#abNavJson');
-        try {
-          var arr = JSON.parse(ta.value || '[]');
-          if (arr[idx] && arr[idx].children) arr[idx].children.splice(cidx, 1);
-          ta.value = JSON.stringify(arr, null, 2);
-          renderNavVisual(content, ta.value);
-        } catch (e) { toast(t('admin.settings.jsonError'), 'err'); }
+        if (settingsDraft.nav[idx] && settingsDraft.nav[idx].children) settingsDraft.nav[idx].children.splice(cidx, 1);
+        persist();
+        renderNavVisual(content);
       });
     });
   }
