@@ -1047,7 +1047,6 @@
     content.innerHTML += '<div class="ab-tabs">' +
       '<div class="ab-tab active" data-tab="site">' + t('admin.settings.siteInfo') + '</div>' +
       '<div class="ab-tab" data-tab="profile">' + t('admin.settings.profile') + '</div>' +
-      '<div class="ab-tab" data-tab="nav">' + t('admin.settings.navMenu') + '</div>' +
       '</div><div id="abSettingsBody"></div>';
     content.querySelectorAll('.ab-tab').forEach(function (t) { t.addEventListener('click', function () { saveTabToDraft(content); content.querySelectorAll('.ab-tab').forEach(function (x) { x.classList.remove('active'); }); t.classList.add('active'); renderSettingsTab(content, t.getAttribute('data-tab')); }); });
     renderSettingsTab(content, 'site');
@@ -1056,7 +1055,7 @@
   }
   var settingsCache = {};
   // 内存草稿：各 tab 未保存的输入在此暂存，切换 tab 不丢失数据
-  var settingsDraft = { site: {}, profile: {}, nav: [] };
+  var settingsDraft = { site: {}, profile: {} };
   async function loadSettings(content) {
     try { var d = await api('api/settings'); settingsCache = (d && d.settings) || {}; } catch (e) { settingsCache = {}; }
     syncDraftFromServer();
@@ -1078,24 +1077,6 @@
     settingsDraft.profile = {
       name: prof.name || '', bio: prof.bio || '', avatar: prof.avatar || '', email: prof.email || ''
     };
-    settingsDraft.nav = parseNav(s.nav);
-  }
-  /** 默认导航列表（与首页渲染兜底一致）：站点未自定义导航时作为基础项 */
-  function defaultNavItems() {
-    return [
-      { text: t('nav.home'), url: '/' },
-      { text: t('nav.tags'), url: '/tags' },
-      { text: t('nav.archive'), url: '/archive' },
-      { text: t('nav.about'), url: '/about' }
-    ];
-  }
-  /** 把导航字段解析为数组（兼容字符串 JSON / 对象 / 数组）；为空时回退默认导航，避免丢失默认项 */
-  function parseNav(v) {
-    if (Array.isArray(v) && v.length) return v;
-    if (typeof v === 'string' && v.trim()) {
-      try { var a = JSON.parse(v); if (Array.isArray(a) && a.length) return a; } catch (e) {}
-    }
-    return defaultNavItems();
   }
   // 从当前 DOM 把可见 tab 的输入保存进草稿（tab 切换/保存前调用，保证不丢数据）
   function saveTabToDraft(content) {
@@ -1112,29 +1093,6 @@
         avatar: val(content, '#abProfileAvatar'), email: val(content, '#abProfileEmail')
       };
     }
-    // nav 可视化：若 DOM 存在则立即收集回 settingsDraft.nav
-    if (content.querySelector('#abNavVisual')) collectNavFromDom(content);
-  }
-  /** 从 nav 可视化 DOM 收集当前编辑结果到 settingsDraft.nav 并持久化草稿 */
-  function collectNavFromDom(content) {
-    var wrap = content.querySelector('#abNavVisual');
-    if (!wrap) return;
-    var newItems = [];
-    wrap.querySelectorAll('.ab-nav-row').forEach(function (row) {
-      if (row.classList.contains('child')) return; // 子项在父项中处理
-      var idx = parseInt(row.querySelector('[data-idx]').getAttribute('data-idx'), 10);
-      var text = (row.querySelector('.ab-nav-text') || {}).value || '';
-      var url = (row.querySelector('.ab-nav-url') || {}).value || '';
-      var children = [];
-      wrap.querySelectorAll('.ab-nav-row.child[data-idx="' + idx + '"]').forEach(function (cr) {
-        children.push({ text: (cr.querySelector('.ab-nav-text') || {}).value || '', url: (cr.querySelector('.ab-nav-url') || {}).value || '' });
-      });
-      var item = { text: text, url: url };
-      if (children.length) item.children = children;
-      newItems.push(item);
-    });
-    settingsDraft.nav = newItems;
-    try { localStorage.setItem(navDraftKey(), JSON.stringify(settingsDraft.nav)); } catch (e) {}
   }
   function fillSettings(content) {
     var site = settingsDraft.site || {};
@@ -1176,13 +1134,6 @@
       // 重新打开设置 / 切回该 tab 时，fillSettings 会在 renderSettingsTab 末尾填充输入框，
       // 但不会触发 input 事件；此处延迟同步一次，保证头像预览立即显示已保存的头像
       setTimeout(function () { if (pa && pv) pv.src = pa.value; }, 0);
-    } else if (tab === 'nav') {
-      body.innerHTML = '<div class="ab-card" style="max-width:720px">' +
-        '<div class="ab-section-title">' + icon('list', 15) + ' ' + t('admin.settings.visualEditor') + '</div>' +
-        '<div class="ab-hint" style="margin-bottom:8px">' + t('admin.settings.navVisualHint') + '</div>' +
-        '<div id="abNavVisual" class="ab-nav-editor"></div>' +
-      '</div>';
-      renderNavVisual(content);
     }
     fillSettings(content);
   }
@@ -1191,8 +1142,6 @@
     saveTabToDraft(content);
     var site = settingsDraft.site || {};
     var prof = settingsDraft.profile || {};
-    // 导航直接取可视化编辑的内存数组（无 JSON 中转，避免空解析报错）
-    var navArr = Array.isArray(settingsDraft.nav) ? settingsDraft.nav : [];
     var payload = {
       site_info: {
         name: site.name || '', desc: site.desc || '', avatar: site.avatar || '',
@@ -1201,116 +1150,19 @@
       profile: {
         name: prof.name || '', bio: prof.bio || '', avatar: prof.avatar || '', email: prof.email || ''
       },
-      nav: JSON.stringify(navArr),
       moderate_comments: site.moderate ? '1' : '0'
     };
     try {
       await api('api/settings', { method: 'PUT', body: JSON.stringify(payload) });
-      // 保存成功后清除导航临时草稿，同步服务端缓存
-      try { localStorage.removeItem(navDraftKey()); } catch (e) {}
       settingsCache = Object.assign({}, settingsCache, {
         site_info: JSON.stringify(payload.site_info), profile: JSON.stringify(payload.profile),
-        nav: payload.nav, moderate_comments: payload.moderate_comments
+        moderate_comments: payload.moderate_comments
       });
       toast(t('admin.settings.saved'), 'ok');
     } catch (e) { toast(t('admin.settings.saveFail') + (e.message || e), 'err'); }
   }
   function val(content, sel) { var el = content.querySelector(sel); return el ? el.value : ''; }
 
-  /* ---------- 可视化导航编辑器 ----------
-   * 直接读写内存 settingsDraft.nav 数组，无需 JSON 中转，保存时由 saveSettings 统一取用。
-   * 保留 localStorage 临时草稿，刷新/切页不丢失未保存的导航编辑。 */
-  function navDraftKey() { return 'qingyu.settingsNavDraft'; }
-  function loadNavDraft() {
-    try { var v = JSON.parse(localStorage.getItem(navDraftKey()) || 'null'); if (Array.isArray(v)) return v; } catch (e) {}
-    return null;
-  }
-  function renderNavVisual(content) {
-    var wrap = content.querySelector('#abNavVisual');
-    if (!wrap) return;
-    // 优先本地草稿，其次内存数组，最后默认导航（保证默认项不丢失，用户在其基础上增删）
-    var saved = loadNavDraft();
-    var items = saved ? saved : settingsDraft.nav;
-    if (!Array.isArray(items) || !items.length) items = defaultNavItems();
-    settingsDraft.nav = items;
-
-    wrap.innerHTML = (items.length ? '<div class="ab-nav-list">' + items.map(function (it, i) {
-      var children = (it.children || []).map(function (ch, ci) {
-        return '<div class="ab-nav-row child">' +
-          '<span class="ab-nav-ico">└</span>' +
-          '<input class="ab-input ab-nav-text" data-idx="' + i + '" data-cidx="' + ci + '" value="' + esc(ch.text || '') + '" placeholder="' + t('admin.settings.subMenu') + '">' +
-          '<input class="ab-input ab-nav-url" data-idx="' + i + '" data-cidx="' + ci + '" value="' + esc(ch.url || '') + '" placeholder="/path">' +
-          '<button class="ab-btn-icon danger" data-rmchild="' + i + '-' + ci + '" title="' + t('admin.comments.delete') + '">' + icon('trash', 14) + '</button>' +
-        '</div>';
-      }).join('');
-      return '<div class="ab-nav-row">' +
-        '<span class="ab-nav-ico">' + icon('list', 14) + '</span>' +
-        '<input class="ab-input ab-nav-text" data-idx="' + i + '" value="' + esc(it.text || '') + '" placeholder="' + t('admin.settings.newMenu') + '">' +
-        '<input class="ab-input ab-nav-url" data-idx="' + i + '" value="' + esc(it.url || '') + '" placeholder="/path">' +
-        '<button class="ab-btn-icon" data-addchild="' + i + '" title="' + t('admin.settings.subMenu') + '">' + icon('plus', 14) + '</button>' +
-        '<button class="ab-btn-icon danger" data-rmitem="' + i + '" title="' + t('admin.comments.delete') + '">' + icon('trash', 14) + '</button>' +
-      '</div>' + children;
-    }).join('') + '</div>' : '<div class="ab-hint">' + t('admin.settings.navEmpty') + '</div>');
-
-    wrap.innerHTML += '<div class="ab-nav-actions" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">' +
-      '<button class="ab-btn sm" id="abNavAddItem">' + icon('plus', 13) + ' ' + t('admin.settings.addMenuItem') + '</button>' +
-      '<button class="ab-btn sm ghost" id="abNavReset">' + icon('refresh', 13) + ' ' + t('admin.settings.resetDefault') + '</button>' +
-    '</div>';
-
-    // 把当前 items 写入本地临时草稿（跨模块刷新也不丢）
-    function persist() { try { localStorage.setItem(navDraftKey(), JSON.stringify(settingsDraft.nav)); } catch (e) {} }
-
-    // 编辑文本框：统一从 DOM 收集回 settingsDraft.nav 并持久化草稿
-    wrap.querySelectorAll('input').forEach(function (inp) { inp.addEventListener('input', debounce(function () { collectNavFromDom(content); }, 250)); });
-
-    // 添加菜单项
-    wrap.querySelector('#abNavAddItem').addEventListener('click', function () {
-      settingsDraft.nav.push({ text: t('admin.settings.newMenu'), url: '/' });
-      persist();
-      renderNavVisual(content);
-    });
-
-    // 重置为默认导航：清空自定义项，恢复首页/标签/归档/关于基础导航
-    var resetBtn = wrap.querySelector('#abNavReset');
-    if (resetBtn) resetBtn.addEventListener('click', function () {
-      settingsDraft.nav = defaultNavItems();
-      persist();
-      renderNavVisual(content);
-    });
-
-    // 添加子菜单
-    wrap.querySelectorAll('[data-addchild]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var idx = parseInt(btn.getAttribute('data-addchild'), 10);
-        if (!settingsDraft.nav[idx]) return;
-        if (!settingsDraft.nav[idx].children) settingsDraft.nav[idx].children = [];
-        settingsDraft.nav[idx].children.push({ text: t('admin.settings.subMenu'), url: '/' });
-        persist();
-        renderNavVisual(content);
-      });
-    });
-
-    // 删除菜单项
-    wrap.querySelectorAll('[data-rmitem]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var idx = parseInt(btn.getAttribute('data-rmitem'), 10);
-        settingsDraft.nav.splice(idx, 1);
-        persist();
-        renderNavVisual(content);
-      });
-    });
-
-    // 删除子菜单
-    wrap.querySelectorAll('[data-rmchild]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var parts = btn.getAttribute('data-rmchild').split('-');
-        var idx = parseInt(parts[0], 10), cidx = parseInt(parts[1], 10);
-        if (settingsDraft.nav[idx] && settingsDraft.nav[idx].children) settingsDraft.nav[idx].children.splice(cidx, 1);
-        persist();
-        renderNavVisual(content);
-      });
-    });
-  }
 
   /* ====================== 修改密码 ====================== */
   function openPasswordModal(onSuccess) {

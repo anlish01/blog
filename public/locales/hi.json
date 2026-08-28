@@ -3,32 +3,25 @@
   "site.subtitle": "हल्का ब्लॉग",
   "site.loading": "लोड हो रहा है",
   "site.desc": "शून्य-निर्भर हल्का ब्लॉग, डबल-क्लिक करके खोलें; Cloudflare Pages / Workers क्लाउड स्टोरेज समर्थित।",
-
   "nav.home": "होम",
   "nav.tags": "टैग",
   "nav.archive": "संग्रह",
   "nav.about": "परिचय",
   "nav.admin": "एडमिन पैनल",
   "nav.toggle": "नेविगेशन खोलें",
-
   "theme.toggle": "डार्क/लाइट मोड टॉगल करें",
   "search.toggle": "लेख खोजें",
   "search.placeholder": "लेख खोजें…",
   "search.close": "खोज बंद करें",
-
   "home.latest": "नवीनतम लेख",
   "home.noPosts": "अभी कोई लेख नहीं है।",
   "home.loadFail": "लेख लोड करने में विफल",
-
   "featured.title": "विशेष लेख",
-
   "archive.title": "संग्रह",
   "archive.year": "",
   "archive.month": "",
   "archive.count": "लेख",
-
   "tags.title": "टैग",
-
   "about.title": "परिचय",
   "about.desc": "शून्य-निर्भर, डबल-क्लिक से खुलने वाला हल्का ब्लॉग",
   "about.posts": "लेख",
@@ -40,7 +33,6 @@
   "about.firstUse": "पहला उपयोग",
   "about.cloudMode": "क्लाउड मोड",
   "about.staticMode": "स्टैटिक मोड",
-
   "post.readMore": "और पढ़ें",
   "post.minRead": "मिनट में पढ़ें",
   "post.views": "बार देखा गया",
@@ -57,7 +49,6 @@
   "post.backHome": "होम पर वापस जाएं",
   "post.notFound": "सामग्री नहीं मिली",
   "post.loadFail": "सामग्री लोड करने में विफल",
-
   "comment.title": "टिप्पणियाँ",
   "comment.hint": "अपना नाम और टिप्पणी नीचे दर्ज करें",
   "comment.authorPlaceholder": "नाम",
@@ -72,11 +63,9 @@
   "comment.reply": "जवाब दें",
   "comment.replyTo": "{author} को जवाब दें",
   "comment.cancelReply": "जवाब रद्द करें",
-
   "pagination.page": "पेज {current} / {total}",
   "pagination.prev": "पिछला",
   "pagination.next": "अगला",
-
   "editor.title": "एडिटर",
   "editor.newPost": "नया लेख",
   "editor.editing": "संपादित करें",
@@ -115,7 +104,6 @@
   "editor.noTitle": "कृपया शीर्षक दर्ज करें",
   "editor.passwordShort": "पासवर्ड कम से कम 4 अक्षरों का होना चाहिए",
   "editor.notFound": "लेख नहीं मिला",
-
   "admin.login": "एडमिन लॉगिन",
   "admin.setupPwd": "एडमिन पासवर्ड सेट करें",
   "admin.loginTitle": "एडमिन सत्यापन",
@@ -137,7 +125,6 @@
   "admin.firstLoginWarn": "सुरक्षा के लिए, लॉगिन के तुरंत बाद पासवर्ड बदलें। यह केवल एक बार दिखाया जाएगा।",
   "admin.firstLoginLater": "बाद में बदलें",
   "admin.firstLoginChange": "पासवर्ड बदलें",
-
   "admin.sidebar.overview": "अवलोकन",
   "admin.sidebar.dashboard": "डैशबोर्ड",
   "admin.sidebar.postManage": "लेख",
@@ -154,7 +141,6 @@
   "admin.sidebar.admin": "एडमिन",
   "admin.sidebar.adminDesc": "ब्लॉग प्रशासक",
   "admin.sidebar.logout": "लॉगआउट",
-
   "admin.header.toggleMenu": "मेन्यू टॉगल करें",
   "admin.header.preview": "साइट पूर्वावलोकन",
   "admin.header.newComment": "नई टिप्पणी अलर्ट",
@@ -163,7 +149,6 @@
   "admin.header.profile": "प्रोफ़ाइल",
   "admin.header.changePwd": "पासवर्ड बदलें",
   "admin.header.viewAllPending": "सभी लंबित देखें →",
-
   "admin.dashboard.title": "डैशबोर्ड",
   "admin.dashboard.desc": "साइट अवलोकन और 30-दिन के रुझान",
   "admin.dashboard.visitTrend": "30-दिन का विज़िट ट्रेंड",
@@ -190,7 +175,6 @@
   "admin.dashboard.cloudOnly": "विज़िट ट्रेंड के लिए क्लाउड मोड (Cloudflare) आवश्यक है",
   "admin.dashboard.noData": "कोई डेटा नहीं",
   "admin.dashboard.peak": "(अधिकतम",
-
   "admin.postList.title": "सभी लेख",
   "admin.postList.desc": "अपने प्रकाशित और ड्राफ्ट लेख प्रबंधित करें",
   "admin.postList.search": "शीर्षक / टैग खोजें…",
@@ -219,7 +203,6 @@
   "admin.postList.deleteConfirm": "\"{title}\" हटाएं? यह पूर्ववत नहीं किया जा सकता।",
   "admin.postList.deleted": "हटा दिया गया",
   "admin.postList.deleteFail": "हटाना विफल: ",
-
   "admin.editor.newPost": "नया लेख",
   "admin.editor.editPost": "लेख संपादित करें",
   "admin.editor.titlePlaceholder": "लेख शीर्षक",
@@ -247,7 +230,6 @@
   "admin.editor.savedLocal": "स्थानीय रूप से सहेजा गया, प्रकाशित करने के लिए posts.js निर्यात करें",
   "admin.editor.saveFail": "सहेजना विफल",
   "admin.editor.notFound": "लेख नहीं मिला",
-
   "admin.comments.title": "सभी टिप्पणियाँ",
   "admin.comments.pending": "लंबित टिप्पणियाँ",
   "admin.comments.desc": "पाठक टिप्पणियों की समीक्षा और प्रबंधन करें",
@@ -268,7 +250,6 @@
   "admin.comments.deleteConfirm": "यह टिप्पणी हटाएं?",
   "admin.comments.deleted": "हटा दिया गया",
   "admin.comments.approvedOk": "स्वीकृत हो गया",
-
   "admin.categories.title": "श्रेणी प्रबंधन",
   "admin.categories.desc": "श्रेणियाँ लेखों को वर्गीकृत करती हैं (प्रति लेख एक), एडिटर में सेट करें। पुनर्नाम / हटाना समर्थित।",
   "admin.categories.staticHint": "स्टैटिक मोड में केवल पढ़ने योग्य",
@@ -279,7 +260,6 @@
   "admin.categories.delete": "हटाएं",
   "admin.categories.renameOk": "पुनर्नाम हो गया",
   "admin.categories.deleteConfirm": "सभी लेखों से \"{name}\" हटाएं?",
-
   "admin.tags.title": "टैग प्रबंधन",
   "admin.tags.desc": "टैग कीवर्ड लेबल हैं (प्रति लेख एकाधिक), एडिटर में सेट करें। पुनर्नाम / हटाना समर्थित।",
   "admin.tags.colTag": "टैग",
@@ -289,7 +269,6 @@
   "admin.tags.delete": "हटाएं",
   "admin.tags.renameOk": "पुनर्नाम हो गया",
   "admin.tags.deleteConfirm": "टैग \"{name}\" हटाएं?",
-
   "admin.media.title": "मीडिया लाइब्रेरी",
   "admin.media.desc": "इमेज अपलोड और प्रबंधित करें (D1 में संग्रहीत, अधिकतम 2MB अनुशंसित)",
   "admin.media.upload": "इमेज अपलोड करें",
@@ -306,7 +285,6 @@
   "admin.media.uploaded": "अपलोड हो गया",
   "admin.media.uploadFail": "अपलोड विफल: ",
   "admin.media.readFail": "पढ़ना विफल",
-
   "admin.settings.title": "ब्लॉग सेटिंग्स",
   "admin.settings.desc": "साइट जानकारी, प्रोफ़ाइल और नेविगेशन मेन्यू",
   "admin.settings.save": "सेटिंग्स सहेजें",
@@ -337,36 +315,29 @@
   "admin.settings.subMenu": "सबमेन्यू",
   "admin.settings.addMenuItem": "मेन्यू आइटम जोड़ें",
   "admin.settings.resetDefault": "डिफ़ॉल्ट नेव पर रीसेट करें",
-
   "admin.error.apiFetchUnavailable": "apiFetch उपलब्ध नहीं है",
   "admin.toast.exportNotSupported": "वर्तमान वातावरण में निर्यात समर्थित नहीं है",
   "admin.toast.exportedPostsJs": "posts.js निर्यात हो गया",
   "admin.toast.exportedAll": "posts.js + feed.xml + sitemap.xml निर्यात हो गया। प्रकाशित करने के लिए public/ को ओवरराइट करें",
   "admin.footer.copyright": "एडमिन पैनल © 2026",
-
   "footer.declPrefix": "अस्वीकरण: ",
   "footer.backTop": "ऊपर जाएं",
   "footer.friends": "मित्र: ",
   "footer.admin": "एडमिन पैनल",
   "footer.contactPrefix": "कॉपीराइट, रिपोर्टिंग, शिकायत और सुझावों के लिए, कृपया ईमेल करें: ",
-
   "toast.pinned": "पिन हो गया",
   "toast.unpinned": "अनपिन हो गया",
   "toast.networkError": "ऑपरेशन विफल, नेटवर्क या लॉगिन जांचें",
   "toast.notFound": "लेख नहीं मिला",
-
   "mode.cloud": "क्लाउड",
   "mode.local": "स्थानीय",
   "loading.default": "लोड हो रहा है…",
   "loading.cloud": "क्लाउड से लोड हो रहा है…",
   "loading.local": "लोड हो रहा है…",
   "error.loadFail": "लोड विफल, स्थानीय सामग्री दिखा रहे हैं",
-
   "confirm.yes": "ठीक है",
   "confirm.cancel": "रद्द करें",
-
   "i18n.langLabel": "भाषा",
-
   "toc.title": "विषय सूची",
   "post.untitled": "(शीर्षक नहीं)",
   "post.defaultTitle": "बिना शीर्षक लेख",

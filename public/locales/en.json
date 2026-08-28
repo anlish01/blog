@@ -3,32 +3,25 @@
   "site.subtitle": "Lightweight Blog",
   "site.loading": "Loading",
   "site.desc": "Zero-dependency lightweight blog, open by double-clicking; supports Cloudflare Pages / Workers cloud storage.",
-
   "nav.home": "Home",
   "nav.tags": "Tags",
   "nav.archive": "Archive",
   "nav.about": "About",
   "nav.admin": "Admin Panel",
   "nav.toggle": "Open navigation",
-
   "theme.toggle": "Toggle dark/light mode",
   "search.toggle": "Search articles",
   "search.placeholder": "Search articles…",
   "search.close": "Close search",
-
   "home.latest": "Latest Posts",
   "home.noPosts": "No posts yet.",
   "home.loadFail": "Failed to load posts",
-
   "featured.title": "Featured Articles",
-
   "archive.title": "Archive",
   "archive.year": "",
   "archive.month": "",
   "archive.count": "posts",
-
   "tags.title": "Tags",
-
   "about.title": "About",
   "about.desc": "A zero-dependency, double-click-to-open lightweight blog",
   "about.posts": "posts",
@@ -40,7 +33,6 @@
   "about.firstUse": "First use",
   "about.cloudMode": "Cloud mode",
   "about.staticMode": "Static mode",
-
   "post.readMore": "Read more",
   "post.minRead": "min read",
   "post.views": "views",
@@ -57,7 +49,6 @@
   "post.backHome": "Back to home",
   "post.notFound": "Content not found",
   "post.loadFail": "Failed to load content",
-
   "comment.title": "Comments",
   "comment.hint": "Enter your name and comment below",
   "comment.authorPlaceholder": "Name",
@@ -72,11 +63,9 @@
   "comment.reply": "Reply",
   "comment.replyTo": "Reply to {author}",
   "comment.cancelReply": "Cancel reply",
-
   "pagination.page": "Page {current} / {total}",
   "pagination.prev": "Previous",
   "pagination.next": "Next",
-
   "editor.title": "Editor",
   "editor.newPost": "New Post",
   "editor.editing": "Edit",
@@ -115,7 +104,6 @@
   "editor.noTitle": "Please enter a title",
   "editor.passwordShort": "Password must be at least 4 characters",
   "editor.notFound": "Post not found",
-
   "admin.login": "Admin Login",
   "admin.setupPwd": "Set Admin Password",
   "admin.loginTitle": "Admin Verification",
@@ -137,7 +125,6 @@
   "admin.firstLoginWarn": "For security, please change your password right after login. Shown once only.",
   "admin.firstLoginLater": "Later",
   "admin.firstLoginChange": "Change password",
-
   "admin.sidebar.overview": "Overview",
   "admin.sidebar.dashboard": "Dashboard",
   "admin.sidebar.postManage": "Posts",
@@ -154,7 +141,6 @@
   "admin.sidebar.admin": "Admin",
   "admin.sidebar.adminDesc": "Blog administrator",
   "admin.sidebar.logout": "Logout",
-
   "admin.header.toggleMenu": "Toggle menu",
   "admin.header.preview": "Preview site",
   "admin.header.newComment": "New comment alerts",
@@ -163,7 +149,6 @@
   "admin.header.profile": "Profile",
   "admin.header.changePwd": "Change Password",
   "admin.header.viewAllPending": "View all pending →",
-
   "admin.dashboard.title": "Dashboard",
   "admin.dashboard.desc": "Site overview & 30-day trends",
   "admin.dashboard.visitTrend": "30-Day Visit Trend",
@@ -190,7 +175,6 @@
   "admin.dashboard.cloudOnly": "Visit trends require cloud mode (Cloudflare)",
   "admin.dashboard.noData": "No data",
   "admin.dashboard.peak": "(peak",
-
   "admin.postList.title": "All Posts",
   "admin.postList.desc": "Manage your published and draft posts",
   "admin.postList.search": "Search title / tags…",
@@ -219,7 +203,6 @@
   "admin.postList.deleteConfirm": "Delete \"{title}\"? This cannot be undone.",
   "admin.postList.deleted": "Deleted",
   "admin.postList.deleteFail": "Delete failed: ",
-
   "admin.editor.newPost": "New Post",
   "admin.editor.editPost": "Edit Post",
   "admin.editor.titlePlaceholder": "Post title",
@@ -247,7 +230,6 @@
   "admin.editor.savedLocal": "Saved locally, export posts.js to publish",
   "admin.editor.saveFail": "Save failed",
   "admin.editor.notFound": "Post not found",
-
   "admin.comments.title": "All Comments",
   "admin.comments.pending": "Pending Comments",
   "admin.comments.desc": "Review and manage reader comments",
@@ -268,7 +250,6 @@
   "admin.comments.deleteConfirm": "Delete this comment?",
   "admin.comments.deleted": "Deleted",
   "admin.comments.approvedOk": "Approved",
-
   "admin.categories.title": "Category Management",
   "admin.categories.desc": "Categories classify posts (one per post), set in editor. Rename / delete supported.",
   "admin.categories.staticHint": "Read-only in static mode",
@@ -279,7 +260,6 @@
   "admin.categories.delete": "Delete",
   "admin.categories.renameOk": "Renamed",
   "admin.categories.deleteConfirm": "Remove \"{name}\" from all posts?",
-
   "admin.tags.title": "Tag Management",
   "admin.tags.desc": "Tags are keyword labels (multiple per post), set in editor. Rename / delete supported.",
   "admin.tags.colTag": "Tag",
@@ -289,7 +269,6 @@
   "admin.tags.delete": "Delete",
   "admin.tags.renameOk": "Renamed",
   "admin.tags.deleteConfirm": "Delete tag \"{name}\"?",
-
   "admin.media.title": "Media Library",
   "admin.media.desc": "Upload and manage images (stored in D1, max 2MB recommended)",
   "admin.media.upload": "Upload Image",
@@ -306,7 +285,6 @@
   "admin.media.uploaded": "Uploaded",
   "admin.media.uploadFail": "Upload failed: ",
   "admin.media.readFail": "Read failed",
-
   "admin.settings.title": "Blog Settings",
   "admin.settings.desc": "Site info, profile, and navigation menu",
   "admin.settings.save": "Save Settings",
@@ -337,36 +315,29 @@
   "admin.settings.subMenu": "Submenu",
   "admin.settings.addMenuItem": "Add menu item",
   "admin.settings.resetDefault": "Reset to default nav",
-
   "admin.error.apiFetchUnavailable": "apiFetch unavailable",
   "admin.toast.exportNotSupported": "Export not supported in current environment",
   "admin.toast.exportedPostsJs": "Exported posts.js",
   "admin.toast.exportedAll": "Exported posts.js + feed.xml + sitemap.xml. Overwrite public/ to publish",
   "admin.footer.copyright": "Admin Panel © 2026",
-
   "footer.declPrefix": "Disclaimer: ",
   "footer.backTop": "Back to top",
   "footer.friends": "Friends: ",
   "footer.admin": "Admin Panel",
   "footer.contactPrefix": "For copyright, reporting, complaints and suggestions, please email: ",
-
   "toast.pinned": "Pinned",
   "toast.unpinned": "Unpinned",
   "toast.networkError": "Operation failed, check network or login",
   "toast.notFound": "Post not found",
-
   "mode.cloud": "Cloud",
   "mode.local": "Local",
   "loading.default": "Loading…",
   "loading.cloud": "Loading from cloud…",
   "loading.local": "Loading…",
   "error.loadFail": "Load failed, showing local content",
-
   "confirm.yes": "OK",
   "confirm.cancel": "Cancel",
-
   "i18n.langLabel": "Language",
-
   "toc.title": "Contents",
   "post.untitled": "(No title)",
   "post.defaultTitle": "Untitled article",

@@ -3,32 +3,25 @@
   "site.subtitle": "轻量博客",
   "site.loading": "加载中",
   "site.desc": "零依赖轻量博客，双击即开；支持 Cloudflare Pages / Workers 云端存储。",
-
   "nav.home": "首页",
   "nav.tags": "标签",
   "nav.archive": "归档",
   "nav.about": "关于",
   "nav.admin": "写作后台",
   "nav.toggle": "展开导航",
-
   "theme.toggle": "切换深色/浅色模式",
   "search.toggle": "搜索文章",
   "search.placeholder": "搜索文章…",
   "search.close": "关闭搜索",
-
   "home.latest": "最新发布",
   "home.noPosts": "这里还没有文章。",
   "home.loadFail": "加载文章列表失败",
-
   "featured.title": "精选文章",
-
   "archive.title": "归档",
   "archive.year": "年",
   "archive.month": "月",
   "archive.count": "篇",
-
   "tags.title": "标签",
-
   "about.title": "关于",
   "about.desc": "一个零依赖、双击即开的轻量博客",
   "about.posts": "篇内容",
@@ -40,7 +33,6 @@
   "about.firstUse": "首次使用",
   "about.cloudMode": "云端模式",
   "about.staticMode": "静态模式",
-
   "post.readMore": "阅读原文",
   "post.minRead": "分钟阅读",
   "post.views": "次浏览",
@@ -57,7 +49,6 @@
   "post.backHome": "返回首页",
   "post.notFound": "内容不存在",
   "post.loadFail": "正文加载失败",
-
   "comment.title": "评论",
   "comment.hint": "在此输入昵称与内容发表评论",
   "comment.authorPlaceholder": "昵称",
@@ -72,11 +63,9 @@
   "comment.reply": "回复",
   "comment.replyTo": "回复 {author}",
   "comment.cancelReply": "取消回复",
-
   "pagination.page": "第 {current} / {total} 页",
   "pagination.prev": "上一页",
   "pagination.next": "下一页",
-
   "editor.title": "写作台",
   "editor.newPost": "新文章",
   "editor.editing": "编辑",
@@ -115,7 +104,6 @@
   "editor.noTitle": "请填写标题",
   "editor.passwordShort": "密码至少 4 位",
   "editor.notFound": "未找到该文章",
-
   "admin.login": "管理员登录",
   "admin.setupPwd": "设置管理密码",
   "admin.loginTitle": "管理员验证",
@@ -137,7 +125,6 @@
   "admin.firstLoginWarn": "出于安全考虑，建议首次登录后立即修改密码，本提示仅此一次。",
   "admin.firstLoginLater": "暂不修改",
   "admin.firstLoginChange": "前往修改密码",
-
   "admin.sidebar.overview": "概览",
   "admin.sidebar.dashboard": "仪表盘",
   "admin.sidebar.postManage": "文章管理",
@@ -154,7 +141,6 @@
   "admin.sidebar.admin": "管理员",
   "admin.sidebar.adminDesc": "个人博客管理员",
   "admin.sidebar.logout": "退出登录",
-
   "admin.header.toggleMenu": "展开/折叠菜单",
   "admin.header.preview": "预览站点",
   "admin.header.newComment": "新评论提醒",
@@ -163,7 +149,6 @@
   "admin.header.profile": "个人资料",
   "admin.header.changePwd": "修改密码",
   "admin.header.viewAllPending": "查看全部待审核 →",
-
   "admin.dashboard.title": "仪表盘",
   "admin.dashboard.desc": "站点概览与近 30 天趋势",
   "admin.dashboard.visitTrend": "近 30 天访问趋势",
@@ -190,7 +175,6 @@
   "admin.dashboard.cloudOnly": "访问趋势需在云端模式（Cloudflare）下查看",
   "admin.dashboard.noData": "无数据",
   "admin.dashboard.peak": "（峰值",
-
   "admin.postList.title": "全部文章",
   "admin.postList.desc": "管理你已发布与草稿中的文章",
   "admin.postList.search": "搜索标题 / 标签…",
@@ -219,7 +203,6 @@
   "admin.postList.deleteConfirm": "确定删除《{title}》？此操作不可恢复。",
   "admin.postList.deleted": "已删除",
   "admin.postList.deleteFail": "删除失败：",
-
   "admin.editor.newPost": "写新文章",
   "admin.editor.editPost": "编辑文章",
   "admin.editor.titlePlaceholder": "文章标题",
@@ -247,7 +230,6 @@
   "admin.editor.savedLocal": "本地已保存，可导出 posts.js 发布",
   "admin.editor.saveFail": "保存失败",
   "admin.editor.notFound": "未找到该文章",
-
   "admin.comments.title": "全部评论",
   "admin.comments.pending": "待审核评论",
   "admin.comments.desc": "审核与管理读者评论",
@@ -268,7 +250,6 @@
   "admin.comments.deleteConfirm": "确定删除这条评论？",
   "admin.comments.deleted": "已删除",
   "admin.comments.approvedOk": "已通过",
-
   "admin.categories.title": "分类管理",
   "admin.categories.desc": "分类是对文章的归类（每篇文章一个分类），在编辑器中设置。可重命名 / 删除。",
   "admin.categories.staticHint": "静态模式只读",
@@ -279,7 +260,6 @@
   "admin.categories.delete": "删除",
   "admin.categories.renameOk": "已重命名",
   "admin.categories.deleteConfirm": "将「{name}」从所有文章中移除，确定？",
-
   "admin.tags.title": "标签管理",
   "admin.tags.desc": "标签是文章的关键词标记（每篇文章可多个），在编辑器中设置。可重命名 / 删除。",
   "admin.tags.colTag": "标签",
@@ -289,7 +269,6 @@
   "admin.tags.delete": "删除",
   "admin.tags.renameOk": "已重命名",
   "admin.tags.deleteConfirm": "删除标签「{name}」，确定？",
-
   "admin.media.title": "媒体资源",
   "admin.media.desc": "上传与管理图片（云端存储于 D1，单张建议 ≤ 2MB）",
   "admin.media.upload": "上传图片",
@@ -306,7 +285,6 @@
   "admin.media.uploaded": "已上传",
   "admin.media.uploadFail": "上传失败：",
   "admin.media.readFail": "读取失败",
-
   "admin.settings.title": "博客设置",
   "admin.settings.desc": "站点信息、个人资料与导航菜单",
   "admin.settings.save": "保存设置",
@@ -337,36 +315,29 @@
   "admin.settings.subMenu": "子菜单",
   "admin.settings.addMenuItem": "添加菜单项",
   "admin.settings.resetDefault": "重置为默认导航",
-
   "admin.error.apiFetchUnavailable": "apiFetch 不可用",
   "admin.toast.exportNotSupported": "当前环境不支持导出",
   "admin.toast.exportedPostsJs": "已导出 posts.js",
   "admin.toast.exportedAll": "已导出 posts.js + feed.xml + sitemap.xml，覆盖 public/ 即可发布",
   "admin.footer.copyright": "博客管理后台 © 2026",
-
   "footer.declPrefix": "站点声明：",
   "footer.backTop": "返回顶部",
   "footer.friends": "友情链接：",
   "footer.admin": "写作后台",
   "footer.contactPrefix": "相关侵权、举报、投诉及建议等，请发邮件至 E-mail：",
-
   "toast.pinned": "已置顶",
   "toast.unpinned": "已取消置顶",
   "toast.networkError": "操作失败，请检查网络或登录状态",
   "toast.notFound": "未找到该文章",
-
   "mode.cloud": "云端模式",
   "mode.local": "本地模式",
   "loading.default": "加载中…",
   "loading.cloud": "正在从云端加载正文…",
   "loading.local": "正在加载正文…",
   "error.loadFail": "正文加载失败已显示本地内容",
-
   "confirm.yes": "确定",
   "confirm.cancel": "取消",
-
   "i18n.langLabel": "语言",
-
   "toc.title": "目录",
   "post.untitled": "(无标题)",
   "post.defaultTitle": "未命名文章",

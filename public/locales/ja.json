@@ -3,32 +3,25 @@
   "site.subtitle": "軽量ブログ",
   "site.loading": "読み込み中",
   "site.desc": "依存関係ゼロの軽量ブログ。ダブルクリックで開く。Cloudflare Pages / Workers クラウドストレージをサポート。",
-
   "nav.home": "ホーム",
   "nav.tags": "タグ",
   "nav.archive": "アーカイブ",
   "nav.about": "概要",
   "nav.admin": "管理パネル",
   "nav.toggle": "ナビゲーションを開く",
-
   "theme.toggle": "ダーク/ライトモード切替",
   "search.toggle": "記事を検索",
   "search.placeholder": "記事を検索…",
   "search.close": "検索を閉じる",
-
   "home.latest": "最新の記事",
   "home.noPosts": "まだ記事がありません。",
   "home.loadFail": "記事の読み込みに失敗しました",
-
   "featured.title": "おすすめ記事",
-
   "archive.title": "アーカイブ",
   "archive.year": "",
   "archive.month": "",
   "archive.count": "件",
-
   "tags.title": "タグ",
-
   "about.title": "概要",
   "about.desc": "依存関係ゼロ、ダブルクリックで開く軽量ブログ",
   "about.posts": "記事",
@@ -40,7 +33,6 @@
   "about.firstUse": "初回利用",
   "about.cloudMode": "クラウドモード",
   "about.staticMode": "スタティックモード",
-
   "post.readMore": "続きを読む",
   "post.minRead": "分で読める",
   "post.views": "閲覧",
@@ -57,7 +49,6 @@
   "post.backHome": "ホームに戻る",
   "post.notFound": "コンテンツが見つかりません",
   "post.loadFail": "コンテンツの読み込みに失敗しました",
-
   "comment.title": "コメント",
   "comment.hint": "名前とコメントを入力してください",
   "comment.authorPlaceholder": "名前",
@@ -72,11 +63,9 @@
   "comment.reply": "返信",
   "comment.replyTo": "{author}に返信",
   "comment.cancelReply": "返信キャンセル",
-
   "pagination.page": "{current} / {total} ページ",
   "pagination.prev": "← 前へ",
   "pagination.next": "次へ →",
-
   "editor.title": "エディタ",
   "editor.newPost": "新しい記事",
   "editor.editing": "編集",
@@ -115,7 +104,6 @@
   "editor.noTitle": "タイトルを入力してください",
   "editor.passwordShort": "パスワードは4文字以上で設定してください",
   "editor.notFound": "記事が見つかりません",
-
   "admin.login": "管理ログイン",
   "admin.setupPwd": "管理者パスワードを設定",
   "admin.loginTitle": "管理者認証",
@@ -137,7 +125,6 @@
   "admin.firstLoginWarn": "セキュリティのため、ログイン後すぐにパスワードを変更してください。この表示は一度きりです。",
   "admin.firstLoginLater": "後で変更",
   "admin.firstLoginChange": "パスワードを変更",
-
   "admin.sidebar.overview": "概要",
   "admin.sidebar.dashboard": "ダッシュボード",
   "admin.sidebar.postManage": "記事",
@@ -154,7 +141,6 @@
   "admin.sidebar.admin": "管理者",
   "admin.sidebar.adminDesc": "ブログ管理者",
   "admin.sidebar.logout": "ログアウト",
-
   "admin.header.toggleMenu": "メニュー切替",
   "admin.header.preview": "サイトをプレビュー",
   "admin.header.newComment": "新しいコメントの通知",
@@ -163,7 +149,6 @@
   "admin.header.profile": "プロフィール",
   "admin.header.changePwd": "パスワード変更",
   "admin.header.viewAllPending": "承認待ちをすべて表示 →",
-
   "admin.dashboard.title": "ダッシュボード",
   "admin.dashboard.desc": "サイト概要 & 30日間のトレンド",
   "admin.dashboard.visitTrend": "30日間のアクセス推移",
@@ -190,7 +175,6 @@
   "admin.dashboard.cloudOnly": "アクセス推移はクラウドモード（Cloudflare）が必要です",
   "admin.dashboard.noData": "データがありません",
   "admin.dashboard.peak": "（ピーク",
-
   "admin.postList.title": "全記事",
   "admin.postList.desc": "公開済みおよび下書きの記事を管理",
   "admin.postList.search": "タイトル / タグで検索…",
@@ -219,7 +203,6 @@
   "admin.postList.deleteConfirm": "「{title}」を削除しますか？この操作は取り消せません。",
   "admin.postList.deleted": "削除しました",
   "admin.postList.deleteFail": "削除に失敗しました：",
-
   "admin.editor.newPost": "新しい記事",
   "admin.editor.editPost": "記事を編集",
   "admin.editor.titlePlaceholder": "記事のタイトル",
@@ -247,7 +230,6 @@
   "admin.editor.savedLocal": "ローカルに保存しました。posts.jsをエクスポートして公開してください",
   "admin.editor.saveFail": "保存に失敗しました",
   "admin.editor.notFound": "記事が見つかりません",
-
   "admin.comments.title": "全コメント",
   "admin.comments.pending": "承認待ちコメント",
   "admin.comments.desc": "読者のコメントを確認・管理",
@@ -268,7 +250,6 @@
   "admin.comments.deleteConfirm": "このコメントを削除しますか？",
   "admin.comments.deleted": "削除しました",
   "admin.comments.approvedOk": "承認しました",
-
   "admin.categories.title": "カテゴリ管理",
   "admin.categories.desc": "カテゴリは記事を分類します（1記事に1カテゴリ）。エディタで設定します。名前変更 / 削除が可能です。",
   "admin.categories.staticHint": "スタティックモードでは読み取り専用です",
@@ -279,7 +260,6 @@
   "admin.categories.delete": "削除",
   "admin.categories.renameOk": "名前を変更しました",
   "admin.categories.deleteConfirm": "すべての記事から「{name}」を削除しますか？",
-
   "admin.tags.title": "タグ管理",
   "admin.tags.desc": "タグはキーワードラベルです（1記事に複数設定可能）。エディタで設定します。名前変更 / 削除が可能です。",
   "admin.tags.colTag": "タグ",
@@ -289,7 +269,6 @@
   "admin.tags.delete": "削除",
   "admin.tags.renameOk": "名前を変更しました",
   "admin.tags.deleteConfirm": "タグ「{name}」を削除しますか？",
-
   "admin.media.title": "メディアライブラリ",
   "admin.media.desc": "画像のアップロードと管理（D1に保存、推奨最大2MB）",
   "admin.media.upload": "画像をアップロード",
@@ -306,7 +285,6 @@
   "admin.media.uploaded": "アップロードしました",
   "admin.media.uploadFail": "アップロードに失敗しました：",
   "admin.media.readFail": "読み込みに失敗しました",
-
   "admin.settings.title": "ブログ設定",
   "admin.settings.desc": "サイト情報、プロフィール、ナビゲーションメニュー",
   "admin.settings.save": "設定を保存",
@@ -337,36 +315,29 @@
   "admin.settings.subMenu": "サブメニュー",
   "admin.settings.addMenuItem": "メニューアイテムを追加",
   "admin.settings.resetDefault": "デフォルトナビに戻す",
-
   "admin.error.apiFetchUnavailable": "apiFetch が利用できません",
   "admin.toast.exportNotSupported": "現在の環境ではエクスポートがサポートされていません",
   "admin.toast.exportedPostsJs": "posts.js をエクスポートしました",
   "admin.toast.exportedAll": "posts.js + feed.xml + sitemap.xml をエクスポートしました。public/ を上書きして公開",
   "admin.footer.copyright": "管理パネル © 2026",
-
   "footer.declPrefix": "免責事項：",
   "footer.backTop": "トップに戻る",
   "footer.friends": "ブログrolls：",
   "footer.admin": "管理パネル",
   "footer.contactPrefix": "著作権侵害、報告、苦情、ご意見等については、メールにてお問い合わせください：",
-
   "toast.pinned": "ピン留めしました",
   "toast.unpinned": "ピン留めを解除しました",
   "toast.networkError": "操作に失敗しました。ネットワークまたはログインを確認してください",
   "toast.notFound": "記事が見つかりません",
-
   "mode.cloud": "クラウド",
   "mode.local": "ローカル",
   "loading.default": "読み込み中…",
   "loading.cloud": "クラウドから読み込み中…",
   "loading.local": "読み込み中…",
   "error.loadFail": "読み込み失敗、ローカルコンテンツを表示しています",
-
   "confirm.yes": "OK",
   "confirm.cancel": "キャンセル",
-
   "i18n.langLabel": "言語",
-
   "toc.title": "目次",
   "post.untitled": "（タイトルなし）",
   "post.defaultTitle": "無題の記事",

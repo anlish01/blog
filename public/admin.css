@@ -401,11 +401,3 @@
 }
 
 /* ========== 可视化导航编辑器 ========== */
-.ab-nav-list { display: flex; flex-direction: column; gap: 6px; }
-.ab-nav-row { display: flex; align-items: center; gap: 6px; }
-.ab-nav-row.child { padding-left: 28px; }
-.ab-nav-ico { flex-shrink: 0; color: var(--ab-muted); display: flex; align-items: center; }
-.ab-nav-text { flex: 1; min-width: 100px; }
-.ab-nav-url { flex: 1.5; min-width: 120px; }
-.ab-btn-icon.danger { color: var(--ab-danger); }
-.ab-btn-icon.danger:hover { background: var(--ab-danger-weak); }

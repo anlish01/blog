@@ -3,32 +3,25 @@
   "site.subtitle": "경량 블로그",
   "site.loading": "로딩 중",
   "site.desc": "의존성 없는 경량 블로그, 더블클릭으로 열기; Cloudflare Pages / Workers 클라우드 저장 지원.",
-
   "nav.home": "홈",
   "nav.tags": "태그",
   "nav.archive": "아카이브",
   "nav.about": "소개",
   "nav.admin": "관리자 패널",
   "nav.toggle": "탐색 열기",
-
   "theme.toggle": "다크/라이트 모드 전환",
   "search.toggle": "글 검색",
   "search.placeholder": "글 검색…",
   "search.close": "검색 닫기",
-
   "home.latest": "최신 글",
   "home.noPosts": "아직 글이 없습니다.",
   "home.loadFail": "글 불러오기 실패",
-
   "featured.title": "주요 글",
-
   "archive.title": "아카이브",
   "archive.year": "",
   "archive.month": "",
   "archive.count": "글",
-
   "tags.title": "태그",
-
   "about.title": "소개",
   "about.desc": "의존성 없는 더블클릭 경량 블로그",
   "about.posts": "글",
@@ -40,7 +33,6 @@
   "about.firstUse": "최초 사용",
   "about.cloudMode": "클라우드 모드",
   "about.staticMode": "정적 모드",
-
   "post.readMore": "더 읽기",
   "post.minRead": "분 소요",
   "post.views": "조회수",
@@ -57,7 +49,6 @@
   "post.backHome": "홈으로 돌아가기",
   "post.notFound": "글을 찾을 수 없음",
   "post.loadFail": "내용 불러오기 실패",
-
   "comment.title": "댓글",
   "comment.hint": "이름과 댓글을 입력하세요",
   "comment.authorPlaceholder": "이름",
@@ -72,11 +63,9 @@
   "comment.reply": "답글",
   "comment.replyTo": "{author}에게 답글",
   "comment.cancelReply": "답글 취소",
-
   "pagination.page": "{current} / {total} 페이지",
   "pagination.prev": "이전",
   "pagination.next": "다음",
-
   "editor.title": "에디터",
   "editor.newPost": "새 글",
   "editor.editing": "편집",
@@ -115,7 +104,6 @@
   "editor.noTitle": "제목을 입력해주세요",
   "editor.passwordShort": "비밀번호는 최소 4자 이상이어야 합니다",
   "editor.notFound": "글을 찾을 수 없음",
-
   "admin.login": "관리자 로그인",
   "admin.setupPwd": "관리자 비밀번호 설정",
   "admin.loginTitle": "관리자 인증",
@@ -137,7 +125,6 @@
   "admin.firstLoginWarn": "보안을 위해 로그인 후 즉시 비밀번호를 변경하시기 바랍니다. 이 안내는 한 번만 표시됩니다.",
   "admin.firstLoginLater": "나중에 변경",
   "admin.firstLoginChange": "비밀번호 변경",
-
   "admin.sidebar.overview": "개요",
   "admin.sidebar.dashboard": "대시보드",
   "admin.sidebar.postManage": "글 관리",
@@ -154,7 +141,6 @@
   "admin.sidebar.admin": "관리자",
   "admin.sidebar.adminDesc": "블로그 관리자",
   "admin.sidebar.logout": "로그아웃",
-
   "admin.header.toggleMenu": "메뉴 전환",
   "admin.header.preview": "사이트 미리보기",
   "admin.header.newComment": "새 댓글 알림",
@@ -163,7 +149,6 @@
   "admin.header.profile": "프로필",
   "admin.header.changePwd": "비밀번호 변경",
   "admin.header.viewAllPending": "대기 중인 댓글 모두 보기 →",
-
   "admin.dashboard.title": "대시보드",
   "admin.dashboard.desc": "사이트 개요 및 30일 추세",
   "admin.dashboard.visitTrend": "30일 방문 추세",
@@ -190,7 +175,6 @@
   "admin.dashboard.cloudOnly": "방문 추세는 클라우드 모드(Cloudflare)가 필요합니다",
   "admin.dashboard.noData": "데이터 없음",
   "admin.dashboard.peak": "(최고점",
-
   "admin.postList.title": "전체 글",
   "admin.postList.desc": "발행된 글과 임시저장 글 관리",
   "admin.postList.search": "제목 / 태그 검색…",
@@ -219,7 +203,6 @@
   "admin.postList.deleteConfirm": "\"{title}\"을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
   "admin.postList.deleted": "삭제됨",
   "admin.postList.deleteFail": "삭제 실패: ",
-
   "admin.editor.newPost": "새 글",
   "admin.editor.editPost": "글 편집",
   "admin.editor.titlePlaceholder": "글 제목",
@@ -247,7 +230,6 @@
   "admin.editor.savedLocal": "로컬에 저장됨, posts.js를 내보내어 발행",
   "admin.editor.saveFail": "저장 실패",
   "admin.editor.notFound": "글을 찾을 수 없음",
-
   "admin.comments.title": "전체 댓글",
   "admin.comments.pending": "대기 중인 댓글",
   "admin.comments.desc": "독자 댓글 검토 및 관리",
@@ -268,7 +250,6 @@
   "admin.comments.deleteConfirm": "이 댓글을 삭제하시겠습니까?",
   "admin.comments.deleted": "삭제됨",
   "admin.comments.approvedOk": "승인됨",
-
   "admin.categories.title": "카테고리 관리",
   "admin.categories.desc": "카테고리는 글을 분류합니다 (글당 하나), 에디터에서 설정합니다. 이름 변경 / 삭제 지원.",
   "admin.categories.staticHint": "정적 모드에서는 읽기 전용",
@@ -279,7 +260,6 @@
   "admin.categories.delete": "삭제",
   "admin.categories.renameOk": "이름 변경됨",
   "admin.categories.deleteConfirm": "모든 글에서 \"{name}\"을(를) 제거하시겠습니까?",
-
   "admin.tags.title": "태그 관리",
   "admin.tags.desc": "태그는 키워드 라벨입니다 (글당 여러 개), 에디터에서 설정합니다. 이름 변경 / 삭제 지원.",
   "admin.tags.colTag": "태그",
@@ -289,7 +269,6 @@
   "admin.tags.delete": "삭제",
   "admin.tags.renameOk": "이름 변경됨",
   "admin.tags.deleteConfirm": "\"{name}\" 태그를 삭제하시겠습니까?",
-
   "admin.media.title": "미디어 라이브러리",
   "admin.media.desc": "이미지 업로드 및 관리 (D1에 저장, 최대 2MB 권장)",
   "admin.media.upload": "이미지 업로드",
@@ -306,7 +285,6 @@
   "admin.media.uploaded": "업로드됨",
   "admin.media.uploadFail": "업로드 실패: ",
   "admin.media.readFail": "읽기 실패",
-
   "admin.settings.title": "블로그 설정",
   "admin.settings.desc": "사이트 정보, 프로필, 네비게이션 메뉴",
   "admin.settings.save": "설정 저장",
@@ -337,36 +315,29 @@
   "admin.settings.subMenu": "서브메뉴",
   "admin.settings.addMenuItem": "메뉴 항목 추가",
   "admin.settings.resetDefault": "기본 내비로 초기화",
-
   "admin.error.apiFetchUnavailable": "apiFetch를 사용할 수 없습니다",
   "admin.toast.exportNotSupported": "현재 환경에서는 내보내기가 지원되지 않습니다",
   "admin.toast.exportedPostsJs": "posts.js를 내보내기 완료",
   "admin.toast.exportedAll": "posts.js + feed.xml + sitemap.xml을 내보내기 완료. public/을 덮어쓰면 발행",
   "admin.footer.copyright": "관리자 패널 © 2026",
-
   "footer.declPrefix": "면책 조항: ",
   "footer.backTop": "맨 위로",
   "footer.friends": "친구: ",
   "footer.admin": "관리자 패널",
   "footer.contactPrefix": "저작권, 신고, 불만, 제안 등은 이메일로 문의해 주세요: ",
-
   "toast.pinned": "고정됨",
   "toast.unpinned": "고정 해제됨",
   "toast.networkError": "작업 실패, 네트워크 또는 로그인을 확인하세요",
   "toast.notFound": "글을 찾을 수 없음",
-
   "mode.cloud": "클라우드",
   "mode.local": "로컬",
   "loading.default": "로딩 중…",
   "loading.cloud": "클라우드에서 불러오는 중…",
   "loading.local": "불러오는 중…",
   "error.loadFail": "불러오기 실패, 로컬 내용 표시",
-
   "confirm.yes": "확인",
   "confirm.cancel": "취소",
-
   "i18n.langLabel": "언어",
-
   "toc.title": "목차",
   "post.untitled": "(제목 없음)",
   "post.defaultTitle": "제목 없는 글",
