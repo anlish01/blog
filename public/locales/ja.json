@@ -386,7 +386,7 @@
   "admin.postList.deleteFailNetwork": "削除に失敗しました。ネットワークを確認してください",
   "admin.postList.deleteSuccessLocal": "削除しました：posts.js をダウンロードして上書きしてください",
   "ad.label": "広告",
-  "home.categoryLabel": "カテゴリ",
+  "home.categoryLabel": "タグ",
   "archive.unknown": "不明",
   "search.noMatch": "一致する記事がありません",
   "about.firstUseHint": "index.html をダブルクリックして開始。",

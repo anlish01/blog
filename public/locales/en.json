@@ -386,7 +386,7 @@
   "admin.postList.deleteFailNetwork": "Delete failed, check network",
   "admin.postList.deleteSuccessLocal": "Deleted: download posts.js and overwrite to apply",
   "ad.label": "Ad",
-  "home.categoryLabel": "Categories",
+  "home.categoryLabel": "Tags",
   "archive.unknown": "Unknown",
   "search.noMatch": "No matching posts",
   "about.firstUseHint": "Double-click index.html to get started.",

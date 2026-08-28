@@ -386,7 +386,7 @@
   "admin.postList.deleteFailNetwork": "हटाना विफल, नेटवर्क जांचें",
   "admin.postList.deleteSuccessLocal": "हटा दिया गया: posts.js डाउनलोड करके ओवरराइट करें",
   "ad.label": "विज्ञापन",
-  "home.categoryLabel": "श्रेणियाँ",
+  "home.categoryLabel": "टैग",
   "archive.unknown": "अज्ञात",
   "search.noMatch": "कोई मेल खाने वाला लेख नहीं",
   "about.firstUseHint": "शुरू करने के लिए index.html पर डबल-क्लिक करें।",

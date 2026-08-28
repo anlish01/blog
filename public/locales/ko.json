@@ -386,7 +386,7 @@
   "admin.postList.deleteFailNetwork": "삭제 실패, 네트워크를 확인하세요",
   "admin.postList.deleteSuccessLocal": "삭제됨: posts.js를 다운로드하여 덮어쓰세요",
   "ad.label": "광고",
-  "home.categoryLabel": "분류",
+  "home.categoryLabel": "태그",
   "archive.unknown": "알 수 없음",
   "search.noMatch": "일치하는 글이 없습니다",
   "about.firstUseHint": "index.html을 더블클릭하여 시작하세요.",

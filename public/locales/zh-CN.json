@@ -386,7 +386,7 @@
   "admin.postList.deleteFailNetwork": "删除失败，请检查网络",
   "admin.postList.deleteSuccessLocal": "删除成功：请用下载的 posts.js 覆盖站点文件，刷新后删除生效",
   "ad.label": "广告",
-  "home.categoryLabel": "分类",
+  "home.categoryLabel": "标签",
   "archive.unknown": "未知",
   "search.noMatch": "没有匹配的文章",
   "about.firstUseHint": "双击 index.html 即可开始。",

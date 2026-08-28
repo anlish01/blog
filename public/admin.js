@@ -230,7 +230,6 @@
       { group: t('admin.sidebar.postManage'), items: [
         { key: 'posts', label: t('admin.sidebar.allPosts'), icon: 'list', href: '/admin/posts' },
         { key: 'write', label: t('admin.sidebar.writeNew'), icon: 'pen', href: '/admin/posts/new' },
-        { key: 'categories', label: t('admin.sidebar.catManage'), icon: 'tag', href: '/admin/categories' },
         { key: 'tags', label: t('admin.sidebar.tagManage'), icon: 'tag', href: '/admin/tags' }
       ] },
       { group: t('admin.sidebar.commentManage'), items: [
@@ -317,7 +316,6 @@
     if (m) return { key: 'write', page: 'editor', id: decodeURIComponent(m[1]), isNew: false };
     if (path === '/admin' || path === '/admin/') return { key: 'dashboard', page: 'dashboard' };
     if (path === '/admin/posts') return { key: 'posts', page: 'posts' };
-    if (path === '/admin/categories') return { key: 'categories', page: 'categories' };
     if (path === '/admin/tags') return { key: 'tags', page: 'tags' };
     if (path === '/admin/comments') return { key: 'comments', page: 'comments', filter: 'all' };
     if (path === '/admin/comments/pending') return { key: 'comments-pending', page: 'comments', filter: 'pending' };
@@ -469,7 +467,6 @@
     if (route.page === 'dashboard') return pageDashboard(content);
     if (route.page === 'posts') return pagePosts(content);
     if (route.page === 'editor') return pageEditor(content, route);
-    if (route.page === 'categories') return pageCategories(content);
     if (route.page === 'tags') return pageTags(content);
     if (route.page === 'comments') return pageComments(content, route.filter);
     if (route.page === 'media') return pageMedia(content);
@@ -853,13 +850,6 @@
     }).catch(function (e) { mask.querySelector('#abPickerGrid').innerHTML = '<div class="ab-empty"><p>' + t('admin.media.readFail') + '</p></div>'; });
   }
 
-  /* ====================== 分类管理 ====================== */
-  async function pageCategories(content) {
-    content.innerHTML = '<div class="ab-page-head"><div><h1 class="ab-page-title">' + t('admin.categories.title') + '</h1><p class="ab-page-sub">' + t('admin.categories.desc') + '</p></div>' +
-      (cloudOn() ? '' : '<span class="ab-chip" style="background:var(--ab-primary-weak);color:var(--ab-primary)">' + t('admin.categories.staticHint') + '</span>') + '</div>' +
-      '<div class="ab-card"><div class="ab-table-wrap"><table class="ab-table"><thead><tr><th>' + t('admin.categories.colCategory') + '</th><th>' + t('admin.categories.colCount') + '</th><th class="col-actions">' + t('admin.postList.colActions') + '</th></tr></thead><tbody id="abCatBody"></tbody></table></div></div>';
-    await loadTerms(content, 'category', '#abCatBody');
-  }
   async function pageTags(content) {
     content.innerHTML = '<div class="ab-page-head"><div><h1 class="ab-page-title">' + t('admin.tags.title') + '</h1><p class="ab-page-sub">' + t('admin.tags.desc') + '</p></div>' +
       (cloudOn() ? '' : '<span class="ab-chip" style="background:var(--ab-primary-weak);color:var(--ab-primary)">' + t('admin.categories.staticHint') + '</span>') + '</div>' +
