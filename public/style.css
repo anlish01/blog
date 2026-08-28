@@ -1934,23 +1934,34 @@ kbd {
   .brand { font-size: 17px; letter-spacing: 0.3px; }
   .main-nav { gap: 0; }
   .main-nav .nav-link { padding: 6px 9px; font-size: 14px; }
-  /* 分类标签在手机上改为 4 列网格：每个手机厂商宽度自适应（相对宽度），一行固定 4 个 */
+  /* 分类标签在手机上改为 4 列网格：minmax(0,1fr) 保证每列绝对等分、
+   * 长标签也不撑列（超出裁切不换行），因此任何手机宽度都严格一行 4 个 */
   .home-tags {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
     align-items: stretch;
     padding: 10px 14px;
   }
   .home-tags-label { grid-column: 1 / -1; margin-bottom: 2px; }
   .home-tag {
-    justify-content: flex-start;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
     min-width: 0;
+    padding: 4px 6px;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
-  .home-tag-count { flex-shrink: 0; }
+  .home-tag-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .home-tag .home-tag-count { flex: 0 0 auto; margin-left: 2px; }
   .article-footer { justify-content: center; }
   .af-actions { margin-left: 0; width: 100%; justify-content: center; flex-wrap: wrap; }
   .like-bar { margin-top: 22px; }

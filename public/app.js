@@ -1100,7 +1100,7 @@ function renderHomeTagRow(posts, activeTag) {
   html += '<span class="home-tags-label">' + t('home.categoryLabel') + '</span>';
   order.forEach(function (t) {
     var on = t === activeTag;
-    html += '<a class="home-tag' + (on ? ' active' : '') + '" href="' + esc(href('/', { tag: t })) + '" data-home-tag>' + esc(t) + '<span class="home-tag-count">' + counts[t] + '</span></a>';
+    html += '<a class="home-tag' + (on ? ' active' : '') + '" href="' + esc(href('/', { tag: t })) + '" data-home-tag>' + '<span class="home-tag-text">' + esc(t) + '</span>' + '<span class="home-tag-count">' + counts[t] + '</span></a>';
   });
   html += '</div>';
   return html;
