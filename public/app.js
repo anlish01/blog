@@ -367,8 +367,6 @@ function getConfig() {
   var s = _siteSettings;
   var siteInfo = (s && s.site_info != null) ? parseJsonSafe(s.site_info) : {};
   var prof = (s && s.profile != null) ? parseJsonSafe(s.profile) : {};
-  var navRaw = (s && s.nav != null) ? s.nav : null;
-  var nav = Array.isArray(navRaw) ? navRaw : (typeof navRaw === 'string' && navRaw.trim() ? parseJsonSafe(navRaw) : null);
   // 站点信息覆盖静态页脚：版权署名 / 站点声明
   var footer = cfg.footer || {};
   if (siteInfo.copyright) footer = Object.assign({}, footer, { copyrightName: siteInfo.copyright });
@@ -380,7 +378,7 @@ function getConfig() {
     writeToken: cfg.writeToken || '',
     adminPwd: cfg.adminPwd || '',
     pageSize: (typeof cfg.pageSize === 'number' && cfg.pageSize >= 0) ? cfg.pageSize : 8,
-    nav: Array.isArray(nav) ? nav : (Array.isArray(cfg.nav) ? cfg.nav : []),
+    nav: [],
     footer: footer,
     site: siteInfo,        // 站点信息（头像/名称/简介）供关于页等使用
     profile: prof,         // 个人信息（头像/昵称/简介/邮箱）供关于页等使用
@@ -967,37 +965,13 @@ async function saveFileFriendly(name, content, doneText, failText) {
  * ============================================================ */
 function app() { return document.querySelector('#app'); }
 
-  /** 翻译导航项的 text 字段（config.js 中的原始文本会被翻译） */
-  var _navTextMap = {
-    '首页': 'nav.home', '标签': 'nav.tags', '归档': 'nav.archive',
-    '关于': 'nav.about', '写作后台': 'nav.admin'
-  };
-  function tNav(text) {
-    if (!text) return text;
-    var key = _navTextMap[text];
-    return key ? t(key) : text;
-  }
-
   function renderNav(active) {
-  var cfg = getConfig();
-  var navs = cfg.nav.length ? cfg.nav : [
+  var navs = [
     { text: t('nav.home'), url: '/', path: '/' },
     { text: t('nav.tags'), url: '/tags', path: '/tags' },
     { text: t('nav.archive'), url: '/archive', path: '/archive' },
     { text: t('nav.about'), url: '/about', path: '/about' }
   ];
-  // 如果 nav 来自 config.js，翻译已知的中文文本
-  if (cfg.nav.length) {
-    navs = navs.map(function (n) {
-      var item = { text: tNav(n.text), url: n.url, path: n.path };
-      if (n.children && n.children.length) {
-        item.children = n.children.map(function (c) {
-          return { text: tNav(c.text), url: c.url };
-        });
-      }
-      return item;
-    });
-  }
   var links = navs.map(function (n) {
     var raw = n.url || '/';
     var pathKey = n.path || (/^#\//.test(raw) ? raw.slice(1) : (/^\//.test(raw) ? raw : null));
