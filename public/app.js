@@ -854,11 +854,34 @@ function showFirstLoginPwd(defaultPassword) {
   mask.addEventListener('click', function (e) {
     var act = e.target && e.target.getAttribute && e.target.getAttribute('data-act');
     if (e.target === mask || act === 'close' || act === 'later') { close(); goAdmin(); }
-    else if (act === 'change') { close(); goAdmin(); setTimeout(function () { if (window.QingyuAdmin && window.QingyuAdmin.openPwdModal) window.QingyuAdmin.openPwdModal(); }, 350); }
+    else if (act === 'change') { close(); goAdmin(); ensureAdminBundle().then(function () { setTimeout(function () { if (window.QingyuAdmin && window.QingyuAdmin.openPwdModal) window.QingyuAdmin.openPwdModal(); }, 350); }); }
   });
 }
 
 window.showFirstLoginPwd = showFirstLoginPwd;
+
+/* ---------- 后台资源按需加载 ---------- */
+var _adminBundlePromise = null;
+function ensureAdminBundle() {
+  if (window.QingyuAdmin && window.QingyuAdmin.mount) return Promise.resolve(true);
+  if (!_adminBundlePromise) {
+    _adminBundlePromise = new Promise(function (resolve) {
+      function done() { resolve(!!(window.QingyuAdmin && window.QingyuAdmin.mount)); }
+      window.__qingyuAdminManual = true;
+      if (!document.querySelector('link[data-admin-css]')) {
+        var l = document.createElement('link');
+        l.rel = 'stylesheet'; l.href = 'admin.css'; l.setAttribute('data-admin-css', '1');
+        document.head.appendChild(l);
+      }
+      var s = document.createElement('script');
+      s.src = 'admin.js';
+      s.onload = done;
+      s.onerror = done;
+      document.head.appendChild(s);
+    });
+  }
+  return _adminBundlePromise;
+}
 
 /* ---------- 导出 ---------- */
 function buildPostsJs() {
@@ -2588,6 +2611,7 @@ async function route() {
     }
     if (editing) {
       // 编辑文章：交给新版后台管理 UI（存在时）；否则回退旧编辑器
+      await ensureAdminBundle();
       if (window.QingyuAdmin && window.QingyuAdmin.mount) {
         window.QingyuAdmin.mount(app(), id ? '/posts/' + encodeURIComponent(id) + '/edit' : '/admin/posts/new');
       } else {
@@ -2599,6 +2623,7 @@ async function route() {
   }
   else if (path === '/write' || path === '/admin' || path.indexOf('/admin/') === 0) {
     // 后台管理 UI：交给新版模块（存在时）；否则回退旧 admin 渲染，保证逻辑不变
+    await ensureAdminBundle();
     if (window.QingyuAdmin && window.QingyuAdmin.mount) {
       window.QingyuAdmin.mount(app(), path);
     } else {
