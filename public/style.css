@@ -2225,3 +2225,15 @@ kbd {
   margin-left: auto;
   width: 32px; height: 32px;
 }
+/* ---------- 文章列表加载占位（数据未就绪时替代空态文案） ---------- */
+.tab-loading { padding: 64px 20px 72px; text-align: center; color: var(--text-secondary, #888); }
+.tab-loading p { margin: 14px 0 0; font-size: 13px; letter-spacing: .08em; opacity: .7; animation: tab-loading-breathe 1.6s ease-in-out infinite; }
+.tab-loading-ring {
+  width: 34px; height: 34px; margin: 0 auto;
+  border: 3px solid rgba(127,127,127,.18);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: tab-loading-spin .9s linear infinite;
+}
+@keyframes tab-loading-spin { to { transform: rotate(360deg); } }
+@keyframes tab-loading-breathe { 0%,100% { opacity: .45; } 50% { opacity: .9; } }
