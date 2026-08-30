@@ -386,6 +386,23 @@ function getConfig() {
   };
 }
 
+// 站点名称：优先使用云端「站点基础信息 → 站点名称」，其次页脚版权署名，
+// 最后回退到 i18n 默认（site.title）。改完站点名称后，左上角品牌、
+// 浏览器标签页标题、页脚署名、OG/结构化数据都会实时跟随变化。
+function getSiteName() {
+  var cfg = getConfig();
+  var name = cfg.site && cfg.site.name ? String(cfg.site.name).trim() : '';
+  if (!name && cfg.footer && cfg.footer.copyrightName) name = String(cfg.footer.copyrightName).trim();
+  if (!name) name = t('site.title');
+  return name || '';
+}
+// 站点作者名（用于 meta author / JSON-LD author）：沿用个人昵称，回退站点名
+function getSiteAuthor() {
+  var cfg = getConfig();
+  var prof = cfg.profile || {};
+  return (prof.name || '').trim() || getSiteName();
+}
+
 function getStaticPosts() {
   return (typeof window !== 'undefined' && Array.isArray(window.BLOG_POSTS)) ? window.BLOG_POSTS : [];
 }
@@ -946,7 +963,7 @@ function buildFeedXmlClient(posts, maxItems) {
     var content = renderMarkdown(p.content || '').replace(/\]\]>/g, ']]&gt;');
     return '<item>\n      <title>' + esc(p.title) + '</title>\n      <link>' + esc(link) + '</link>\n      <guid isPermaLink="false">' + esc(p.id) + '</guid>\n      <pubDate>' + rfc822(p.date) + '</pubDate>\n      <description><![CDATA[' + content + ']]></description>\n    </item>';
   }).join('\n    ');
-  return '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>' + esc(cfg.title || 'Qingyu\'Blog') + '</title>\n    <link>' + esc(base || 'https://blog.example') + '</link>\n    <description>' + esc(cfg.description || t('site.desc')) + '</description>\n    <language>zh-CN</language>\n    <lastBuildDate>' + new Date().toUTCString() + '</lastBuildDate>\n    ' + items + '\n  </channel>\n</rss>\n';
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>' + esc(cfg.title || getSiteName()) + '</title>\n    <link>' + esc(base || 'https://blog.example') + '</link>\n    <description>' + esc(cfg.description || t('site.desc')) + '</description>\n    <language>zh-CN</language>\n    <lastBuildDate>' + new Date().toUTCString() + '</lastBuildDate>\n    ' + items + '\n  </channel>\n</rss>\n';
 }
 function rfc822(dateStr) {
   try {
@@ -1047,7 +1064,7 @@ function app() { return document.querySelector('#app'); }
   // 侧栏：品牌名 + 主题切换 + 导航链接 + 语言切换
   var sidebar = '<div class="sidebar-overlay" id="sidebarOverlay"></div>'
     + '<aside class="mobile-sidebar" id="mobileSidebar">'
-    + '<div class="sidebar-header"><span class="sidebar-brand">Qingyu\'Blog</span>'
+    + '<div class="sidebar-header"><span class="sidebar-brand">' + getSiteName() + '</span>'
     + '<button class="icon-btn sidebar-theme" id="themeToggleSide" aria-label="' + t('theme.toggle') + '" title="' + t('theme.toggle') + '">' + themeIcon() + '</button>'
     + '<button class="sidebar-close" id="sidebarClose" aria-label="' + t('search.close') + '">✕</button></div>'
     + '<nav class="sidebar-nav">' + sidebarLinks + '</nav>'
@@ -1063,7 +1080,7 @@ function app() { return document.querySelector('#app'); }
   return sidebar
     + '<header class="topbar' + (active && _searchOpen ? ' searching' : '') + '">'
     + '<div class="container topbar-inner">'
-    + '<div class="topbar-left">' + hamburger + '<a class="brand" href="' + esc(href('/')) + '">Qingyu\'Blog</a></div>'
+    + '<div class="topbar-left">' + hamburger + '<a class="brand" href="' + esc(href('/')) + '">' + getSiteName() + '</a></div>'
     + '<nav class="main-nav">' + links + '</nav>'
     + '<div class="topbar-actions">' + searchBtn + langSwitch + themeBtn + '</div>'
     + searchForm
@@ -1078,7 +1095,7 @@ function renderFooter() {
   var year = new Date().getFullYear();
   var startYear = Number(f.startYear) || 2019;
   var copyRange = (startYear && startYear < year) ? (startYear + '-' + year) : ('' + year);
-  var site = f.copyrightName || cfg.title || 'Qingyu\'Blog';
+  var site = getSiteName();
   // 页脚导航行：写作后台仅管理员显示；RSS 仅普通用户显示（互斥，避免导航过长）
   var nav = resolveNav(NAV);
   if (adminOk()) nav.push({ text: t('nav.admin'), url: '/admin' });
@@ -1554,12 +1571,18 @@ function renderAbout() {
   var cfg = getConfig();
   var html = renderNav(currentRoute().path);
   html += '<main class="container page-fade"><h2 class="page-title">' + t('about.title') + '</h2><div class="about-card card">';
-  // 站点简介：渲染「Qingyu'Blog：一个可以双击打开的原生 JS 博客」文章正文
+  // 关于页面正文优先级：
+  //   1) 云端「站点基础信息 → 关于页面内容（Markdown）」  ← 用户可在 /admin/settings 编辑
+  //   2) 静态收藏的「qingyu-blog-intro」文章正文
+  //   3) 回退为「站点名称 + 简介」
+  var aboutMd = (cfg.site && cfg.site.about) ? String(cfg.site.about).trim() : '';
   var intro = (posts || []).find(function (p) { return p.id === 'qingyu-blog-intro'; });
-  if (intro && intro.content) {
+  if (aboutMd) {
+    html += '<div class="article about-intro">' + renderMarkdown(aboutMd) + '</div>';
+  } else if (intro && intro.content) {
     html += '<div class="article about-intro">' + renderMarkdown(intro.content) + '</div>';
   } else {
-    html += '<h3>Qingyu\'Blog</h3><p>' + t('about.desc') + '</p>';
+    html += '<h3>' + getSiteName() + '</h3><p>' + t('about.desc') + '</p>';
   }
   // 作者资料卡：展示后台「博客设置 → 个人资料」中保存的头像/昵称/简介（来自 D1 设置）
   var prof = cfg.profile || {};
@@ -2644,22 +2667,23 @@ async function route() {
 function updateSEO(path) {
   var cfg = getConfig();
   var base = cfg.siteUrl || location.origin || '';
-  var pageTitle = 'Qingyu\'Blog';
+  var n = getSiteName();   // 随「站点基础信息 → 站点名称」变化，实时驱动标题/品牌/页脚
+  var pageTitle = n;
   var pageDesc = t('site.desc');
   var pageUrl = base + (path === '/' ? '' : path);
   var pageImage = '';
   var pageType = 'website';
 
   if (path === '/') {
-    pageTitle = 'Qingyu\'Blog · ' + t('site.subtitle');
+    pageTitle = n + ' · ' + t('site.subtitle');
   } else if (path === '/archive') {
-    pageTitle = t('archive.title') + ' · Qingyu\'Blog';
+    pageTitle = t('archive.title') + ' · ' + n;
     pageDesc = t('archive.title') + ' - ' + t('site.desc');
   } else if (path === '/tags') {
-    pageTitle = t('tags.title') + ' · Qingyu\'Blog';
+    pageTitle = t('tags.title') + ' · ' + n;
     pageDesc = t('tags.title') + ' - ' + t('site.desc');
   } else if (path === '/about') {
-    pageTitle = t('about.title') + ' · Qingyu\'Blog';
+    pageTitle = t('about.title') + ' · ' + n;
     pageDesc = t('about.desc');
   } else if (path.indexOf('/posts/') === 0) {
     var id = '';
@@ -2668,21 +2692,21 @@ function updateSEO(path) {
     var post = posts.find(function (p) { return p.id === id; });
     if (post) {
       pageType = 'article';
-      pageTitle = (post.title || t('post.untitled')) + ' · Qingyu\'Blog';
+      pageTitle = (post.title || t('post.untitled')) + ' · ' + n;
       pageDesc = post.excerpt || stripMd(post.content || '').slice(0, 200);
       if (post.cover) pageImage = post.cover;
       pageUrl = base + '/posts/' + encodeURIComponent(post.id) + '/';
     }
   } else if (path.indexOf('/admin') === 0 || path === '/write') {
     // 后台页面不索引
-    document.title = '管理后台 · Qingyu\'Blog';
+    document.title = '管理后台 · ' + n;
     _setMeta('robots', 'noindex, nofollow');
     return;
   }
 
   document.title = pageTitle;
   _setMeta('description', pageDesc);
-  _setMeta('author', 'Qingyu');
+  _setMeta('author', getSiteAuthor());
   _setMeta('robots', 'index, follow, max-image-preview:large, max-snippet:-1');
 
   // Open Graph
@@ -2690,7 +2714,7 @@ function updateSEO(path) {
   _setOG('og:title', pageTitle);
   _setOG('og:description', pageDesc);
   _setOG('og:url', pageUrl);
-  _setOG('og:site_name', 'Qingyu\'Blog');
+  _setOG('og:site_name', n);
   if (pageImage) _setOG('og:image', pageImage);
 
   // Twitter Card
@@ -2717,8 +2741,8 @@ function updateSEO(path) {
         'description': p.excerpt || '',
         'datePublished': p.date || '',
         'dateModified': p.date || '',
-        'author': { '@type': 'Person', 'name': 'Qingyu' },
-        'publisher': { '@type': 'Organization', 'name': 'Qingyu\'Blog' },
+        'author': { '@type': 'Person', 'name': getSiteAuthor() },
+        'publisher': { '@type': 'Organization', 'name': n },
         'mainEntityOfPage': pageUrl
       };
       if (p.cover) jsonLd.image = p.cover;
@@ -2729,7 +2753,7 @@ function updateSEO(path) {
     _setJsonLd({
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      'name': 'Qingyu\'Blog',
+      'name': n,
       'url': base + '/',
       'description': t('site.desc')
     });

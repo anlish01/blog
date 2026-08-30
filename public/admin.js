@@ -1072,6 +1072,7 @@
       avatar: site.avatar || '',
       copyright: site.copyright || (cfg().footer && cfg().footer.copyrightName) || '',
       footerText: site.footerText || (cfg().footer && cfg().footer.decl) || '',
+      about: site.about || '',
       moderate: s.moderate_comments === '1'
     };
     settingsDraft.profile = {
@@ -1084,6 +1085,7 @@
       settingsDraft.site = {
         name: val(content, '#abSiteName'), desc: val(content, '#abSiteDesc'), avatar: val(content, '#abSiteAvatar'),
         copyright: val(content, '#abFooterCopyright'), footerText: val(content, '#abFooterText'),
+        about: val(content, '#abSiteAbout'),
         moderate: content.querySelector('#abModerate') ? content.querySelector('#abModerate').checked : settingsDraft.site.moderate
       };
     }
@@ -1102,6 +1104,7 @@
     if (content.querySelector('#abSiteAvatar')) content.querySelector('#abSiteAvatar').value = site.avatar || '';
     if (content.querySelector('#abFooterCopyright')) content.querySelector('#abFooterCopyright').value = site.copyright || '';
     if (content.querySelector('#abFooterText')) content.querySelector('#abFooterText').value = site.footerText || '';
+    if (content.querySelector('#abSiteAbout')) content.querySelector('#abSiteAbout').value = site.about || '';
     if (content.querySelector('#abModerate')) content.querySelector('#abModerate').checked = !!site.moderate;
     if (content.querySelector('#abProfileName')) content.querySelector('#abProfileName').value = prof.name || '';
     if (content.querySelector('#abProfileBio')) content.querySelector('#abProfileBio').value = prof.bio || '';
@@ -1116,6 +1119,7 @@
         '<div class="ab-field"><label class="ab-label">' + t('admin.settings.siteName') + '</label><input class="ab-input" id="abSiteName"></div>' +
         '<div class="ab-field"><label class="ab-label">' + t('admin.settings.siteDesc') + '</label><textarea class="ab-textarea" id="abSiteDesc" style="min-height:70px"></textarea></div>' +
         '<div class="ab-field"><label class="ab-label">' + t('admin.settings.siteAvatar') + '</label><input class="ab-input" id="abSiteAvatar"></div>' +
+        '<div class="ab-field"><label class="ab-label">' + t('admin.settings.about') + '</label><label class="ab-hint" style="font-size:12px">' + t('admin.settings.aboutHint') + '</label><textarea class="ab-textarea" id="abSiteAbout" style="min-height:120px" placeholder="' + t('admin.settings.aboutPlaceholder') + '"></textarea></div>' +
         '<div class="ab-field"><label class="ab-label">' + t('admin.settings.footerCopyright') + '</label><input class="ab-input" id="abFooterCopyright"></div>' +
         '<div class="ab-field"><label class="ab-label">' + t('admin.settings.footerDecl') + '</label><textarea class="ab-textarea" id="abFooterText" style="min-height:70px"></textarea></div>' +
         '<div class="ab-field"><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="abModerate"> ' + t('admin.settings.moderateComments') + '</label></div>' +
@@ -1145,7 +1149,7 @@
     var payload = {
       site_info: {
         name: site.name || '', desc: site.desc || '', avatar: site.avatar || '',
-        copyright: site.copyright || '', footerText: site.footerText || ''
+        copyright: site.copyright || '', footerText: site.footerText || '', about: site.about || ''
       },
       profile: {
         name: prof.name || '', bio: prof.bio || '', avatar: prof.avatar || '', email: prof.email || ''
