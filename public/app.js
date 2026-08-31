@@ -2732,6 +2732,13 @@ function updateSEO(path) {
   var canonical = document.querySelector('link[rel="canonical"]');
   if (canonical) canonical.setAttribute('href', pageUrl);
 
+  // Favicon：云端「站点头像 / Logo URL」优先，回退 index.html 中的默认橙色圆
+  var siteAvatar = cfg.site && cfg.site.avatar;
+  if (siteAvatar) {
+    var faviconLink = document.querySelector('link[rel="icon"]');
+    if (faviconLink) faviconLink.setAttribute('href', siteAvatar);
+  }
+
   // JSON-LD structured data
   if (pageType === 'article' && path.indexOf('/posts/') === 0) {
     var postId = '';
