@@ -963,7 +963,7 @@ function buildFeedXmlClient(posts, maxItems) {
     var content = renderMarkdown(p.content || '').replace(/\]\]>/g, ']]&gt;');
     return '<item>\n      <title>' + esc(p.title) + '</title>\n      <link>' + esc(link) + '</link>\n      <guid isPermaLink="false">' + esc(p.id) + '</guid>\n      <pubDate>' + rfc822(p.date) + '</pubDate>\n      <description><![CDATA[' + content + ']]></description>\n    </item>';
   }).join('\n    ');
-  return '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>' + esc(cfg.title || getSiteName()) + '</title>\n    <link>' + esc(base || 'https://blog.example') + '</link>\n    <description>' + esc(cfg.description || t('site.desc')) + '</description>\n    <language>zh-CN</language>\n    <lastBuildDate>' + new Date().toUTCString() + '</lastBuildDate>\n    ' + items + '\n  </channel>\n</rss>\n';
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>' + esc(cfg.title || getSiteName()) + '</title>\n    <link>' + esc(base || 'https://blog.example') + '</link>\n    <description>' + esc((cfg.site && cfg.site.desc) || t('site.desc')) + '</description>\n    <language>zh-CN</language>\n    <lastBuildDate>' + new Date().toUTCString() + '</lastBuildDate>\n    ' + items + '\n  </channel>\n</rss>\n';
 }
 function rfc822(dateStr) {
   try {
@@ -1117,11 +1117,15 @@ function renderFooter() {
   var extra = '';
   if (f.text) extra += '<p class="footer-text">' + esc(f.text) + '</p>';
   if (f.decl) extra += '<p class="footer-decl">' + t('footer.declPrefix') + esc(f.decl) + '</p>';
-  if (f.email) extra += '<p class="footer-contact">' + t('footer.contactPrefix') + '<a href="mailto:' + esc(f.email) + '">' + esc(f.email) + '</a></p>';
+  // 联系邮箱：云端「个人资料 → 联系邮箱」优先，回退静态 config.js footer.email
+  var contactEmail = (cfg.profile && cfg.profile.email) || f.email || '';
+  if (contactEmail) extra += '<p class="footer-contact">' + t('footer.contactPrefix') + '<a href="mailto:' + esc(contactEmail) + '">' + esc(contactEmail) + '</a></p>';
   var friends = (f.links || []).map(l).join('');
   if (friends) extra += '<p class="footer-friends">' + t('footer.friends') + friends + '</p>';
   // 版权行（移动端仅显示此行，备案号在移动端隐藏）
-  var copy = 'Copyright ©' + copyRange + ' ' + esc(site);
+  // 版权署名：云端「页脚版权署名」优先显示；若未设置则使用站点名称
+  var copyName = (cfg.site && cfg.site.copyright) || site;
+  var copy = 'Copyright ©' + copyRange + ' ' + esc(copyName);
   var icp = f.icp ? ' <span class="footer-icp">' + esc(f.icp) + '</span>' : '';
   return '<footer><div class="container footer-inner">'
     + '<div class="footer-nav">' + navHtml + '</div>'
@@ -2668,8 +2672,9 @@ function updateSEO(path) {
   var cfg = getConfig();
   var base = cfg.siteUrl || location.origin || '';
   var n = getSiteName();   // 随「站点基础信息 → 站点名称」变化，实时驱动标题/品牌/页脚
+  var siteDesc = (cfg.site && cfg.site.desc) || t('site.desc');  // 云端站点简介优先，回退 i18n 默认
   var pageTitle = n;
-  var pageDesc = t('site.desc');
+  var pageDesc = siteDesc;
   var pageUrl = base + (path === '/' ? '' : path);
   var pageImage = '';
   var pageType = 'website';
@@ -2678,10 +2683,10 @@ function updateSEO(path) {
     pageTitle = n + ' · ' + t('site.subtitle');
   } else if (path === '/archive') {
     pageTitle = t('archive.title') + ' · ' + n;
-    pageDesc = t('archive.title') + ' - ' + t('site.desc');
+    pageDesc = t('archive.title') + ' - ' + siteDesc;
   } else if (path === '/tags') {
     pageTitle = t('tags.title') + ' · ' + n;
-    pageDesc = t('tags.title') + ' - ' + t('site.desc');
+    pageDesc = t('tags.title') + ' - ' + siteDesc;
   } else if (path === '/about') {
     pageTitle = t('about.title') + ' · ' + n;
     pageDesc = t('about.desc');
@@ -2755,7 +2760,7 @@ function updateSEO(path) {
       '@type': 'WebSite',
       'name': n,
       'url': base + '/',
-      'description': t('site.desc')
+      'description': siteDesc
     });
   }
 }

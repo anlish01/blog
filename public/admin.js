@@ -1058,6 +1058,8 @@
   var settingsDraft = { site: {}, profile: {} };
   async function loadSettings(content) {
     try { var d = await api('api/settings'); settingsCache = (d && d.settings) || {}; } catch (e) { settingsCache = {}; }
+    // 同步到前台全局变量，确保前台渲染时读取到最新的站点设置
+    window._siteSettings = settingsCache;
     syncDraftFromServer();
     fillSettings(content);
   }
@@ -1162,6 +1164,8 @@
         site_info: JSON.stringify(payload.site_info), profile: JSON.stringify(payload.profile),
         moderate_comments: payload.moderate_comments
       });
+      // 同步到前台全局变量，使站点名称/头像/简介等设置立即生效（无需刷新整页）
+      window._siteSettings = settingsCache;
       toast(t('admin.settings.saved'), 'ok');
     } catch (e) { toast(t('admin.settings.saveFail') + (e.message || e), 'err'); }
   }
