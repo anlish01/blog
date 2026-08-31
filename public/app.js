@@ -2706,6 +2706,9 @@ function updateSEO(path) {
     // 后台页面不索引
     document.title = '管理后台 · ' + n;
     _setMeta('robots', 'noindex, nofollow');
+    // favicon 仍需更新（后台也可能设置站点头像）
+    var _fv = cfg.site && cfg.site.avatar;
+    if (_fv) { var _fl = document.querySelector('link[rel="icon"]'); if (_fl) _fl.setAttribute('href', _fv); }
     return;
   }
 
