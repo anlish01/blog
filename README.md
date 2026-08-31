@@ -17,7 +17,45 @@
   <img src="https://img.shields.io/badge/部署-Cloudflare_Workers-purple?style=flat-square" alt="Cloudflare Workers">
 </p>
 
+<p align="center">
+  <a href="https://github.com/kejiland/blog/stargazers">
+    <img src="https://img.shields.io/github/stars/kejiland/blog?style=social&logo=github" alt="GitHub Stars">
+  </a>
+  <a href="https://github.com/kejiland/blog/network/members">
+    <img src="https://img.shields.io/github/forks/kejiland/blog?style=social&logo=github" alt="GitHub Forks">
+  </a>
+  <a href="https://github.com/kejiland/blog/issues">
+    <img src="https://img.shields.io/github/issues/kejiland/blog?style=social&logo=github" alt="GitHub Issues">
+  </a>
+  <a href="https://github.com/kejiland/blog/pulls">
+    <img src="https://img.shields.io/github/issues-pr/kejiland/blog?style=social&logo=github" alt="GitHub Pull Requests">
+  </a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/github/last-commit/kejiland/blog?style=flat-square&logo=github" alt="Last Commit">
+  <img src="https://img.shields.io/github/commit-activity/w/kejiland/blog?style=flat-square" alt="Commit Activity">
+  <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen?style=flat-square&logo=git&logoColor=white" alt="PRs Welcome">
+  <img src="https://img.shields.io/badge/Issues-Welcome-brightgreen?style=flat-square&logo=github&logoColor=white" alt="Issues Welcome">
+  <a href="https://github.com/kejiland/blog/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/kejiland/blog?style=flat-square" alt="License">
+  </a>
+</p>
+
 ---
+
+## 📑 目录
+
+- [📖 项目介绍](#-项目介绍)
+- [✅ 优点](#-优点)
+- [✨ 特色功能](#-特色功能)
+- [🚀 部署方式](#-部署方式)
+- [☁️ Cloudflare 服务说明](#️-cloudflare-服务说明)
+- [⚙️ 配置文件说明](#️-配置文件说明)
+- [🛡️ 安全设计](#️-安全设计)
+- [🧪 测试](#-测试)
+- [🖼️ 项目截图](#️-项目截图)
+- [📄 许可证](#-许可证)
 
 ## 📖 项目介绍
 
@@ -424,3 +462,9 @@ node seed.js https://your-blog.workers.dev [--token <会话或写入令牌>]
 <p align="center">
   如果 Qingyu'Blog 对你有帮助，欢迎 ⭐ Star / Fork，或到 <a href="https://github.com/kejiland/blog/issues">Issues</a> 提建议。
 </p>
+
+<p align="center">
+  <b>如果你觉得不错，请给个 ⭐ Star 支持一下！这会帮助更多人发现这个项目。</b>
+</p>
+
+<!-- Topics: blog, personal-blog, vanilla-js, no-framework, no-dependency, static-site, cloudflare-workers, cloudflare-d1, markdown-blog, javascript, zero-build, lightweight, responsive-design, dark-theme, i18n, end-to-end-encryption, open-source, self-hosted, serif-font, cloudflare-pages -->

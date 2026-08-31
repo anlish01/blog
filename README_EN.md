@@ -17,7 +17,45 @@
   <img src="https://img.shields.io/badge/Deploy-Cloudflare%20Workers-purple?style=flat-square" alt="Cloudflare Workers">
 </p>
 
+<p align="center">
+  <a href="https://github.com/kejiland/blog/stargazers">
+    <img src="https://img.shields.io/github/stars/kejiland/blog?style=social&logo=github" alt="GitHub Stars">
+  </a>
+  <a href="https://github.com/kejiland/blog/network/members">
+    <img src="https://img.shields.io/github/forks/kejiland/blog?style=social&logo=github" alt="GitHub Forks">
+  </a>
+  <a href="https://github.com/kejiland/blog/issues">
+    <img src="https://img.shields.io/github/issues/kejiland/blog?style=social&logo=github" alt="GitHub Issues">
+  </a>
+  <a href="https://github.com/kejiland/blog/pulls">
+    <img src="https://img.shields.io/github/issues-pr/kejiland/blog?style=social&logo=github" alt="GitHub Pull Requests">
+  </a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/github/last-commit/kejiland/blog?style=flat-square&logo=github" alt="Last Commit">
+  <img src="https://img.shields.io/github/commit-activity/w/kejiland/blog?style=flat-square" alt="Commit Activity">
+  <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen?style=flat-square&logo=git&logoColor=white" alt="PRs Welcome">
+  <img src="https://img.shields.io/badge/Issues-Welcome-brightgreen?style=flat-square&logo=github&logoColor=white" alt="Issues Welcome">
+  <a href="https://github.com/kejiland/blog/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/kejiland/blog?style=flat-square" alt="License">
+  </a>
+</p>
+
 ---
+
+## 📑 Table of Contents
+
+- [📖 About](#-about)
+- [✅ Why Choose This](#-why-choose-this)
+- [✨ Features](#-features)
+- [🚀 Deployment](#-deployment)
+- [☁️ Cloudflare Services](#️-cloudflare-services)
+- [⚙️ Configuration](#️-configuration)
+- [🛡️ Security](#️-security)
+- [🧪 Tests](#-tests)
+- [🖼️ Screenshots](#️-screenshots)
+- [📄 License](#-license)
 
 ## 📖 About
 
@@ -423,4 +461,8 @@ node seed.js https://your-blog.workers.dev [--token <session or write token>]
 
 <p align="center">
   If Qingyu'Blog helps you, feel free to ⭐ Star / Fork, or open an <a href="https://github.com/kejiland/blog/issues">Issue</a>.
+</p>
+
+<p align="center">
+  <b>If you find this project useful, please give it a ⭐ Star — it helps others discover it!</b>
 </p>

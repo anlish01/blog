@@ -1,0 +1,67 @@
+name: Bug 报告 / Bug Report
+description: 报告一个 Bug / Report a bug
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你提交 Bug 报告！请填写以下信息帮助我们快速定位问题。
+        Thanks for reporting a bug! Please fill in the following to help us diagnose it quickly.
+
+  - type: input
+    id: browser
+    attributes:
+      label: 浏览器 / Browser
+      description: 你使用的浏览器及版本
+      placeholder: e.g. Chrome 125, Firefox 128, Safari 18
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: 操作系统 / OS
+      placeholder: e.g. Windows 11, macOS 15, Ubuntu 24.04
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤 / Steps to Reproduce
+      description: 请描述如何触发这个 Bug
+      placeholder: |
+        1. 打开 ...
+        2. 点击 ...
+        3. 看到错误 ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为 / Expected Behavior
+      description: 你期望会发生什么？
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为 / Actual Behavior
+      description: 实际发生了什么？
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图 / Screenshots
+      description: 如果有截图或控制台报错，请粘贴在这里
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 补充信息 / Additional Context
+      description: 其他有助于理解问题的信息
