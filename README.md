@@ -1,20 +1,20 @@
-﻿<p align="center">
+<p align="center">
   <img src="screenshots/home.png" alt="Qingyu'Blog" width="100%" />
 </p>
 
 <h1 align="center">Qingyu'Blog</h1>
 
 <p align="center">
-  <b>闆舵鏋?路 闆舵瀯寤?路 闆朵緷璧?鈥斺€?鍙屽嚮 index.html 灏辫兘鐢ㄧ殑涓汉鍗氬</b>
+  <b>零框架 · 零构建 · 零依赖 —— 双击 index.html 就能用的个人博客</b>
 </p>
 
 <p align="center">
   <a href="https://kejiland.azhz.workers.dev">
-    <img src="https://img.shields.io/badge/鍦ㄧ嚎棰勮-kejiland.azhz.workers.dev-blue?style=flat-square" alt="Demo" />
+    <img src="https://img.shields.io/badge/在线预览-kejiland.azhz.workers.dev-blue?style=flat-square" alt="Demo" />
   </a>
-  <img src="https://img.shields.io/badge/璁稿彲璇?MIT-green?style=flat-square" alt="MIT License" />
-  <img src="https://img.shields.io/badge/鎶€鏈爤-鍘熺敓JS-orange?style=flat-square" alt="Vanilla JS" />
-  <img src="https://img.shields.io/badge/閮ㄧ讲-Cloudflare_Workers-purple?style=flat-square" alt="Cloudflare Workers" />
+  <img src="https://img.shields.io/badge/许可证-MIT-green?style=flat-square" alt="MIT License" />
+  <img src="https://img.shields.io/badge/技术栈-原生JS-orange?style=flat-square" alt="Vanilla JS" />
+  <img src="https://img.shields.io/badge/部署-Cloudflare_Workers-purple?style=flat-square" alt="Cloudflare Workers" />
 </p>
 
 <p align="center">
@@ -44,143 +44,173 @@
 
 ---
 
-## 馃搼 鐩綍
+## 📑 目录
 
-- [馃摉 椤圭洰浠嬬粛](#-椤圭洰浠嬬粛)
-- [鉁?浼樼偣](#-浼樼偣)
-- [鉁?鐗硅壊鍔熻兘](#-鐗硅壊鍔熻兘)
-- [馃殌 閮ㄧ讲鏂瑰紡](#-閮ㄧ讲鏂瑰紡)
-- [鈽侊笍 Cloudflare 鏈嶅姟璇存槑](#锔?cloudflare-鏈嶅姟璇存槑)
-- [鈿欙笍 閰嶇疆鏂囦欢璇存槑](#锔?閰嶇疆鏂囦欢璇存槑)
-- [馃洝锔?瀹夊叏璁捐](#锔?瀹夊叏璁捐)
-- [馃И 娴嬭瘯](#-娴嬭瘯)
-- [馃柤锔?椤圭洰鎴浘](#锔?椤圭洰鎴浘)
-- [馃搫 璁稿彲璇乚(#-璁稿彲璇?
+- [📖 项目介绍](#-项目介绍)
+- [✅ 优点](#-优点)
+- [✨ 特色功能](#-特色功能)
+- [🚀 部署方式](#-部署方式)
+- [☁️ Cloudflare 服务说明](#️-cloudflare-服务说明)
+- [⚙️ 配置文件说明](#️-配置文件说明)
+- [🛡️ 安全设计](#️-安全设计)
+- [🧪 测试](#-测试)
+- [🖼️ 项目截图](#️-项目截图)
+- [📄 许可证](#-许可证)
 
-## 馃摉 椤圭洰浠嬬粛
+## 📖 项目介绍
 
-Qingyu'Blog锛堣交璇崥瀹級鏄竴涓?*绾師鐢?JavaScript** 缂栧啓鐨勪釜浜哄崥瀹㈢郴缁燂紝涓嶄緷璧栦换浣曞墠绔鏋讹紙React / Vue / Svelte锛夊拰鏋勫缓宸ュ叿锛圵ebpack / Vite锛夈€?
-瀹冩敮鎸佷袱绉嶈繍琛屾ā寮忥細
+Qingyu'Blog（轻语博客）是一个**纯原生 JavaScript** 编写的个人博客系统，不依赖任何前端框架（React / Vue / Svelte）和构建工具（Webpack / Vite）。
 
-| 妯″紡 | 璇存槑 | 閫傜敤鍦烘櫙 |
+它支持两种运行模式：
+
+| 模式 | 说明 | 适用场景 |
 | --- | --- | --- |
-| **闈欐€佹ā寮?* | 鍙屽嚮 `index.html` 鍗冲彲浣跨敤锛屾暟鎹瓨娴忚鍣?localStorage | 鏈湴鍐欎綔銆佷复鏃堕瑙?|
-| **浜戠妯″紡** | 閮ㄧ讲鍒?Cloudflare Workers + D1锛屾暟鎹瓨浜戠鏁版嵁搴?| 姝ｅ紡鍙戝竷銆佸浜鸿闂?|
+| **静态模式** | 双击 `index.html` 即可使用，数据存浏览器 localStorage | 本地写作、临时预览 |
+| **云端模式** | 部署到 Cloudflare Workers + D1，数据存云端数据库 | 正式发布、多人访问 |
 
-鏁翠釜鍗氬鏈綋灏卞湪 `public/` 鐩綍锛氬墠鍙?`index.html` + `style.css` + `app.js` + `posts.js`锛屽悗鍙?`admin.js` + `admin.css`锛屽浗闄呭寲 `i18n.js` + `locales/`銆傛棤闇€浠讳綍绗笁鏂硅繍琛屾椂渚濊禆銆?
-> 馃挕 浠撳簱鏍圭洰褰曠殑 `index.html` 鍙槸涓€涓烦杞〉锛屼細鑷姩鎵撳紑 `public/index.html`锛圕loudflare Pages / Workers 鐨勯儴缃茬洰褰曪級銆傛湰鍦板弻鍑?`public/index.html` 鍚屾牱鍙敤銆?
+整个博客本体就在 `public/` 目录：前台 `index.html` + `style.css` + `app.js` + `posts.js`，后台 `admin.js` + `admin.css`，国际化 `i18n.js` + `locales/`。无需任何第三方运行时依赖。
+
+> 💡 仓库根目录的 `index.html` 只是一个跳转页，会自动打开 `public/index.html`（Cloudflare Pages / Workers 的部署目录）。本地双击 `public/index.html` 同样可用。
+
 ---
 
-## 鉁?浼樼偣
+## ✅ 优点
 
-| 浼樼偣 | 璇存槑 |
+| 优点 | 说明 |
 | --- | --- |
-| **闆堕棬妲?* | 涓嶉渶瑕?Node.js銆佷笉闇€瑕?npm銆佷笉闇€瑕佹瀯寤猴紝鍙屽嚮鍗冲彲杩愯 |
-| **闆舵垚鏈?* | Cloudflare Workers + D1 鍏嶈垂棰濆害瀹屽叏澶熶釜浜哄崥瀹娇鐢?|
-| **闆朵緷璧?* | 涓嶅紩鍏ヤ换浣曠涓夋柟搴擄紝浠ｇ爜閲忓彲鎺э紝鍔犺浇鏋佸揩 |
-| **闆堕攣瀹?* | 鏂囩珷鏄?Markdown 鏂囦欢锛岄殢鏃跺彲浠ヨ縼绉诲埌浠讳綍骞冲彴 |
-| **鍙岄€氶亾** | 闈欐€佸鍑?+ 浜戠 API锛屽悓涓€浠戒唬鐮佷袱绉嶉儴缃叉柟寮?|
-| **鍝嶅簲寮?* | 鍓嶅彴 + 鍚庡彴鍧囨敮鎸佹墜鏈?/ 骞虫澘 / 妗岄潰鍏ㄩ€傞厤 |
-| **澶氳瑷€** | 鍐呯疆涓枃 / English / 鏃ユ湰瑾?/ 頃滉淡鞏?/ 啶灌た啶ㄠ啶︵ 浜旇鐣岄潰锛岃嚜鍔ㄨ瘑鍒祻瑙堝櫒璇█ |
-| **琛嚎缇庡** | 鍥涚骇琛嚎瀛椾綋鏍堬紙鎬濇簮瀹嬩綋 / 婧愭ǎ鏄庨珨 / 姊︽簮瀹嬩綋 / 鏈遍泙浠垮畫锛夛紝涓枃闃呰鏇存湁娓╁害 |
-| **瀹夊叏** | PBKDF2 + AES-GCM 鍔犲瘑锛屽瘑鐮佸搱甯屽瓨鍌紝浼氳瘽浠ょ墝閴存潈锛孫rigin / CORS 鏍￠獙 |
+| **零门槛** | 不需要 Node.js、不需要 npm、不需要构建，双击即可运行 |
+| **零成本** | Cloudflare Workers + D1 免费额度完全够个人博客使用 |
+| **零依赖** | 不引入任何第三方库，代码量可控，加载极快 |
+| **零锁定** | 文章是 Markdown 文件，随时可以迁移到任何平台 |
+| **双通道** | 静态导出 + 云端 API，同一份代码两种部署方式 |
+| **响应式** | 前台 + 后台均支持手机 / 平板 / 桌面全适配 |
+| **多语言** | 内置中文 / English / 日本語 / 한국어 / हिन्दी 五语界面，自动识别浏览器语言 |
+| **衬线美学** | 四级衬线字体栈（思源宋体 / 源樣明體 / 梦源宋体 / 朱雀仿宋），中文阅读更有温度 |
+| **安全** | PBKDF2 + AES-GCM 加密，密码哈希存储，会话令牌鉴权，Origin / CORS 校验 |
 
 ---
 
-## 馃搧 鐩綍缁撴瀯
+## 📁 目录结构
 
 ```
-鈹溾攢鈹€ public/                          # 绔欑偣鏈綋锛堥潤鎬佽祫婧愶紝閮ㄧ讲鐩綍锛?鈹?  鈹溾攢鈹€ index.html                   # 椤甸潰鍏ュ彛锛堝弻鍑?/ 閮ㄧ讲璧风偣锛?鈹?  鈹溾攢鈹€ config.js                    # 鍏ㄧ珯閰嶇疆锛堥〉鑴?/ 骞垮憡 / 妯″紡 / 璇█锛?鈹?  鈹溾攢鈹€ style.css                    # 鍓嶅彴鏍峰紡锛堟繁鑹叉ā寮?+ 鍝嶅簲寮?+ 鍥涚骇琛嚎瀛椾綋锛?鈹?  鈹溾攢鈹€ app.js                       # 鍓嶅彴閫昏緫锛堣矾鐢?/ 璇勮 / 鍔犲瘑 / 鎼滅储 / 澶氳瑷€ / 涓婚锛?鈹?  鈹溾攢鈹€ admin.js                     # 鍚庡彴绠＄悊 SPA锛堜华琛ㄧ洏 / 鏂囩珷 / 璇勮 / 璁剧疆锛?鈹?  鈹溾攢鈹€ admin.css                    # 鍚庡彴鏍峰紡锛堝搷搴斿紡甯冨眬锛?鈹?  鈹溾攢鈹€ i18n.js                      # 鍥介檯鍖栨ā鍧楋紙涓?鑻?鏃?闊?鍗板湴锛屽唴缃腑鏂囧厹搴曪級
-鈹?  鈹溾攢鈹€ posts.js                     # 闈欐€佹ā寮忔枃绔犳暟鎹紙鐢便€屽鍑?posts.js銆嶇敓鎴愶級
-鈹?  鈹溾攢鈹€ locales/                     # 璇█鍖咃紙zh-CN / en / ja / ko / hi锛?鈹?  鈹溾攢鈹€ fonts/dreamserif/            # 鏈湴鍒嗙墖琛嚎瀛椾綋锛堟ⅵ婧愬畫浣?QY-Display锛?鈹?  鈹溾攢鈹€ feed.xml                     # 闈欐€?RSS锛堝彲閫夛紝浜戠鐢?API 鐢熸垚锛?鈹?  鈹溾攢鈹€ sitemap.xml                  # 闈欐€?Sitemap锛堝彲閫夛級
-鈹?  鈹溾攢鈹€ robots.txt                   # 鐖櫕瑙勫垯锛堢姝㈡姄鍙栧悗鍙帮紝澹版槑 Sitemap锛?鈹?  鈹斺攢鈹€ _redirects                   # Cloudflare Pages 璺敱锛圫PA 鍥為€€ + /public 閲嶅畾鍚戯級
-鈹溾攢鈹€ functions/                       # Cloudflare API锛圥ages Functions / Workers 鍏辩敤锛?鈹?  鈹溾攢鈹€ api/
-鈹?  鈹?  鈹溾攢鈹€ posts.js                 # 鏂囩珷 CRUD
-鈹?  鈹?  鈹溾攢鈹€ posts/[id]/
-鈹?  鈹?  鈹?  鈹溾攢鈹€ index.js             # 鍗曠瘒鏂囩珷锛圙ET / PUT / DELETE锛?鈹?  鈹?  鈹?  鈹溾攢鈹€ comments.js          # 鏂囩珷璇勮锛圙ET / POST锛屾敮鎸佸祵濂楀洖澶嶏級
-鈹?  鈹?  鈹?  鈹溾攢鈹€ comments/[cid].js    # 鍗曟潯璇勮鍒犻櫎锛堢鐞嗭級
-鈹?  鈹?  鈹?  鈹斺攢鈹€ stats.js             # 闃呰 / 鐐硅禐缁熻
-鈹?  鈹?  鈹溾攢鈹€ comments.js              # 鍏ㄥ眬璇勮鍒楄〃锛堢鐞嗗悗鍙帮級
-鈹?  鈹?  鈹溾攢鈹€ comments/[id].js         # 璇勮瀹℃牳 / 鍒犻櫎
-鈹?  鈹?  鈹溾攢鈹€ media.js                 # 濯掍綋璧勬簮搴?鈹?  鈹?  鈹溾攢鈹€ media/[id].js            # 濯掍綋鍒犻櫎
-鈹?  鈹?  鈹溾攢鈹€ settings.js              # 绔欑偣璁剧疆
-鈹?  鈹?  鈹溾攢鈹€ site-files/              # 绔欑偣浜х墿锛坒eed.xml / sitemap.xml / posts.js锛?鈹?  鈹?  鈹?  鈹溾攢鈹€ index.js             # 鍒楀嚭 / 淇濆瓨浜х墿
-鈹?  鈹?  鈹?  鈹斺攢鈹€ [name].js            # 涓嬭浇浜х墿鍐呭
-鈹?  鈹?  鈹溾攢鈹€ admin/
-鈹?  鈹?  鈹?  鈹溾攢鈹€ setup.js             # 棣栨璁剧疆瀵嗙爜
-鈹?  鈹?  鈹?  鈹溾攢鈹€ login.js             # 瀵嗙爜鐧诲綍
-鈹?  鈹?  鈹?  鈹溾攢鈹€ logout.js            # 鐧诲嚭
-鈹?  鈹?  鈹?  鈹斺攢鈹€ password.js          # 淇敼瀵嗙爜
-鈹?  鈹?  鈹溾攢鈹€ stats/trend.js           # 30 澶╄秼鍔挎暟鎹?鈹?  鈹?  鈹溾攢鈹€ feed.xml.js              # RSS 鐢熸垚
-鈹?  鈹?  鈹斺攢鈹€ sitemap.xml.js           # Sitemap 鐢熸垚
-鈹?  鈹斺攢鈹€ _lib/
-鈹?      鈹斺攢鈹€ api-core.js              # API 鏍稿績閫昏緫锛圖1 + 閴存潈 + 瀹夊叏锛?鈹溾攢鈹€ worker.js                        # Cloudflare Workers 鍏ュ彛锛堣矾鐢卞垎鍙戯級
-鈹溾攢鈹€ migrations/                      # D1 鏁版嵁搴撹縼绉伙紙CI 鑷姩鎵ц锛屽箓绛夛級
-鈹?  鈹溾攢鈹€ 0001_init.sql                # 鍩虹琛ㄧ粨鏋?鈹?  鈹溾攢鈹€ 0002_site_files.sql          # 绔欑偣鏂囦欢瀛樺偍
-鈹?  鈹溾攢鈹€ 0003_cover_column.sql        # 灏侀潰鍥惧瓧娈?鈹?  鈹溾攢鈹€ 0004_post_meta.sql           # 鍒嗙被 / 鍙戝竷鐘舵€?鈹?  鈹溾攢鈹€ 0005_comment_status.sql      # 璇勮瀹℃牳鐘舵€?鈹?  鈹溾攢鈹€ 0006_media.sql              # 濯掍綋璧勬簮琛?鈹?  鈹溾攢鈹€ 0007_settings.sql            # 绔欑偣璁剧疆琛?鈹?  鈹溾攢鈹€ 0008_stats_daily.sql         # 姣忔棩缁熻琛?鈹?  鈹溾攢鈹€ 0009_comment_status_index.sql # 璇勮鐘舵€佺储寮?鈹?  鈹溾攢鈹€ 0010_admin_must_change.sql   # 寮哄埗鏀瑰瘑鏍囪
-鈹?  鈹溾攢鈹€ 0011_comment_reply.sql       # 璇勮鍥炲 parent_id 瀛楁
-鈹?  鈹斺攢鈹€ 0012_clear_orphaned_nav.sql  # 娓呯悊閬楃暀 nav 閰嶇疆
-鈹溾攢鈹€ scripts/
-鈹?  鈹斺攢鈹€ migrate-kv-to-d1.mjs         # 涓€娆℃€ц縼绉伙細KV 鏁版嵁 鈫?D1
-鈹溾攢鈹€ .github/workflows/
-鈹?  鈹溾攢鈹€ deploy.yml                   # GitHub Actions 鑷姩閮ㄧ讲鍒?Workers
-鈹?  鈹斺攢鈹€ migrate-kv-to-d1.yml         # 鎵嬪姩瑙﹀彂 KV 鈫?D1 杩佺Щ
-鈹溾攢鈹€ seed.js                          # 瀵煎叆绀轰緥鏂囩珷鍒颁簯绔?API
-鈹溾攢鈹€ _addtheme.py                     # 鍘嗗彶鑴氭湰锛氭敞鍏ヤ富棰樺垏鎹紙宸插浐鍖栬繘婧愮爜锛屾棤闇€鍐嶈窇锛?鈹溾攢鈹€ wrangler.toml                    # Cloudflare Pages 閰嶇疆
-鈹溾攢鈹€ wrangler.workers.toml            # Cloudflare Workers 閰嶇疆
-鈹溾攢鈹€ smoke-test.js                    # 鍐掔儫娴嬭瘯
-鈹溾攢鈹€ README.md                        # 涓枃璇存槑
-鈹斺攢鈹€ README_EN.md                     # 鑻辨枃璇存槑
+├── public/                          # 站点本体（静态资源，部署目录）
+│   ├── index.html                   # 页面入口（双击 / 部署起点）
+│   ├── config.js                    # 全站配置（页脚 / 广告 / 模式 / 语言）
+│   ├── style.css                    # 前台样式（深色模式 + 响应式 + 四级衬线字体）
+│   ├── app.js                       # 前台逻辑（路由 / 评论 / 加密 / 搜索 / 多语言 / 主题）
+│   ├── admin.js                     # 后台管理 SPA（仪表盘 / 文章 / 评论 / 设置）
+│   ├── admin.css                    # 后台样式（响应式布局）
+│   ├── i18n.js                      # 国际化模块（中/英/日/韩/印地，内置中文兜底）
+│   ├── posts.js                     # 静态模式文章数据（由「导出 posts.js」生成）
+│   ├── locales/                     # 语言包（zh-CN / en / ja / ko / hi）
+│   ├── fonts/dreamserif/            # 本地分片衬线字体（梦源宋体 QY-Display）
+│   ├── feed.xml                     # 静态 RSS（可选，云端由 API 生成）
+│   ├── sitemap.xml                  # 静态 Sitemap（可选）
+│   ├── robots.txt                   # 爬虫规则（禁止抓取后台，声明 Sitemap）
+│   └── _redirects                   # Cloudflare Pages 路由（SPA 回退 + /public 重定向）
+├── functions/                       # Cloudflare API（Pages Functions / Workers 共用）
+│   ├── api/
+│   │   ├── posts.js                 # 文章 CRUD
+│   │   ├── posts/[id]/
+│   │   │   ├── index.js             # 单篇文章（GET / PUT / DELETE）
+│   │   │   ├── comments.js          # 文章评论（GET / POST，支持嵌套回复）
+│   │   │   ├── comments/[cid].js    # 单条评论删除（管理）
+│   │   │   └── stats.js             # 阅读 / 点赞统计
+│   │   ├── comments.js              # 全局评论列表（管理后台）
+│   │   ├── comments/[id].js         # 评论审核 / 删除
+│   │   ├── media.js                 # 媒体资源库
+│   │   ├── media/[id].js            # 媒体删除
+│   │   ├── settings.js              # 站点设置
+│   │   ├── site-files/              # 站点产物（feed.xml / sitemap.xml / posts.js）
+│   │   │   ├── index.js             # 列出 / 保存产物
+│   │   │   └── [name].js            # 下载产物内容
+│   │   ├── admin/
+│   │   │   ├── setup.js             # 首次设置密码
+│   │   │   ├── login.js             # 密码登录
+│   │   │   ├── logout.js            # 登出
+│   │   │   └── password.js          # 修改密码
+│   │   ├── stats/trend.js           # 30 天趋势数据
+│   │   ├── feed.xml.js              # RSS 生成
+│   │   └── sitemap.xml.js           # Sitemap 生成
+│   └── _lib/
+│       └── api-core.js              # API 核心逻辑（D1 + 鉴权 + 安全）
+├── worker.js                        # Cloudflare Workers 入口（路由分发）
+├── migrations/                      # D1 数据库迁移（CI 自动执行，幂等）
+│   ├── 0001_init.sql                # 基础表结构
+│   ├── 0002_site_files.sql          # 站点文件存储
+│   ├── 0003_cover_column.sql        # 封面图字段
+│   ├── 0004_post_meta.sql           # 分类 / 发布状态
+│   ├── 0005_comment_status.sql      # 评论审核状态
+│   ├── 0006_media.sql              # 媒体资源表
+│   ├── 0007_settings.sql            # 站点设置表
+│   ├── 0008_stats_daily.sql         # 每日统计表
+│   ├── 0009_comment_status_index.sql # 评论状态索引
+│   ├── 0010_admin_must_change.sql   # 强制改密标记
+│   ├── 0011_comment_reply.sql       # 评论回复 parent_id 字段
+│   └── 0012_clear_orphaned_nav.sql  # 清理遗留 nav 配置
+├── scripts/
+│   └── migrate-kv-to-d1.mjs         # 一次性迁移：KV 数据 → D1
+├── .github/workflows/
+│   ├── deploy.yml                   # GitHub Actions 自动部署到 Workers
+│   └── migrate-kv-to-d1.yml         # 手动触发 KV → D1 迁移
+├── seed.js                          # 导入示例文章到云端 API
+├── _addtheme.py                     # 历史脚本：注入主题切换（已固化进源码，无需再跑）
+├── wrangler.toml                    # Cloudflare Pages 配置
+├── wrangler.workers.toml            # Cloudflare Workers 配置
+├── smoke-test.js                    # 冒烟测试
+├── README.md                        # 中文说明
+└── README_EN.md                     # 英文说明
 ```
 
 ---
 
-## 鉁?鐗硅壊鍔熻兘
+## ✨ 特色功能
 
-### 鍓嶅彴
+### 前台
 
-| 鍔熻兘 | 璇存槑 |
+| 功能 | 说明 |
 | --- | --- |
-| 鐪熷疄璺緞璺敱 | 鏃?hash锛歚/`銆乣/archive`銆乣/about`銆乣/tags`銆乣/posts/<鍒悕>/`銆乣/admin`銆乣/write`锛屽埛鏂颁笉 404 |
-| Markdown 鍐欎綔鍙?| 瀹炴椂棰勮銆佸伐鍏锋爮涓€閿彃鍏ャ€佸瓧鏁扮粺璁°€佽崏绋胯嚜鍔ㄤ繚瀛?|
-| 鏂囩珷鍔犲瘑 | PBKDF2 + AES-GCM 绔埌绔姞瀵嗭紝姝ｆ枃鍙瓨瀵嗘枃 |
-| 璇勮绯荤粺 | 浜戠 D1 鍏ㄥ眬璇勮 + 瀹℃牳妯″紡锛涢潤鎬佹ā寮?localStorage锛涙敮鎸?*宓屽鍥炲** |
-| 绔欏唴鎼滅储 | 瀹炴椂鍖归厤鏍囬 / 鏍囩 / 鎽樿 |
-| 姝ｆ枃鐩綍 TOC | 鑷姩鐢熸垚銆侀敋鐐硅烦杞紱浠ｇ爜楂樹寒 |
-| 闃呰缁熻 | 娴忚鏁?/ 鐐硅禐锛堜簯绔叏灞€ / 闈欐€佹湰鏈猴級 |
-| 绮鹃€夋枃绔?| 璇勮鍖轰笅鏂硅嚜鍔ㄦ帹鑽愶紙鐐硅禐脳3 + 娴忚 + 璇勮脳5锛?|
-| RSS / Sitemap | 鑷姩鐢熸垚锛屽姞瀵嗘枃绔犺嚜鍔ㄦ帓闄?|
-| 涓婁竴绡?/ 涓嬩竴绡?| 鍙湁涓€鏉℃椂鑷姩闅愯棌绌轰綅 |
-| 鍗＄墖寮忓垪琛?| 灏侀潰缂╃暐鍥俱€佺疆椤跺窘绔犮€佹爣绛捐创搴?|
-| 娣辫壊 / 娴呰壊涓婚 | 涓€閿垏鎹紝澶氭柇鐐瑰搷搴斿紡閫傞厤 |
-| 澶氳瑷€鐣岄潰 | 涓枃 / English / 鏃ユ湰瑾?/ 頃滉淡鞏?/ 啶灌た啶ㄠ啶︵锛岃嚜鍔ㄨ瘑鍒?+ 鎵嬪姩鍒囨崲 |
-| 鍥涚骇琛嚎瀛椾綋 | 姝ｆ枃鎬濇簮瀹嬩綋 路 绔犺妭鏍囬婧愭ǎ鏄庨珨 路 澶ф爣棰樻ⅵ婧愬畫浣?路 寮曠敤鏈遍泙浠垮畫 |
+| 真实路径路由 | 无 hash：`/`、`/archive`、`/about`、`/tags`、`/posts/<别名>/`、`/admin`、`/write`，刷新不 404 |
+| Markdown 写作台 | 实时预览、工具栏一键插入、字数统计、草稿自动保存 |
+| 文章加密 | PBKDF2 + AES-GCM 端到端加密，正文只存密文 |
+| 评论系统 | 云端 D1 全局评论 + 审核模式；静态模式 localStorage；支持**嵌套回复** |
+| 站内搜索 | 实时匹配标题 / 标签 / 摘要 |
+| 正文目录 TOC | 自动生成、锚点跳转；代码高亮 |
+| 阅读统计 | 浏览数 / 点赞（云端全局 / 静态本机） |
+| 精选文章 | 评论区下方自动推荐（点赞×3 + 浏览 + 评论×5） |
+| RSS / Sitemap | 自动生成，加密文章自动排除 |
+| 上一篇 / 下一篇 | 只有一条时自动隐藏空位 |
+| 卡片式列表 | 封面缩略图、置顶徽章、标签贴底 |
+| 深色 / 浅色主题 | 一键切换，多断点响应式适配 |
+| 多语言界面 | 中文 / English / 日本語 / 한국어 / हिन्दी，自动识别 + 手动切换 |
+| 四级衬线字体 | 正文思源宋体 · 章节标题源樣明體 · 大标题梦源宋体 · 引用朱雀仿宋 |
 
-### 绠＄悊鍚庡彴
+### 管理后台
 
-| 鍔熻兘 | 璇存槑 |
+| 功能 | 说明 |
 | --- | --- |
-| 浠〃鐩?| 7 椤圭粺璁″崱鐗?+ 30 澶╄闂?/ 璇勮瓒嬪娍鍥?|
-| 鏂囩珷绠＄悊 | 鎼滅储 / 鍒嗙被绛涢€?/ 鍒嗛〉 / 缃《鍒囨崲 / 鍔犲瘑鍒囨崲 |
-| 缂栬緫鍣?| Markdown 瀹炴椂棰勮 + 鍒嗙被 / 鏍囩 / 灏侀潰 / 缃《 / 鍔犲瘑 |
-| 璇勮绠＄悊 | 鍏ㄥ眬璇勮鍒楄〃锛屽鏍?/ 鍒犻櫎锛屽洖澶嶉摼杩借釜 |
-| 鍒嗙被 / 鏍囩绠＄悊 | 閲嶅懡鍚?/ 鍒犻櫎锛堟壒閲忔洿鏂版墍鏈夌浉鍏虫枃绔狅級 |
-| 濯掍綋璧勬簮搴?| 鍥剧墖涓婁紶锛坆ase64 瀛?D1锛?|
-| 鍗氬璁剧疆 | 绔欑偣淇℃伅 / 涓汉璧勬枡 / 瀵艰埅鑿滃崟 |
-| 涓€閿鍑?| 鍚屾椂瀵煎嚭 posts.js / feed.xml / sitemap.xml锛岃鐩栧嵆鍙戝竷 |
-| 鍝嶅簲寮?| PC 鍥哄畾渚ф爮 / 绉诲姩绔娊灞夊鑸?|
+| 仪表盘 | 7 项统计卡片 + 30 天访问 / 评论趋势图 |
+| 文章管理 | 搜索 / 分类筛选 / 分页 / 置顶切换 / 加密切换 |
+| 编辑器 | Markdown 实时预览 + 分类 / 标签 / 封面 / 置顶 / 加密 |
+| 评论管理 | 全局评论列表，审核 / 删除，回复链追踪 |
+| 分类 / 标签管理 | 重命名 / 删除（批量更新所有相关文章） |
+| 媒体资源库 | 图片上传（base64 存 D1） |
+| 博客设置 | 站点信息 / 个人资料 / 导航菜单 |
+| 一键导出 | 同时导出 posts.js / feed.xml / sitemap.xml，覆盖即发布 |
+| 响应式 | PC 固定侧栏 / 移动端抽屉导航 |
 
 ---
 
-## 馃殌 閮ㄧ讲鏂瑰紡
+## 🚀 部署方式
 
-### 鏂瑰紡涓€锛氭湰鍦伴潤鎬?
+### 方式一：本地静态
+
 ```bash
 git clone https://github.com/kejiland/blog.git
 cd blog
 ```
 
-鍙屽嚮 `public/index.html`锛屾垨鍚姩鏈湴鏈嶅姟鍣細
+双击 `public/index.html`，或启动本地服务器：
 
 ```bash
 # Python
@@ -190,72 +220,85 @@ python -m http.server 8080 -d public
 npx serve public
 ```
 
-鎵撳紑 `http://localhost:8080/admin`锛岃缃瘑鐮佸嵆鍙紑濮嬪啓浣溿€?
-### 鏂瑰紡浜岋細Cloudflare Workers锛堟帹鑽愶級
+打开 `http://localhost:8080/admin`，设置密码即可开始写作。
 
-#### 1. 鍑嗗宸ヤ綔
+### 方式二：Cloudflare Workers（推荐）
+
+#### 1. 准备工作
 
 
 
-- 娉ㄥ唽 [Cloudflare](https://dash.cloudflare.com/sign-up) 璐﹀彿
-- 瀹夎 [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/)锛歚npm install -g wrangler`
+- 注册 [Cloudflare](https://dash.cloudflare.com/sign-up) 账号
+- 安装 [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/)：`npm install -g wrangler`
 
-#### 2. 鍒涘缓 Cloudflare 璧勬簮
+#### 2. 创建 Cloudflare 资源
 
 ```bash
-# 鐧诲綍 Cloudflare
+# 登录 Cloudflare
 npx wrangler login
 
-# 鍒涘缓 D1 鏁版嵁搴擄紙涓诲瓨鍌細鏂囩珷 / 璇勮 / 缁熻 / 瀵嗙爜锛?npx wrangler d1 create blog
-# 璁颁笅杈撳嚭鐨?database_id锛堟槸 UUID锛屼笉鏄暟鎹簱鍚嶏紝涔熶笉鏄?KV 鐨?id锛?
-# 鍒涘缓 KV 鍛藉悕绌洪棿锛堝鐢ㄧ粦瀹氾級
+# 创建 D1 数据库（主存储：文章 / 评论 / 统计 / 密码）
+npx wrangler d1 create blog
+# 记下输出的 database_id（是 UUID，不是数据库名，也不是 KV 的 id）
+
+# 创建 KV 命名空间（备用绑定）
 npx wrangler kv namespace create BLOG
-# 璁颁笅杈撳嚭鐨?id锛?2 浣嶅崄鍏繘鍒讹級
+# 记下输出的 id（32 位十六进制）
 ```
 
-#### 3. 閰嶇疆 GitHub Secrets
+#### 3. 配置 GitHub Secrets
 
-鍦ㄤ粨搴?Settings 鈫?Secrets and variables 鈫?Actions 涓坊鍔狅細
+在仓库 Settings → Secrets and variables → Actions 中添加：
 
-| Secret | 蹇呭～ | 璇存槑 |
+| Secret | 必填 | 说明 |
 | --- | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | 鉁?| Cloudflare API Token锛堥渶瑕?Workers + D1 + KV 鏉冮檺锛?|
-| `CLOUDFLARE_ACCOUNT_ID` | 鉁?| Cloudflare 璐︽埛 ID锛堝湪 Dashboard 鍙充晶鍙锛?|
-| `BLOG_D1_ID` | 鉁?| D1 鏁版嵁搴?ID锛堜笂涓€姝ュ垱寤鸿幏寰楋紝UUID 鏍煎紡锛?|
-| `BLOG_KV_ID` | 鉁?| KV 鍛藉悕绌洪棿 ID锛堜笂涓€姝ュ垱寤鸿幏寰楋紝32 浣嶅崄鍏繘鍒讹級 |
-| `BLOG_ADMIN_SETUP_KEY` | 鎺ㄨ崘 | 棣栨璁剧疆绠＄悊鍛樺瘑鐮佺殑涓€娆℃€у瘑閽ワ紙闃叉姠娉級 |
-| `SITE_URL` | 鎺ㄨ崘 | 绔欑偣瀵瑰鍩熷悕锛屽 `https://blog.example.com`锛堢敤浜庢敹绱?CORS / RSS / Sitemap锛?|
-| `CF_ZONE_ID` | 鍙€?| 鑷畾涔夊煙鍚嶇殑 Zone ID锛堥厤缃悗鍙戝竷鍗虫竻杈圭紭缂撳瓨锛?|
+| `CLOUDFLARE_API_TOKEN` | ✅ | Cloudflare API Token（需要 Workers + D1 + KV 权限） |
+| `CLOUDFLARE_ACCOUNT_ID` | ✅ | Cloudflare 账户 ID（在 Dashboard 右侧可见） |
+| `BLOG_D1_ID` | ✅ | D1 数据库 ID（上一步创建获得，UUID 格式） |
+| `BLOG_KV_ID` | ✅ | KV 命名空间 ID（上一步创建获得，32 位十六进制） |
+| `BLOG_ADMIN_SETUP_KEY` | 推荐 | 首次设置管理员密码的一次性密钥（防抢注） |
+| `SITE_URL` | 推荐 | 站点对外域名，如 `https://blog.example.com`（用于收紧 CORS / RSS / Sitemap） |
+| `CF_ZONE_ID` | 可选 | 自定义域名的 Zone ID（配置后发布即清边缘缓存） |
 
-#### 4. 閮ㄧ讲
+#### 4. 部署
 
-鎺ㄩ€佸埌 `main` 鍒嗘敮锛孏itHub Actions 浼氳嚜鍔細
+推送到 `main` 分支，GitHub Actions 会自动：
 
-1. 鉁?鏍￠獙蹇呰 Secrets
-2. 鉁?鎵ц D1 杩佺Щ锛堝缓琛?+ 鍔犲垪锛屾寜搴忓箓绛夛級
-3. 鉁?閮ㄧ讲 Worker 鍒?Cloudflare
-4. 鉁?鍐欏叆杩愯鏃?Secret锛坄BLOG_ADMIN_SETUP_KEY` 绛夛級
+1. ✅ 校验必要 Secrets
+2. ✅ 执行 D1 迁移（建表 + 加列，按序幂等）
+3. ✅ 部署 Worker 到 Cloudflare
+4. ✅ 写入运行时 Secret（`BLOG_ADMIN_SETUP_KEY` 等）
 
-閮ㄧ讲瀹屾垚鍚庤闂?`https://<worker鍚?.<瀛愬煙>.workers.dev/admin`锛?- 鑻ラ厤缃簡 `BLOG_ADMIN_SETUP_KEY`锛岄娆＄敤璇ュ瘑閽ヨ缃鐞嗗憳瀵嗙爜锛?- 鍚﹀垯绯荤粺鑷姩鐢熸垚闅忔満榛樿瀵嗙爜锛岀櫥褰曞悗寮哄埗淇敼銆?
-#### 5. 浠?KV 杩佺Щ鍒?D1锛堟棫鏁版嵁锛?
-鑻ヤ綘姝ゅ墠浣跨敤 KV 鍗?key 瀛樺偍锛屽彲鎵嬪姩杩愯杩佺Щ宸ヤ綔娴佹妸绾夸笂鏁版嵁鎼埌 D1锛?
+部署完成后访问 `https://<worker名>.<子域>.workers.dev/admin`：
+- 若配置了 `BLOG_ADMIN_SETUP_KEY`，首次用该密钥设置管理员密码；
+- 否则系统自动生成随机默认密码，登录后强制修改。
+
+#### 5. 从 KV 迁移到 D1（旧数据）
+
+若你此前使用 KV 单 key 存储，可手动运行迁移工作流把线上数据搬到 D1：
+
 ```bash
-# 鏈湴鎵ц锛堥渶 CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN / BLOG_KV_ID / BLOG_D1_ID锛?node scripts/migrate-kv-to-d1.mjs --dry-run   # 浠呴瑙?SQL
-node scripts/migrate-kv-to-d1.mjs             # 姝ｅ紡鍐欏叆 D1
+# 本地执行（需 CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN / BLOG_KV_ID / BLOG_D1_ID）
+node scripts/migrate-kv-to-d1.mjs --dry-run   # 仅预览 SQL
+node scripts/migrate-kv-to-d1.mjs             # 正式写入 D1
 ```
 
-鎴栧湪浠撳簱 Actions 鏍囩椤垫墜鍔ㄨЕ鍙?`Migrate KV to D1` 宸ヤ綔娴侊紙浠撳簱 Secrets 鑷姩娉ㄥ叆锛屾敮鎸?`dry-run` / `migrate` 涓ょ妯″紡锛夈€?
+或在仓库 Actions 标签页手动触发 `Migrate KV to D1` 工作流（仓库 Secrets 自动注入，支持 `dry-run` / `migrate` 两种模式）。
+
 ---
 
-## 鈽侊笍 Cloudflare 鏈嶅姟璇存槑
+## ☁️ Cloudflare 服务说明
 
 ### Workers
 
-Workers 鏄?Cloudflare 鐨勮竟缂樿绠楀钩鍙帮紝鏈」鐩敤瀹冭繍琛屽悗绔?API锛?
-- **鍏ュ彛鏂囦欢**锛歚worker.js`锛堣矾鐢卞垎鍙戯級+ `functions/`锛圥ages Functions锛?- **闈欐€佽祫婧?*锛歚public/` 鐩綍閫氳繃 Workers 鐨?`[assets]` 缁戝畾鑷姩鎻愪緵
-- **鍏煎鎬ф棩鏈?*锛歚2025-02-01`
+Workers 是 Cloudflare 的边缘计算平台，本项目用它运行后端 API：
 
-**wrangler.workers.toml 鍏抽敭閰嶇疆**锛?
+- **入口文件**：`worker.js`（路由分发）+ `functions/`（Pages Functions）
+- **静态资源**：`public/` 目录通过 Workers 的 `[assets]` 绑定自动提供
+- **兼容性日期**：`2025-02-01`
+
+**wrangler.workers.toml 关键配置**：
+
 ```toml
 name = "kejiland"
 main = "worker.js"
@@ -263,7 +306,7 @@ main = "worker.js"
 [assets]
 directory = "./public"
 binding = "ASSETS"
-not_found_handling = "single-page-application"  # SPA 鍥為€€
+not_found_handling = "single-page-application"  # SPA 回退
 html_handling = "auto-trailing-slash"
 
 [[kv_namespaces]]
@@ -276,140 +319,152 @@ database_name = "blog"
 database_id = "{env.BLOG_D1_ID}"
 ```
 
-### KV锛圞ey-Value 瀛樺偍锛?
-KV 鐢ㄤ簬澶囩敤缁戝畾锛堝凡鍩烘湰琚?D1 鍙栦唬锛夛紝褰撳墠鐢ㄩ€旓細
+### KV（Key-Value 存储）
 
-| 鐢ㄩ€?| 璇存槑 |
+KV 用于备用绑定（已基本被 D1 取代），当前用途：
+
+| 用途 | 说明 |
 | --- | --- |
-| 鐐硅禐鍘婚噸 | `liked:{ip}:{postId}` 鈫?闃插埛璧?|
-| 绔欑偣鏂囦欢缂撳瓨 | feed.xml / sitemap.xml / posts.js 缂撳瓨 |
-| 缂撳瓨娓呴櫎鏍囪 | `purge:{tag}` 鈫?鐗堟湰鎺у埗 |
+| 点赞去重 | `liked:{ip}:{postId}` → 防刷赞 |
+| 站点文件缓存 | feed.xml / sitemap.xml / posts.js 缓存 |
+| 缓存清除标记 | `purge:{tag}` → 版本控制 |
 
-> 鈿狅笍 KV 鏄?*鏈€缁堜竴鑷存€?*锛堝叏鐞冧紶鎾湁寤惰繜锛夛紝涓嶉€傚悎闇€瑕佸己涓€鑷存€х殑鍦烘櫙銆侱1 鏄?SQLite锛屾彁渚涘己涓€鑷存€с€?
-### D1锛圫QLite 鏁版嵁搴擄級
+> ⚠️ KV 是**最终一致性**（全球传播有延迟），不适合需要强一致性的场景。D1 是 SQLite，提供强一致性。
 
-D1 鏄?Cloudflare 鐨勮竟缂?SQLite 鏁版嵁搴擄紝鏈」鐩殑**涓诲瓨鍌?*锛?
-| 琛?| 璇存槑 | 鍏抽敭瀛楁 |
+### D1（SQLite 数据库）
+
+D1 是 Cloudflare 的边缘 SQLite 数据库，本项目的**主存储**：
+
+| 表 | 说明 | 关键字段 |
 | --- | --- | --- |
-| `posts` | 鏂囩珷 | id, title, content, cover, pinned, protected, enc, tags, category, status |
-| `comments` | 璇勮 | id, post_id, author, content, date, status (approved/pending), **parent_id**锛堝洖澶嶏級 |
-| `stats` | 闃呰/鐐硅禐 | post_id, views, likes |
-| `admin_auth` | 绠＄悊鍛樺瘑鐮?| k, salt, hash, iter, must_change |
-| `admin_sessions` | 鐧诲綍浼氳瘽 | token, exp |
-| `admin_fails` | 鐧诲綍闄愭祦 | ip, n, until |
-| `media` | 濯掍綋璧勬簮 | id, name, url, type, size |
-| `site_settings` | 绔欑偣璁剧疆 | k, v锛堥敭鍊煎锛?|
-| `site_files` | 绔欑偣浜х墿 | name, content, updated_at锛坒eed/sitemap/posts.js锛?|
-| `stats_daily` | 姣忔棩缁熻 | post_id, date, views, likes |
+| `posts` | 文章 | id, title, content, cover, pinned, protected, enc, tags, category, status |
+| `comments` | 评论 | id, post_id, author, content, date, status (approved/pending), **parent_id**（回复） |
+| `stats` | 阅读/点赞 | post_id, views, likes |
+| `admin_auth` | 管理员密码 | k, salt, hash, iter, must_change |
+| `admin_sessions` | 登录会话 | token, exp |
+| `admin_fails` | 登录限流 | ip, n, until |
+| `media` | 媒体资源 | id, name, url, type, size |
+| `site_settings` | 站点设置 | k, v（键值对） |
+| `site_files` | 站点产物 | name, content, updated_at（feed/sitemap/posts.js） |
+| `stats_daily` | 每日统计 | post_id, date, views, likes |
 
 ---
 
-## 鈿欙笍 閰嶇疆鏂囦欢璇存槑
+## ⚙️ 配置文件说明
 
 ### config.js
 
 ```javascript
 window.BLOG_CONFIG = {
-  // ====== 鍩虹閰嶇疆 ======
+  // ====== 基础配置 ======
   mode: 'auto',           // 'auto' | 'static' | 'api'
-  apiBase: '',            // API 鍩虹鍦板潃锛岀暀绌?= 鍚屾簮
-  siteUrl: '',            // 绔欑偣瀵瑰鍦板潃锛圧SS/Sitemap 鐢級
-  writeToken: '',         // 鏃х増闈欐€佷护鐗岋紙寤鸿鐢ㄧ櫥褰曟浛浠ｏ級
-  pageSize: 5,            // 棣栭〉姣忛〉鏂囩珷鏁帮紙0 = 涓嶅垎椤碉級
-  adminPwd: '',           // 闈欐€佹ā寮忔湰鍦板瘑鐮侊紙浜戠妯″紡璇风暀绌猴級
+  apiBase: '',            // API 基础地址，留空 = 同源
+  siteUrl: '',            // 站点对外地址（RSS/Sitemap 用）
+  writeToken: '',         // 旧版静态令牌（建议用登录替代）
+  pageSize: 5,            // 首页每页文章数（0 = 不分页）
+  adminPwd: '',           // 静态模式本地密码（云端模式请留空）
 
-  // 瀵艰埅椤圭粺涓€鍦?public/app.js 鐨?NAV 鏁扮粍涓畾涔夛紙鍗曚竴鏁版嵁婧愶紝鏃犻渶鍦ㄦ閰嶇疆锛?
-  // ====== 椤佃剼閰嶇疆 ======
+  // 导航项统一在 public/app.js 的 NAV 数组中定义（单一数据源，无需在此配置）
+
+  // ====== 页脚配置 ======
   footer: {
     text: '',
-    icp: '',               // 澶囨鍙?    contact: [],           // 鑱旂郴鏂瑰紡
-    links: [],             // 鍙嬫儏閾炬帴
-    decl: '',              // 绔欑偣澹版槑
-    email: '',             // 鑱旂郴閭
-    startYear: 2019,       // 鐗堟潈璧峰骞?    copyrightName: "Qingyu'Blog"
+    icp: '',               // 备案号
+    contact: [],           // 联系方式
+    links: [],             // 友情链接
+    decl: '',              // 站点声明
+    email: '',             // 联系邮箱
+    startYear: 2019,       // 版权起始年
+    copyrightName: "Qingyu'Blog"
   },
 
-  // ====== 骞垮憡浣?======
+  // ====== 广告位 ======
   ads: {
     enabled: false,
-    belowSearch: '',       // 棣栭〉鍒楄〃涓婃柟
-    between: '',           // 鍒楄〃闂撮殧鎻掑叆
-    betweenEvery: 3,       // 姣?N 绡囨彃鍏?    content: ''            // 鏂囩珷璇︽儏搴曢儴
+    belowSearch: '',       // 首页列表上方
+    between: '',           // 列表间隔插入
+    betweenEvery: 3,       // 每 N 篇插入
+    content: ''            // 文章详情底部
   }
 };
 ```
 
-### mode 璇存槑
+### mode 说明
 
-| 鍊?| 琛屼负 |
+| 值 | 行为 |
 | --- | --- |
-| `'auto'` | **鎺ㄨ崘**銆傝嚜鍔ㄦ娴嬶細璇锋眰 `/api/posts` 鎴愬姛 鈫?浜戠锛涘け璐?鈫?闈欐€?|
-| `'static'` | 寮哄埗闈欐€佹ā寮忥紝鍙敤 posts.js |
-| `'api'` | 寮哄埗浜戠妯″紡锛岄渶瑕佸悗绔?API |
+| `'auto'` | **推荐**。自动检测：请求 `/api/posts` 成功 → 云端；失败 → 静态 |
+| `'static'` | 强制静态模式，只用 posts.js |
+| `'api'` | 强制云端模式，需要后端 API |
 
-### 澶氳瑷€锛坕18n锛?
-`i18n.js` 鍐呯疆 5 绉嶈瑷€锛堜腑鏂?/ English / 鏃ユ湰瑾?/ 頃滉淡鞏?/ 啶灌た啶ㄠ啶︵锛夛紝榛樿鎸夋祻瑙堝櫒 `navigator.language` 鑷姩璇嗗埆锛屽苟鎻愪緵鎵嬪姩鍒囨崲銆傝瑷€鍖呮斁鍦?`public/locales/<lang>.json`锛堜腑鏂囧悓鏃跺唴宓屽厹搴曪紝纭繚 `file://` 鏈湴棰勮鏃舵牳蹇冩枃瀛楀缁堝彲璇伙級銆?
----
+### 多语言（i18n）
 
-## 馃洝锔?瀹夊叏璁捐
-
-| 灞?| 鏈哄埗 |
-| --- | --- |
-| 瀵嗙爜瀛樺偍 | PBKDF2-SHA256 鍔犵洂鍝堝笇锛?00,000 娆¤凯浠ｏ級锛屾案涓嶅瓨鏄庢枃 |
-| 棣栨閮ㄧ讲 | 鑷姩鐢熸垚闅忔満榛樿瀵嗙爜锛堟垨 `BLOG_ADMIN_SETUP_KEY` 璁惧瘑锛夛紝鐧诲綍鍚庡己鍒朵慨鏀?|
-| 闈欐€佹ā寮?| 瀵嗙爜 SHA-256 鍝堝笇瀛樺偍锛堝吋瀹规棫鏄庢枃锛岀櫥褰曞悗鑷姩鍗囩骇锛?|
-| 浼氳瘽绠＄悊 | 闅忔満 Token锛?2 瀛楄妭 hex锛夛紝7 澶╂湁鏁堬紝鐧诲嚭鍗抽攢姣?|
-| 闄愭祦 | 鍚屼竴 IP 杩炵画澶辫触 5 娆￠攣瀹?15 鍒嗛挓 |
-| 鏂囩珷鍔犲瘑 | PBKDF2 + AES-GCM 绔埌绔姞瀵嗭紝瀵嗘枃鍙瓨鏈嶅姟绔?|
-| 璇勮瀹夊叏 | XSS 杞箟 + SQL 娉ㄥ叆鍙傛暟鍖?+ 姣?IP 棰戠巼闄愬埗 + Origin 鏍￠獙 |
-| 鎺ュ彛杈圭晫 | 鏈煡 /api/* 杩斿洖 JSON 404锛岀粷涓嶅洖閫€鍒?index.html |
-| CORS | 閰嶇疆 `SITE_URL` 鍚庝粎鍏佽鏈珯鏉ユ簮锛屾湭閰嶇疆鍥為€€涓哄洖鏄炬潵婧?|
+`i18n.js` 内置 5 种语言（中文 / English / 日本語 / 한국어 / हिन्दी），默认按浏览器 `navigator.language` 自动识别，并提供手动切换。语言包放在 `public/locales/<lang>.json`（中文同时内嵌兜底，确保 `file://` 本地预览时核心文字始终可读）。
 
 ---
 
-## 馃И 娴嬭瘯
+## 🛡️ 安全设计
+
+| 层 | 机制 |
+| --- | --- |
+| 密码存储 | PBKDF2-SHA256 加盐哈希（100,000 次迭代），永不存明文 |
+| 首次部署 | 自动生成随机默认密码（或 `BLOG_ADMIN_SETUP_KEY` 设密），登录后强制修改 |
+| 静态模式 | 密码 SHA-256 哈希存储（兼容旧明文，登录后自动升级） |
+| 会话管理 | 随机 Token（32 字节 hex），7 天有效，登出即销毁 |
+| 限流 | 同一 IP 连续失败 5 次锁定 15 分钟 |
+| 文章加密 | PBKDF2 + AES-GCM 端到端加密，密文只存服务端 |
+| 评论安全 | XSS 转义 + SQL 注入参数化 + 每 IP 频率限制 + Origin 校验 |
+| 接口边界 | 未知 /api/* 返回 JSON 404，绝不回退到 index.html |
+| CORS | 配置 `SITE_URL` 后仅允许本站来源，未配置回退为回显来源 |
+
+---
+
+## 🧪 测试
 
 ```bash
 node smoke-test.js
 ```
 
-瑕嗙洊 Markdown 娓叉煋銆乀OC銆佷唬鐮侀珮浜€佸鍏ュ鍑恒€佺鐞嗛棬绂併€佺疆椤躲€佸綊妗ｃ€佹爣绛俱€佽瘎璁哄畨鍏ㄣ€佸姞瀵嗐€佺粺璁°€佹悳绱€丷SS銆丼itemap銆佷簯绔?API銆佺紦瀛樼瓑銆?
-瀵煎叆绀轰緥鏂囩珷鍒板凡閮ㄧ讲鐨勪簯绔疄渚嬶細
+覆盖 Markdown 渲染、TOC、代码高亮、导入导出、管理门禁、置顶、归档、标签、评论安全、加密、统计、搜索、RSS、Sitemap、云端 API、缓存等。
+
+导入示例文章到已部署的云端实例：
 
 ```bash
-node seed.js https://your-blog.workers.dev [--token <浼氳瘽鎴栧啓鍏ヤ护鐗?]
+node seed.js https://your-blog.workers.dev [--token <会话或写入令牌>]
 ```
 
 ---
 
-## 馃柤锔?椤圭洰鎴浘
+## 🖼️ 项目截图
 
-| 棣栭〉锛堟祬鑹诧級 | 鏂囩珷璇︽儏 | 鍐欎綔鍙?|
+| 首页（浅色） | 文章详情 | 写作台 |
 | --- | --- | --- |
-| ![棣栭〉](screenshots/home.png) | ![鏂囩珷璇︽儏](screenshots/detail.png) | ![鍐欎綔鍙癩(screenshots/write.png) |
+| ![首页](screenshots/home.png) | ![文章详情](screenshots/detail.png) | ![写作台](screenshots/write.png) |
 
-| 绠＄悊鍚庡彴 路 浠〃鐩?| 璇勮绠＄悊 | 绉诲姩绔?|
+| 管理后台 · 仪表盘 | 评论管理 | 移动端 |
 | --- | --- | --- |
-| ![鍚庡彴浠〃鐩榏(screenshots/admin.png) | ![璇勮绠＄悊](screenshots/admin-list.png) | ![绉诲姩绔痌(screenshots/mobile.png) |
+| ![后台仪表盘](screenshots/admin.png) | ![评论管理](screenshots/admin-list.png) | ![移动端](screenshots/mobile.png) |
 
-### 琛嚎瀛椾綋棰勮
+### 衬线字体预览
 
-| 棣栭〉锛堟祬鑹诧級 | 鏂囩珷锛堟祬鑹诧級 | 鏂囩珷锛堟繁鑹诧級 |
+| 首页（浅色） | 文章（浅色） | 文章（深色） |
 | --- | --- | --- |
-| ![棣栭〉娴呰壊](screenshots/font-preview/home-light.png) | ![鏂囩珷娴呰壊](screenshots/font-preview/article-light.png) | ![鏂囩珷娣辫壊](screenshots/font-preview/article-dark.png) |
+| ![首页浅色](screenshots/font-preview/home-light.png) | ![文章浅色](screenshots/font-preview/article-light.png) | ![文章深色](screenshots/font-preview/article-dark.png) |
 
 ---
 
-## 馃搫 璁稿彲璇?
+## 📄 许可证
+
 [MIT](LICENSE)
 
 ---
 
 <p align="center">
-  濡傛灉 Qingyu'Blog 瀵逛綘鏈夊府鍔╋紝娆㈣繋 猸?Star / Fork锛屾垨鍒?<a href="https://github.com/kejiland/blog/issues">Issues</a> 鎻愬缓璁€?</p>
+  如果 Qingyu'Blog 对你有帮助，欢迎 ⭐ Star / Fork，或到 <a href="https://github.com/kejiland/blog/issues">Issues</a> 提建议。
+</p>
 
 <p align="center">
-  <b>濡傛灉浣犺寰椾笉閿欙紝璇风粰涓?猸?Star 鏀寔涓€涓嬶紒杩欎細甯姪鏇村浜哄彂鐜拌繖涓」鐩€?/b>
+  <b>如果你觉得不错，请给个 ⭐ Star 支持一下！这会帮助更多人发现这个项目。</b>
 </p>
 
 <!-- Topics: blog, personal-blog, vanilla-js, no-framework, no-dependency, static-site, cloudflare-workers, cloudflare-d1, markdown-blog, javascript, zero-build, lightweight, responsive-design, dark-theme, i18n, end-to-end-encryption, open-source, self-hosted, serif-font, cloudflare-pages -->
