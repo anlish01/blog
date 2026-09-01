@@ -1,0 +1,17 @@
+# Mintlify 自动忽略：.git, .github, node_modules,
+# README.md, LICENSE.md, CHANGELOG.md, CONTRIBUTING.md
+# 但其他 .md 文件仍会被扫描为内容，这里显式忽略非文档文件
+
+README.md
+README_EN.md
+ABOUT.md
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+SECURITY.md
+
+# 代码与配置文件不作为文档内容
+*.js
+*.toml
+*.html
+*.css
+*.py
