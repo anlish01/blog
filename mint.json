@@ -102,7 +102,6 @@
     "default": "dark",
     "isHidden": false
   },
-  "primaryTab": "指南",
   "search": {
     "prompt": "搜索文档..."
   }
