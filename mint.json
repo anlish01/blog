@@ -1,73 +1,11 @@
 {
   "$schema": "https://mintlify.com/schema.json",
-  "name": "Qingyu'Blog Docs",
-  "logo": {
-    "dark": "https://images.2024921.xyz/images/20260831173749652.png",
-    "light": "https://images.2024921.xyz/images/20260831173749652.png"
-  },
-  "favicon": "https://images.2024921.xyz/images/20260831173749652.png",
-  "colors": {
-    "primary": "#6366f1"
-  },
+  "name": "Qingyu'Blog",
+  "logo": "https://images.2024921.xyz/images/20260831173749652.png",
   "navigation": [
     {
       "group": "指南",
-      "pages": [
-        "introduction",
-        "quick-start",
-        "architecture",
-        "configuration",
-        "i18n"
-      ]
-    },
-    {
-      "group": "部署",
-      "pages": [
-        "cloudflare-workers",
-        "local",
-        "github-secrets",
-        "kv-to-d1"
-      ]
-    },
-    {
-      "group": "API 参考",
-      "pages": [
-        "api-overview",
-        "posts",
-        "comments",
-        "admin",
-        "stats",
-        "media",
-        "settings"
-      ]
-    },
-    {
-      "group": "数据库",
-      "pages": [
-        "schema",
-        "migrations"
-      ]
-    },
-    {
-      "group": "安全",
-      "pages": [
-        "security-overview",
-        "encryption"
-      ]
-    },
-    {
-      "group": "贡献",
-      "pages": [
-        "guide",
-        "code-style"
-      ]
-    },
-    {
-      "group": "更新日志",
-      "pages": ["changelog"]
+      "pages": ["introduction"]
     }
-  ],
-  "footerSocials": {
-    "github": "https://github.com/kejiland/qingyu-blog"
-  }
+  ]
 }
