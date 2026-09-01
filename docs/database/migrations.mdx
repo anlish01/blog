@@ -1,0 +1,52 @@
+---
+title: "迁移脚本"
+description: "数据库迁移文件说明"
+---
+
+## 迁移文件列表
+
+| 文件 | 说明 |
+|------|------|
+| `0001_init.sql` | 基础表结构 |
+| `0002_site_files.sql` | 站点文件存储 |
+| `0003_cover_column.sql` | 封面图字段 |
+| `0004_post_meta.sql` | 分类 + 发布状态 |
+| `0005_comment_status.sql` | 评论审核状态 |
+| `0006_media.sql` | 媒体资源表 |
+| `0007_settings.sql` | 站点设置表 |
+| `0008_stats_daily.sql` | 每日统计表 |
+| `0009_comment_status_index.sql` | 评论状态索引 |
+| `0010_admin_must_change.sql` | 强制改密标记 |
+| `0011_comment_reply.sql` | 评论回复 parent_id |
+| `0012_clear_orphaned_nav.sql` | 清理遗留 nav |
+
+## 执行方式
+
+### 自动（推荐）
+
+GitHub Actions 部署时自动按序执行所有迁移。
+
+### 手动
+
+```bash
+npx wrangler d1 execute blog --remote --file=migrations/0001_init.sql
+```
+
+## 幂等性
+
+大部分迁移使用 `CREATE TABLE IF NOT EXISTS`，重复执行不报错。
+
+<Warning>
+`ALTER TABLE ADD COLUMN` 在 SQLite 中不支持幂等执行。deploy.yml 中对这些文件做了 `duplicate column` 错误忽略处理。
+</Warning>
+
+## 添加新迁移
+
+1. 在 `migrations/` 下创建新文件，编号递增
+2. 使用 `IF NOT EXISTS` 确保幂等
+3. `ALTER TABLE` 需在 deploy.yml 中处理错误
+
+```bash
+# 命名规范
+0013_add_feature_x.sql
+```

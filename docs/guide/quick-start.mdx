@@ -1,0 +1,92 @@
+---
+title: "快速开始"
+description: "30 秒启动 Qingyu'Blog"
+---
+
+## 静态模式（零配置）
+
+最简单的方式——双击即可运行：
+
+```bash
+git clone https://github.com/kejiland/qingyu-blog.git
+cd qingyu-blog
+```
+
+然后双击 `public/index.html`，或启动本地服务器：
+
+<Tabs>
+  <Tab title="Python">
+    ```bash
+    python -m http.server 8080 -d public
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```bash
+    npx serve public
+    ```
+  </Tab>
+</Tabs>
+
+打开 `http://localhost:8080/admin`，设置密码即可开始写作。
+
+<Info>
+静态模式下数据存储在浏览器 `localStorage` 中，适合本地写作、临时预览。
+文章通过「导出 posts.js」功能导出为静态文件，实现无后端发布。
+</Info>
+
+## 云端模式（推荐部署）
+
+部署到 Cloudflare Workers + D1，数据存云端数据库，支持多人访问。
+
+### 前提条件
+
+- 注册 [Cloudflare](https://dash.cloudflare.com/sign-up) 账号
+- 安装 [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/)：`npm install -g wrangler`
+
+### 步骤一：创建 Cloudflare 资源
+
+```bash
+# 登录 Cloudflare
+npx wrangler login
+
+# 创建 D1 数据库（主存储）
+npx wrangler d1 create blog
+# 记下输出的 database_id（UUID 格式）
+
+# 创建 KV 命名空间（备用绑定）
+npx wrangler kv namespace create BLOG
+# 记下输出的 id（32 位十六进制）
+```
+
+### 步骤二：配置 GitHub Secrets
+
+在仓库 Settings → Secrets and variables → Actions 中添加必要的 Secret。
+
+详见 [GitHub Secrets 配置](/deploy/github-secrets)。
+
+### 步骤三：部署
+
+推送到 `main` 分支，GitHub Actions 自动执行：
+
+1. ✅ 校验必要 Secrets
+2. ✅ 执行 D1 迁移（建表 + 加列，按序幂等）
+3. ✅ 部署 Worker 到 Cloudflare
+4. ✅ 写入运行时 Secret
+
+### 步骤四：首次设置密码
+
+部署完成后访问 `https://<worker名>.<子域>.workers.dev/admin`：
+
+- 若配置了 `BLOG_ADMIN_SETUP_KEY`，首次用该密钥设置管理员密码
+- 否则系统自动生成随机默认密码，登录后强制修改
+
+## 模式对比
+
+| 特性 | 静态模式 | 云端模式 |
+|------|----------|----------|
+| 运行环境 | 浏览器本地 | Cloudflare Workers |
+| 数据存储 | localStorage | D1 数据库 |
+| 多人访问 | ❌ | ✅ |
+| 评论系统 | 本地存储 | 云端全局评论 + 审核 |
+| 阅读统计 | 本机计数 | 全局统计 |
+| 零成本 | ✅ | ✅（免费额度内） |

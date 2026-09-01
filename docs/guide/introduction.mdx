@@ -1,0 +1,56 @@
+---
+title: "简介"
+description: "Qingyu'Blog — 零框架 · 零构建 · 零依赖的个人博客系统"
+---
+
+<img src="/screenshots/home.png" alt="Qingyu'Blog 首页" />
+
+Qingyu'Blog（轻语博客）是一个用**纯原生 JavaScript** 编写的轻量个人博客系统。没有 React、没有 Vue、没有 Webpack，打开 `public/index.html` 就能开始写文章。
+
+## 为什么选择 Qingyu'Blog
+
+<CardGroup cols={2}>
+  <Card title="零门槛" icon="rocket">
+    不需要 Node.js，不需要 npm install，双击就能跑
+  </Card>
+  <Card title="零成本" icon="dollar-sign">
+    Cloudflare Workers + D1 免费额度足够个人博客使用
+  </Card>
+  <Card title="零依赖" icon="box">
+    不引入任何第三方库，代码量可控，加载极快
+  </Card>
+  <Card title="零锁定" icon="arrows-rotate">
+    文章是 Markdown，随时可以迁移到任何平台
+  </Card>
+</CardGroup>
+
+## 核心特性
+
+| 特性 | 说明 |
+|------|------|
+| 🌐 **多语言** | 内置中/英/日/韩/印地语，自动识别浏览器语言 |
+| 🎨 **响应式** | 手机 / 平板 / 桌面全适配，前台 + 后台 |
+| 🔒 **安全** | PBKDF2 + AES-GCM 加密，密码哈希存储，会话令牌鉴权 |
+| ✍️ **Markdown 编辑器** | 实时预览、工具栏、字数统计、草稿自动保存 |
+| 💬 **评论系统** | 支持嵌套回复、评论审核、频率限制 |
+| 🌙 **深色模式** | 一键切换，四套衬线字体美学 |
+
+## 技术栈
+
+```
+前端：原生 JavaScript（无框架）
+后端：Cloudflare Pages Functions / Workers
+数据库：Cloudflare D1（SQLite）
+样式：纯 CSS（衬线字体 + 响应式）
+部署：GitHub Actions → Cloudflare 自动部署
+```
+
+## 快速体验
+
+```bash
+git clone https://github.com/kejiland/qingyu-blog.git
+cd qingyu-blog
+# 双击 public/index.html 即可
+```
+
+打开 `http://localhost:8080/admin`，设置密码后即可开始写作。

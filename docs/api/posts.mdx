@@ -1,0 +1,117 @@
+---
+title: "文章"
+description: "文章 CRUD 接口"
+---
+
+## 获取文章列表
+
+```http
+GET /api/posts
+```
+
+**查询参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `page` | `number` | 页码 |
+| `pageSize` | `number` | 每页数量 |
+| `category` | `string` | 分类筛选 |
+| `tag` | `string` | 标签筛选 |
+| `search` | `string` | 搜索 |
+| `status` | `string` | `published` / `draft` |
+
+**响应示例：**
+
+```json
+{
+  "ok": true,
+  "posts": [
+    {
+      "id": "article-slug",
+      "title": "文章标题",
+      "date": "2025-01-01",
+      "excerpt": "摘要...",
+      "cover": "https://...",
+      "pinned": 0,
+      "protected": 0,
+      "tags": ["标签1", "标签2"],
+      "category": "分类",
+      "status": "published"
+    }
+  ],
+  "total": 42,
+  "page": 1,
+  "pageSize": 5
+}
+```
+
+## 获取单篇文章
+
+```http
+GET /api/posts/:id
+```
+
+**响应示例：**
+
+```json
+{
+  "ok": true,
+  "post": {
+    "id": "article-slug",
+    "title": "文章标题",
+    "content": "Markdown 正文...",
+    "enc": null,
+    "tags": ["标签1"],
+    "category": "分类",
+    "status": "published",
+    "created_at": "2025-01-01T00:00:00Z",
+    "updated_at": "2025-01-01T00:00:00Z"
+  }
+}
+```
+
+<Info>
+加密文章的 `enc` 字段包含 `{salt, iv, data}`，`content` 为空。前端使用用户密码解密。
+</Info>
+
+## 创建文章
+
+```http
+POST /api/posts
+Authorization: Bearer <token>
+```
+
+**请求体：**
+
+```json
+{
+  "title": "文章标题",
+  "content": "Markdown 正文",
+  "excerpt": "摘要",
+  "cover": "封面图 URL",
+  "tags": ["标签1"],
+  "category": "分类",
+  "pinned": false,
+  "protected": false,
+  "password": "加密密码",
+  "status": "published"
+}
+```
+
+**响应：**
+
+```json
+{
+  "ok": true,
+  "id": "article-slug"
+}
+```
+
+## 更新 / 删除
+
+```http
+PUT    /api/posts/:id     # 更新（请求体同创建，只传需更新的字段）
+DELETE /api/posts/:id     # 删除
+```
+
+都需要认证。

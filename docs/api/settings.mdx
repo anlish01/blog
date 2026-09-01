@@ -1,0 +1,73 @@
+---
+title: "站点设置"
+description: "站点配置的读写接口"
+---
+
+## 获取设置
+
+```http
+GET /api/settings
+```
+
+**响应：**
+
+```json
+{
+  "ok": true,
+  "settings": {
+    "siteName": "我的博客",
+    "siteDesc": "一个个人博客",
+    "avatar": "https://...",
+    "nav": [ ... ],
+    "profile": { ... },
+    "commentModeration": true
+  }
+}
+```
+
+### 常见设置项
+
+| Key | 类型 | 说明 |
+|-----|------|------|
+| `siteName` | `string` | 站点名称 |
+| `siteDesc` | `string` | 站点简介 |
+| `avatar` | `string` | 头像 URL |
+| `nav` | `array` | 导航菜单 |
+| `profile` | `object` | 个人资料 |
+| `commentModeration` | `boolean` | 评论审核开关 |
+
+## 更新设置
+
+```http
+PUT /api/settings
+Authorization: Bearer <token>
+```
+
+**单个更新：**
+
+```json
+{
+  "key": "siteName",
+  "value": "新名称"
+}
+```
+
+**批量更新：**
+
+```json
+{
+  "settings": {
+    "siteName": "新名称",
+    "siteDesc": "新简介"
+  }
+}
+```
+
+## 表结构
+
+```sql
+CREATE TABLE site_settings (
+  k TEXT PRIMARY KEY,    -- 键名
+  v TEXT NOT NULL        -- 值（JSON 字符串）
+);
+```
