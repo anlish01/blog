@@ -2,10 +2,10 @@
   "$schema": "https://mintlify.com/schema.json",
   "name": "Qingyu'Blog Docs",
   "logo": {
-    "dark": "/logo-dark.svg",
-    "light": "/logo-light.svg"
+    "dark": "https://images.2024921.xyz/images/20260831173749652.png",
+    "light": "https://images.2024921.xyz/images/20260831173749652.png"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "https://images.2024921.xyz/images/20260831173749652.png",
   "colors": {
     "primary": "#6366f1",
     "light": "#818cf8",
@@ -41,7 +41,7 @@
     {
       "group": "指南",
       "pages": [
-        "guide/introduction",
+        "introduction",
         "guide/quick-start",
         "guide/architecture",
         "guide/configuration",
