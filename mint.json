@@ -2,6 +2,10 @@
   "$schema": "https://mintlify.com/schema.json",
   "name": "Qingyu'Blog",
   "logo": "https://images.2024921.xyz/images/20260831173749652.png",
+  "favicon": "https://images.2024921.xyz/images/20260831173749652.png",
+  "colors": {
+    "primary": "#6366f1"
+  },
   "navigation": [
     {
       "group": "指南",
