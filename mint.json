@@ -7,10 +7,7 @@
   },
   "favicon": "https://images.2024921.xyz/images/20260831173749652.png",
   "colors": {
-    "primary": "#6366f1",
-    "light": "#818cf8",
-    "dark": "#4f46e5",
-    "anchors": { "from": "#6366f1", "to": "#a78bfa" }
+    "primary": "#6366f1"
   },
   "topbarLinks": [
     { "name": "GitHub", "url": "https://github.com/kejiland/qingyu-blog" }
@@ -19,75 +16,57 @@
     "name": "Star on GitHub",
     "url": "https://github.com/kejiland/qingyu-blog"
   },
-  "tabs": [
-    { "name": "指南", "url": "guide" },
-    { "name": "部署", "url": "deploy" },
-    { "name": "API 参考", "url": "api" },
-    { "name": "数据库", "url": "database" }
-  ],
-  "anchors": [
-    {
-      "name": "在线预览",
-      "icon": "globe",
-      "url": "https://kejiland.azhz.workers.dev"
-    },
-    {
-      "name": "GitHub",
-      "icon": "github",
-      "url": "https://github.com/kejiland/qingyu-blog"
-    }
-  ],
   "navigation": [
     {
       "group": "指南",
       "pages": [
         "introduction",
-        "guide/quick-start",
-        "guide/architecture",
-        "guide/configuration",
-        "guide/i18n"
+        "quick-start",
+        "architecture",
+        "configuration",
+        "i18n"
       ]
     },
     {
       "group": "部署",
       "pages": [
-        "deploy/cloudflare-workers",
-        "deploy/local",
-        "deploy/github-secrets",
-        "deploy/kv-to-d1"
+        "cloudflare-workers",
+        "local",
+        "github-secrets",
+        "kv-to-d1"
       ]
     },
     {
       "group": "API 参考",
       "pages": [
-        "api/overview",
-        "api/posts",
-        "api/comments",
-        "api/admin",
-        "api/stats",
-        "api/media",
-        "api/settings"
+        "api-overview",
+        "posts",
+        "comments",
+        "admin",
+        "stats",
+        "media",
+        "settings"
       ]
     },
     {
       "group": "数据库",
       "pages": [
-        "database/schema",
-        "database/migrations"
+        "schema",
+        "migrations"
       ]
     },
     {
       "group": "安全",
       "pages": [
-        "security/overview",
-        "security/encryption"
+        "security-overview",
+        "encryption"
       ]
     },
     {
       "group": "贡献",
       "pages": [
-        "contribute/guide",
-        "contribute/code-style"
+        "guide",
+        "code-style"
       ]
     },
     {
@@ -97,12 +76,5 @@
   ],
   "footerSocials": {
     "github": "https://github.com/kejiland/qingyu-blog"
-  },
-  "modeToggle": {
-    "default": "dark",
-    "isHidden": false
-  },
-  "search": {
-    "prompt": "搜索文档..."
   }
 }
