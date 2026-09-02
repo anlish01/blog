@@ -1096,14 +1096,20 @@ function renderFooter() {
   var startYear = Number(f.startYear) || 2019;
   var copyRange = (startYear && startYear < year) ? (startYear + '-' + year) : ('' + year);
   var site = getSiteName();
-  // 页脚导航行：写作后台仅管理员显示；RSS 仅普通用户显示（互斥，避免导航过长）
-  var nav = resolveNav(NAV);
+  // 页脚导航行：优先使用 config.js footer.contact（可自定义、支持外部链接）；
+  // 未配置 contact 时回退到站点主导航 NAV。写作后台仅管理员显示；
+  // RSS 仅普通用户显示（互斥，避免导航过长）。
+  var custom = (f.contact && f.contact.length) ? f.contact : null;
+  var nav = custom ? custom.map(function (it) {
+    return { text: it.text || '', url: it.url || '/' };
+  }) : resolveNav(NAV);
   if (adminOk()) nav.push({ text: t('nav.admin'), url: '/admin' });
   function l(x) {
     var u = x.url || '/';
+    var ext = /^https?:|^\/\//.test(u) ? ' target="_blank" rel="noopener"' : '';
     if (/^#\//.test(u)) u = href(u.slice(1));
     else if (/^\//.test(u)) u = href(u);
-    return '<a href="' + esc(u) + '">' + esc(x.text || '') + '</a>';
+    return '<a href="' + esc(u) + '"' + ext + '>' + esc(x.text || '') + '</a>';
   }
   var navHtml = nav.map(l).join('<span class="footer-dot">·</span>');
   // RSS：仅非管理员显示（管理员有写作后台入口）。云端模式指向动态

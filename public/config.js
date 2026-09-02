@@ -60,13 +60,21 @@ window.BLOG_CONFIG = {
 
   /* 页脚（可选）：links 为友情链接（电脑端显示「友情链接：…」）；icp 为备案号。
    *   decl：站点声明（电脑端显示）；email：侵权/举报联系邮箱（电脑端显示）。
-   *   startYear：版权起始年（固定）；copyrightName：版权署名。版权为「©起始年-当前年 署名」。 */
+   *   startYear：版权起始年（固定）；copyrightName：版权署名。版权为「©起始年-当前年 署名」。
+   *
+   *   页脚导航（contact）：底部导航栏的链接列表，可自由增删并支持外部链接。
+   *   · 站内路径：url 填 /tags、/archive、/about 等（自动带上部署前缀）。
+   *   · 外部链接：url 填 https://... 或 //...（自动新窗口打开）。
+   *   · 管理员入口「后台」始终由系统自动附加，无需在此配置。
+   *   下方数组即当前页脚导航，可随意增删、替换为任意站内或外部链接。 */
   footer: {
     text: '',
     icp: '',
     contact: [
       { text: 'Docs', url: 'https://docs.2024921.xyz/' },
       { text: 'GitHub', url: 'https://github.com/kejiland/qingyu-blog' }
+      // 页脚导航可自由增删，站内路径如 /tags、/archive、/about，
+      // 外部链接会自动新窗口打开（无需改代码，改此数组即可）。
     ],
     links: [
      { text: '语幕', url: 'https://www.yumus.cn' }
