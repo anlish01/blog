@@ -48,7 +48,17 @@
   }
   async function api(url, opts) {
     if (!window.apiFetch) throw new Error(t('admin.error.apiFetchUnavailable'));
-    return await window.apiFetch(url, opts || {});
+    try {
+      return await window.apiFetch(url, opts || {});
+    } catch (e) {
+      // 401 = 会话过期/无效，清除 token 并跳转登录页
+      if (String(e.message || e).indexOf('HTTP 401') >= 0) {
+        toast(t('editor.loginExpired'), 'err');
+        if (window.cloudLogout) window.cloudLogout();
+        setTimeout(function () { if (window.navigate) window.navigate('/admin'); }, 800);
+      }
+      throw e;
+    }
   }
   function toast(msg, type) {
     var wrap = document.querySelector('.ab-toast-wrap');
