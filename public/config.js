@@ -87,6 +87,9 @@ window.BLOG_CONFIG = {
 
   ads: {
     enabled: false,
+    // AdSense 发布商 ID（ca-pub-xxxx），启用广告时由前端自动加载 adsbygoogle.js 库。
+    // 留空则即使 enabled=true 也不会加载广告脚本（无可用账号）。
+    client: 'ca-pub-4096395942817870',
     belowSearch: '',
     between: '',
     betweenEvery: 3,

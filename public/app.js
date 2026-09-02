@@ -3032,6 +3032,26 @@ function renderSearchPanel(query) {
   panel.classList.add('open');
 }
 
+/* ---------- 广告（AdSense）----------
+ * 仅在 ads.enabled && ads.client 时加载官方库脚本（adsbygoogle.js），
+ * 注入到 <head>，等价于在 <head> 中放置 AdSense 提供的脚本。
+ * 广告单元 HTML 由 config.js 的 ads.belowSearch / between / content 提供（含 <ins class="adsbygoogle"> 与 push 脚本）。
+ * 未启用广告时不引入任何第三方脚本（零依赖原则）。 */
+function loadAdSense() {
+  try {
+    var ads = (getConfig().ads) || {};
+    var client = String(ads.client || '').trim();
+    if (!ads.enabled || !client) return;
+    if (document.getElementById('adsbygoogle-loader')) return;
+    var s = document.createElement('script');
+    s.id = 'adsbygoogle-loader';
+    s.async = true;
+    s.crossOrigin = 'anonymous';
+    s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent(client);
+    document.head.appendChild(s);
+  } catch (e) { /* 忽略：广告加载失败不影响站点 */ }
+}
+
 /* ---------- 启动引导 ----------
  * 首屏渲染不等待网络：先用静态/本地数据立即渲染，云端探测（/api/posts）
  * 异步完成后再合并数据并重渲染一次，切换为云端模式 UI。
@@ -3040,6 +3060,7 @@ window.__bootPromise = (async function () {
   var cfg = getConfig();
   applyTheme(getTheme());
   bindNavClicks();
+  loadAdSense();   // 尽早把 AdSense 库挂到 head，使其能在页面渲染后即时处理广告位
 
   // 确保 i18n 翻译数据在首次渲染前加载完成
   if (window.__i18n && window.__i18n.loadLocale && !window.__i18n.isReady()) {
