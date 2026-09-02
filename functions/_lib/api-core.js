@@ -477,7 +477,8 @@ export function buildSitemapXml(posts, siteUrl) {
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
     row(base + '/'),
     row(base + '/about'),
-    row(base + '/archive')
+    row(base + '/archive'),
+    row(base + '/guestbook')
   ];
   sortByDateDesc(posts).forEach((p) => {
     lines.push(row(base + '/posts/' + encodeURIComponent(p.id) + '/', p.date || ''));

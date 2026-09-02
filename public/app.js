@@ -61,7 +61,8 @@ function svgIcon(name, size) {
     quote: '<svg ' + s + ' ' + c + '><path d="M10 7H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2v-4H6"/><path d="M20 7h-4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2v-4h-2"/></svg>',
     tag: '<svg ' + s + ' ' + c + '><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
     list: '<svg ' + s + ' ' + c + '><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>',
-    check: '<svg ' + s + ' ' + c + '><path d="M4 12.5l5 5L20 6.5"/></svg>'
+    check: '<svg ' + s + ' ' + c + '><path d="M4 12.5l5 5L20 6.5"/></svg>',
+    send: '<svg ' + s + ' ' + c + '><path d="M3 11l18-8-8 18-2-8-8-2z"/><path d="M21 3 11 13"/></svg>'
   };
   return I[name] || '';
 }
@@ -1047,10 +1048,11 @@ function app() { return document.querySelector('#app'); }
   // 站点主导航：单一数据源。新增导航只需在此数组追加一项（可选 children 子菜单）。
   // 文本用 i18n key，渲染时经 t() 解析，切换语言即时生效。
   var NAV = [
-    { i18n: 'nav.home',    url: '/',        path: '/' },
-    { i18n: 'nav.tags',    url: '/tags',    path: '/tags' },
-    { i18n: 'nav.archive', url: '/archive', path: '/archive' },
-    { i18n: 'nav.about',   url: '/about',   path: '/about' }
+    { i18n: 'nav.home',     url: '/',          path: '/' },
+    { i18n: 'nav.tags',     url: '/tags',      path: '/tags' },
+    { i18n: 'nav.archive',  url: '/archive',   path: '/archive' },
+    { i18n: 'nav.guestbook',url: '/guestbook', path: '/guestbook' },
+    { i18n: 'nav.about',    url: '/about',     path: '/about' }
   ];
 
   // 将 NAV 配置解析为带翻译文本的导航项（含可选子菜单）。
@@ -1667,6 +1669,135 @@ function renderTags() {
   });
   html += '</div></main>' + renderFooter();
   return html;
+}
+
+/* ============================================================
+ * 留言板（云端，复用评论域的安全管道）
+ * ------------------------------------------------------------
+ * 访客可在「留言」或「项目优化方案」两个分区发表内容。
+ * 数据模型：直接复用 cloud 评论接口（/api/posts/:id/comments），
+ * 用两个固定的合成 post_id 区分分区（gb-note / gb-idea），
+ * 从而自动获得评论域的整套安全能力：
+ *   · 跨源 Origin 校验（403）
+ *   · 按 IP 频率限制（每分钟 5 条 / 429）
+ *   · ASCII 控制字符清洗 + 长度上限（昵称 30 / 内容 1000）
+ *   · 可选审核（moderate_comments）
+ * 不新增后端接口与数据表，避免重复实现安全逻辑。
+ * ============================================================ */
+var GUESTBOOK_IDS = { note: 'gb-note', idea: 'gb-idea' };
+function guestbookId(kind) { return GUESTBOOK_IDS[kind] || GUESTBOOK_IDS.note; }
+
+function renderGuestbook() {
+  var html = renderNav(currentRoute().path);
+  html += '<main class="container page-fade">'
+    + '<div class="guestbook">'
+    + '<header class="guestbook-head">'
+    + '<div class="guestbook-head-icon">' + svgIcon('quote', 22) + '</div>'
+    + '<div><h2 class="page-title">' + t('guestbook.title') + '</h2>'
+    + '<p class="guestbook-sub">' + t('guestbook.desc') + '</p></div>'
+    + '</header>'
+    // 分区切换：留言 / 项目优化方案
+    + '<div class="guestbook-tabs" id="gbTabs">'
+    + '<button class="gb-tab active" data-kind="note">' + svgIcon('quote', 14) + ' ' + t('guestbook.noteTab') + '</button>'
+    + '<button class="gb-tab" data-kind="idea">' + svgIcon('pen', 14) + ' ' + t('guestbook.ideaTab') + '</button>'
+    + '</div>'
+    // 发表表单
+    + '<div class="guestbook-form card">'
+    + '<div class="gb-form-row">'
+    + '<input type="text" id="gbAuthor" maxlength="30" placeholder="' + t('guestbook.authorPlaceholder') + '" autocomplete="name">'
+    + '<button class="gb-submit" id="gbSubmit" type="button" aria-label="' + t('guestbook.postAnon') + '">' + svgIcon('send', 15) + '</button>'
+    + '</div>'
+    + '<div class="gb-kind-hint" id="gbKindHint">' + svgIcon('pen', 13) + ' <span></span></div>'
+    + '<textarea id="gbContent" rows="3" maxlength="1000" placeholder="' + t('guestbook.contentPlaceholder') + '"></textarea>'
+    + '<div class="gb-form-foot"><span class="gb-status" id="gbStatus"></span>'
+    + '<span class="gb-count" id="gbCount"></span></div>'
+    + '</div>'
+    // 留言列表
+    + '<div class="guestbook-list" id="gbList" aria-live="polite"></div>'
+    + '</div></main>' + renderFooter();
+  return html;
+}
+
+/* 绑定留言板交互：分区切换、发表、列表加载 */
+async function bindGuestbook() {
+  var kind = 'note';
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('#gbTabs .gb-tab'));
+  var list = document.querySelector('#gbList');
+  var author = document.querySelector('#gbAuthor');
+  var content = document.querySelector('#gbContent');
+  var submit = document.querySelector('#gbSubmit');
+  var status = document.querySelector('#gbStatus');
+  var count = document.querySelector('#gbCount');
+  var hint = document.querySelector('#gbKindHint');
+  if (hint) hint.setAttribute('data-kind', 'note');
+
+  function refreshUI() {
+    tabs.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-kind') === kind); });
+    var label = t(kind === 'idea' ? 'guestbook.ideaKind' : 'guestbook.noteKind');
+    if (hint) { hint.setAttribute('data-kind', kind); var sp = hint.querySelector('span'); if (sp) sp.textContent = label; }
+  }
+
+  function setList(entries) {
+    if (!list) return;
+    if (!entries || !entries.length) {
+      list.innerHTML = '<div class="gb-empty"><div class="gb-empty-icon">' + svgIcon('quote', 26) + '</div><p>' + t('guestbook.empty') + '</p></div>';
+      if (count) count.textContent = '0';
+      return;
+    }
+    // 最新在前：云端按写入序（rowid ASC）返回，直接倒序即可
+    // （SELECT * 不含隐式 rowid 列，故不能用 rowid 字段排序）
+    var sorted = entries.slice().reverse();
+    var kindClass = kind === 'idea' ? 'idea' : 'note';
+    var kindLabel = t(kind === 'idea' ? 'guestbook.ideaTag' : 'guestbook.noteTag');
+    list.innerHTML = sorted.map(function (c) {
+      return '<div class="gb-entry card">'
+        + '<div class="gb-entry-head">'
+        + '<span class="gb-avatar">' + esc((c.author || '?').slice(0, 1)) + '</span>'
+        + '<span class="gb-author">' + esc(c.author || '') + '</span>'
+        + '<span class="gb-kind-badge ' + kindClass + '">' + kindLabel + '</span>'
+        + '<span class="gb-date">' + esc(c.date || '') + '</span>'
+        + '</div>'
+        + '<div class="gb-entry-content">' + esc(c.content || '') + '</div>'
+        + '</div>';
+    }).join('');
+    if (count) count.textContent = String(entries.length);
+  }
+
+  function load() {
+    loadComments(guestbookId(kind)).then(setList);
+  }
+
+  if (tabs) tabs.forEach(function (b) {
+    b.addEventListener('click', function () {
+      kind = b.getAttribute('data-kind') || 'note';
+      refreshUI();
+      load();
+    });
+  });
+
+  if (submit && author && content) {
+    submit.addEventListener('click', onPost);
+    content.addEventListener('keydown', function (e) {
+      // Ctrl/Cmd + Enter 快捷提交
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); onPost(); }
+    });
+  }
+  async function onPost() {
+    if (!author || !content || !status) return;
+    if (!author.value.trim() || !content.value.trim()) { status.textContent = t('guestbook.fillBoth'); return; }
+    submit.disabled = true;
+    status.textContent = t('guestbook.posting');
+    try {
+      var c = await saveComment(guestbookId(kind), author.value, content.value);
+      if (!c) { status.textContent = t('guestbook.fail'); return; }
+      status.textContent = t('guestbook.posted');
+      content.value = '';
+      load();
+    } finally { submit.disabled = false; }
+  }
+
+  refreshUI();
+  load();
 }
 
 /* ---------- 管理后台辅助函数 ---------- */
@@ -2562,6 +2693,7 @@ function buildSitemapClient() {
   lines.push('  <url><loc>' + esc(base + '/') + '</loc></url>');
   lines.push('  <url><loc>' + esc(base + '/about') + '</loc></url>');
   lines.push('  <url><loc>' + esc(base + '/archive') + '</loc></url>');
+  lines.push('  <url><loc>' + esc(base + '/guestbook') + '</loc></url>');
   posts.forEach(function (p) {
     lines.push('  <url><loc>' + esc(base + postUrl(p.id)) + '</loc><lastmod>' + esc(p.date || '') + '</lastmod></url>');
   });
@@ -2705,6 +2837,7 @@ async function route() {
   else if (path === '/archive') { app().innerHTML = renderArchive(); }
   else if (path === '/about') { app().innerHTML = renderAbout(); }
   else if (path === '/tags') { app().innerHTML = renderTags(); }
+  else if (path === '/guestbook') { app().innerHTML = renderGuestbook(); bindGuestbook(); }
   else {
     app().innerHTML = renderNav(path) + '<main class="container page-fade"><div class="empty"><div class="big">' + svgIcon('question', 36) + '</div><p>' + t('post.notFound') + '</p><p><a href="' + esc(href('/')) + '">' + t('post.backHome') + '</a></p></div></main>' + renderFooter();
   }
@@ -2735,6 +2868,9 @@ function updateSEO(path) {
   } else if (path === '/about') {
     pageTitle = t('about.title') + ' · ' + n;
     pageDesc = t('about.desc');
+  } else if (path === '/guestbook') {
+    pageTitle = t('guestbook.title') + ' · ' + n;
+    pageDesc = t('guestbook.desc');
   } else if (path.indexOf('/posts/') === 0) {
     var id = '';
     try { id = decodeURIComponent(path.replace('/posts/', '').replace(/\/.*$/, '')); } catch (e) {}

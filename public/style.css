@@ -524,6 +524,94 @@ main { flex: 1 0 auto; width: 100%; padding: 34px 0 60px; }
 .sh-snip .sh-hl { color: var(--accent); font-weight: 600; background: var(--accent-soft); border-radius: 3px; padding: 0 1px; }
 .search-empty { padding: 16px 18px; color: var(--muted); font-size: 13px; }
 
+/* ============================================================
+ * 留言板（Guestbook）
+ * 与主题变量统一，随深/浅色模式自动适配
+ * ============================================================ */
+.guestbook { max-width: 720px; margin: 0 auto; }
+.guestbook-head { display: flex; align-items: center; gap: 14px; margin: 6px 0 18px; }
+.guestbook-head-icon {
+  flex: 0 0 auto; width: 46px; height: 46px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), #e28a56);
+  box-shadow: 0 8px 20px -6px rgba(194, 94, 58, .45);
+}
+.guestbook-head .page-title { margin: 0; }
+.guestbook-sub { margin: 2px 0 0; color: var(--muted); font-size: 13.5px; }
+
+/* 分区切换 tabs */
+.guestbook-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.gb-tab {
+  border: 1px solid var(--border); background: var(--card); color: var(--muted);
+  border-radius: 999px; padding: 8px 16px; cursor: pointer; font-size: 13.5px;
+  display: inline-flex; align-items: center; gap: 6px; transition: all .18s ease;
+}
+.gb-tab:hover { border-color: var(--accent); color: var(--fg); }
+.gb-tab.active {
+  background: linear-gradient(135deg, var(--accent), #d97d4a);
+  color: #fff; border-color: transparent; box-shadow: 0 8px 18px -8px rgba(194,94,58,.55);
+}
+
+/* 发表表单 */
+.guestbook-form { padding: 18px; margin-bottom: 20px; }
+.gb-form-row { display: flex; gap: 10px; align-items: center; }
+.gb-form-row input[type="text"] {
+  flex: 1; border: 1px solid var(--border); background: var(--bg-soft);
+  color: var(--fg); border-radius: 10px; padding: 9px 12px; font-size: 14px; outline: none;
+}
+.gb-form-row input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.gb-submit {
+  flex: 0 0 auto; width: 40px; height: 40px; border: none; border-radius: 10px; cursor: pointer;
+  color: #fff; background: linear-gradient(135deg, var(--accent), #d97d4a);
+  display: flex; align-items: center; justify-content: center; transition: transform .15s ease;
+}
+.gb-submit:hover { transform: translateY(-1px); }
+.gb-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+.gb-kind-hint {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.5px; color: var(--muted); margin: 6px 0 2px;
+}
+.gb-kind-hint[data-kind="idea"] { color: var(--accent); }
+
+.guestbook-form textarea {
+  width: 100%; box-sizing: border-box; resize: vertical; border: 1px solid var(--border);
+  background: var(--bg-soft); color: var(--fg); border-radius: 10px; padding: 10px 12px;
+  font-size: 14px; line-height: 1.6; outline: none; font-family: inherit;
+}
+.guestbook-form textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.gb-form-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.gb-status { color: var(--accent); font-size: 12.5px; }
+.gb-count { color: var(--muted); font-size: 12px; }
+
+/* 留言列表 */
+.guestbook-list { display: flex; flex-direction: column; gap: 12px; }
+.gb-empty {
+  text-align: center; padding: 40px 16px; color: var(--muted);
+  border: 1px dashed var(--border); border-radius: 14px; background: var(--bg-soft);
+}
+.gb-empty-icon { font-size: 0; opacity: .5; }
+.gb-empty p { margin: 10px 0 0; font-size: 14px; }
+.gb-entry { padding: 16px 18px; animation: gb-in .25s ease; }
+@keyframes gb-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.gb-entry-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.gb-avatar {
+  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px;
+  color: #fff; background: linear-gradient(135deg, var(--accent), #e28a56);
+}
+.gb-author { font-weight: 600; color: var(--fg); font-size: 14px; }
+.gb-kind-badge {
+  margin-left: auto; font-size: 11px; font-weight: 600; border-radius: 999px; padding: 3px 9px;
+}
+.gb-kind-badge.note { color: var(--accent); background: var(--accent-soft); }
+.gb-kind-badge.idea { color: #b3751c; background: #f6ecd8; }
+html[data-theme="dark"] .gb-kind-badge.idea { color: #e6b04d; background: #3a2f1c; }
+.gb-date { color: var(--muted); font-size: 12px; margin-left: 8px; }
+.gb-entry-content { color: var(--fg); font-size: 14px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+
+
 /* 首页标签分类平铺行：位于标题下方、卡片上方 */
 .home-tags {
   display: flex;

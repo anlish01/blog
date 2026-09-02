@@ -15,9 +15,14 @@ const PUB = path.join(dir, 'public');
 
 /* ---------- 构造最小浏览器环境 ---------- */
 const stubEl = () => ({
-  addEventListener() {}, textContent: '', innerHTML: '', value: '',
-  style: {}, dataset: {}, classList: { add() {}, remove() {} },
+  addEventListener() {}, removeEventListener() {}, textContent: '', innerHTML: '', value: '',
+  style: {}, dataset: {}, classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
   closest: () => null, focus() {}, disabled: false,
+  setAttribute() {}, getAttribute: () => '', removeAttribute() {}, hasAttribute: () => false,
+  querySelector: () => null, querySelectorAll: () => [],
+  click() {}, scrollIntoView() {},
+  parentNode: null, children: [], childNodes: [],
+  insertBefore() {}, appendChild() {}, removeChild() {}, remove() {},
 });
 
 function makeCtx(extra) {
@@ -30,6 +35,7 @@ function makeCtx(extra) {
     querySelectorAll: () => [],
     createElement: () => Object.assign(stubEl(), { click() {}, set href(v) {} }),
     body: { appendChild() {}, removeChild() {}, style: {} },
+    head: { appendChild() {}, removeChild() {} },
     addEventListener() {},
   };
   const win = {
@@ -41,6 +47,7 @@ function makeCtx(extra) {
   };
   const base = {
     window: win,
+    navigator: { language: 'zh-CN', userLanguage: '' },
     document: doc,
     location: { protocol: 'https:', origin: 'https://test.example', host: 'test.example', pathname: '/', search: '', hash: '', href: 'https://test.example/' },
     history: { pushState() {}, replaceState() {} },
@@ -53,6 +60,7 @@ function makeCtx(extra) {
     alert: () => {},
     prompt: () => null,
     setTimeout, clearTimeout,
+    crypto,   // Node 全局 WebCrypto（app.js 顶层直接使用裸 crypto.subtle）
     URLSearchParams, Blob: function () {},
     URL: { createObjectURL: () => 'blob:stub', revokeObjectURL() {} },
     console, Date, JSON, Math, String, Array, Object, RegExp, Map, Set, Uint8Array,
@@ -84,6 +92,9 @@ function setRoute(ctx, route) {
 async function boot(extra, route) {
   const { ctx, appEl, win } = makeCtx(extra);
   setRoute(ctx, route || '/');
+  // i18n 必须先于 app.js 加载并暴露 t()，否则导航/页脚等用 t() 渲染会报错
+  vm.runInContext(fs.readFileSync(path.join(PUB, 'i18n.js'), 'utf8'), ctx, { filename: 'i18n.js' });
+  ctx.t = (k, v) => win.__i18n.t(k, v);
   vm.runInContext(fs.readFileSync(path.join(PUB, 'posts.js'), 'utf8'), ctx, { filename: 'posts.js' });
   // 测试文章集：默认注入 TEST_POSTS 夹具；extra 显式提供 'window.BLOG_POSTS' 时优先
   if (extra && extra['window.BLOG_POSTS']) win.BLOG_POSTS = extra['window.BLOG_POSTS'];
@@ -412,8 +423,10 @@ function makeD1() {
     }
     if (s === 'DELETE FROM posts WHERE id = ?') { t.posts.delete(params[0]); return { success: true }; }
     /* comments */
-    if (s === 'SELECT * FROM comments WHERE post_id = ? ORDER BY rowid ASC') {
+    if (s === 'SELECT * FROM comments WHERE post_id = ? ORDER BY rowid ASC'
+      || s === "SELECT * FROM comments WHERE post_id = ? AND (status = 'approved' OR status IS NULL) ORDER BY rowid ASC") {
       return [...t.comments.values()].filter((r) => r.post_id === params[0])
+        .filter((r) => !s.includes('status') || (r.status === 'approved' || r.status == null))
         .sort((a, b) => (a.__rowid || 0) - (b.__rowid || 0));
     }
     if (s === 'SELECT COUNT(*) AS c FROM comments WHERE post_id = ?') {
@@ -787,6 +800,46 @@ tests.push(['API：评论 POST / GET / 校验 / 删除（需令牌）', async ()
   assert.strictEqual(r.status, 200, '带令牌删除 200');
   const after = await (await core.handleComments(new Request('http://t/api/posts/p1/comments'), env, 'p1')).json();
   assert.strictEqual(after.comments.length, 2, '删除后剩 2 条');
+}]);
+
+tests.push(['留言板（云端）：合成 id gb-note/gb-idea 复用评论管道，持久化 + 来源校验', async () => {
+  const core = await import('./functions/_lib/api-core.js');
+  const env = mockEnv();
+  // 未绑定 KV：频控静默禁用（与现有评论行为一致，其余安全仍生效）
+  const post = (pid, body, headers) => core.handleComments(new Request('http://t/api/posts/' + pid + '/comments', {
+    method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, headers || {}),
+    body: JSON.stringify(body)
+  }), env, pid);
+
+  // 留言分区发表
+  let r = await post('gb-note', { author: '访客甲', content: '欢迎新朋友！' });
+  assert.strictEqual(r.status, 201, '留言发表成功');
+  let c = await r.json();
+  assert.strictEqual(c.comment.author, '访客甲');
+
+  // 优化方案分区发表
+  r = await post('gb-idea', { author: '路人乙', content: '建议首页加载更快一点。' });
+  assert.strictEqual(r.status, 201, '优化方案发表成功');
+  c = await r.json();
+  assert.strictEqual(c.comment.author, '路人乙');
+
+  // 两个分区互不干扰（列表行含 post_id，验证真正落到对应分区）
+  const noteList = await (await core.handleComments(new Request('http://t/api/posts/gb-note/comments'), env, 'gb-note')).json();
+  const ideaList = await (await core.handleComments(new Request('http://t/api/posts/gb-idea/comments'), env, 'gb-idea')).json();
+  assert.strictEqual(noteList.comments.length, 1, '留言分区仅 1 条');
+  assert.strictEqual(ideaList.comments.length, 1, '优化方案分区仅 1 条');
+  assert.strictEqual(noteList.comments[0].post_id, 'gb-note', '留言持久化到 gb-note');
+  assert.strictEqual(ideaList.comments[0].post_id, 'gb-idea', '优化方案持久化到 gb-idea');
+
+  // 空昵称 / 空内容拒绝（安全兜底）
+  r = await post('gb-note', { author: '', content: 'x' });
+  assert.strictEqual(r.status, 400, '空昵称 400');
+  r = await post('gb-note', { author: 'a', content: '  ' });
+  assert.strictEqual(r.status, 400, '空内容 400');
+
+  // 跨源 Origin 拒绝（防脚本灌水）
+  r = await post('gb-note', { author: 'x', content: 'y' }, { Origin: 'https://evil.example' });
+  assert.strictEqual(r.status, 403, '跨源 403');
 }]);
 
 tests.push(['后端：评论安全加固（控制字符清洗 / 频率限制 / 来源校验）', async () => {
