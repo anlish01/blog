@@ -450,7 +450,16 @@ async function apiFetch(url, opts) {
     throw e;
   }
   if (timer) clearTimeout(timer);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
+  if (!res.ok) {
+    // 优先透传后端返回的 error 文案（如「请勿重复发送相同内容」「评论太频繁」），
+    // 便于用户直接理解失败原因；解析失败再退回 HTTP 状态码。
+    var msg = 'HTTP ' + res.status;
+    try {
+      var j = await res.json();
+      if (j && j.error) msg = String(j.error);
+    } catch (e) { /* 非 JSON 响应体，保留状态码提示 */ }
+    throw new Error(msg);
+  }
   return res.json();
 }
 
@@ -565,15 +574,15 @@ async function saveComment(postId, author, content, parentId) {
   parentId = parentId || null;
   if (!author || !content) return null;
   if (_cloudOn()) {
-    try {
-      var data = await apiFetch(commentApi(id), {
-        method: 'POST',
-        body: JSON.stringify({ author: author, content: content, parent_id: parentId })
-      });
-      var c = (data && data.comment) || null;
-      if (c) { try { delete _commentsCache[id]; } catch (e) {} }
-      return c;
-    } catch (e) { return null; }
+    // 失败不再静默吞掉：抛出后端透传的具体原因（重复内容 409 / 频率限制 429 / 来源校验 403 等），
+    // 由调用方（文章评论 / 留言板）在状态行展示，用户能明确知道为何未发表成功。
+    var data = await apiFetch(commentApi(id), {
+      method: 'POST',
+      body: JSON.stringify({ author: author, content: content, parent_id: parentId })
+    });
+    var c = (data && data.comment) || null;
+    if (c) { try { delete _commentsCache[id]; } catch (e) {} }
+    return c;
   }
   var list = await loadComments(id);
   var comment = {
@@ -1317,6 +1326,34 @@ function firstImageFrom(content) {
  * 再次点击先显示缓存（秒开），同时后台重新拉取最新数据（SWR），
  * 内容有更新则刷新缓存并自动重渲染为最新正文。 */
 function postCacheKey(id) { return 'qingyu.postCache.' + id; }
+/* 删除文章后清理其本地痕迹：正文缓存 + 点赞/浏览计数缓存，避免残留脏数据 */
+function purgePostLocal(id) {
+  try { localStorage.removeItem(postCacheKey(id)); } catch (e) {}
+  try { localStorage.removeItem('qingyu.comments.' + id); } catch (e) {}
+}
+/* 前台即时同步删除：管理后台删除文章后调用，内存/缓存/正文页三处同步，
+ * 无需刷新网页 —— 列表与详情立即反映删除结果 */
+function syncDeletedPost(id) {
+  var pid = String(id || '');
+  if (!pid) return false;
+  var removed = false;
+  if (Array.isArray(window.BLOG_POSTS)) {
+    var before = window.BLOG_POSTS.length;
+    window.BLOG_POSTS = window.BLOG_POSTS.filter(function (p) { return p && p.id !== pid; });
+    removed = window.BLOG_POSTS.length !== before;
+  }
+  purgePostLocal(pid);
+  try { delete _commentsCache[pid]; } catch (e) {}
+  try { delete _statsCache[pid]; } catch (e) {}
+  // 若当前正停在该文章详情页，跳回首页（避免停留在已删除内容上）
+  var cur = currentRoute();
+  if (cur && cur.path && cur.path.indexOf('/posts/') === 0) {
+    var curId = '';
+    try { curId = decodeURIComponent(cur.path.replace('/posts/', '').replace(/\/.*$/, '')); } catch (e) {}
+    if (curId === pid) { navigate('/'); }
+  }
+  return removed;
+}
 function readPostCache(id) {
   try {
     var raw = localStorage.getItem(postCacheKey(id));
@@ -1575,6 +1612,9 @@ async function renderPost(id) {
       if (c) c.value = '';
       if (indicator) { indicator.style.display = 'none'; indicator.removeAttribute('data-reply-id'); }
       loadComments(post.id).then(refreshComments);
+    } catch (e) {
+      // 失败时保留已输入内容，并显示具体原因（重复内容 / 频率限制 / 网络错误等）
+      if (st) st.textContent = (e && e.message) || t('comment.fail');
     } finally {
       submit.disabled = false;
     }
@@ -1789,10 +1829,12 @@ async function bindGuestbook() {
     status.textContent = t('guestbook.posting');
     try {
       var c = await saveComment(guestbookId(kind), author.value, content.value);
-      if (!c) { status.textContent = t('guestbook.fail'); return; }
       status.textContent = t('guestbook.posted');
       content.value = '';
       load();
+    } catch (e) {
+      // 失败时保留已输入内容，并显示具体原因（重复内容 / 频率限制 / 网络错误等）
+      status.textContent = (e && e.message) || t('guestbook.fail');
     } finally { submit.disabled = false; }
   }
 

@@ -69,6 +69,24 @@
     wrap.appendChild(t);
     setTimeout(function () { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(function () { t.remove(); }, 300); }, 2400);
   }
+  /* 无感移除表格行：淡出动画后原地删除，仅当数据行清空时才显示空态。
+   * 替代「整表重拉 + spinner 闪烁」，删除/审核后列表其余行、滚动位置均保持不动。 */
+  function seamlessRemoveRow(body, tr, emptyMsg) {
+    if (!body || !tr || !tr.parentNode) return;
+    tr.style.transition = 'opacity .25s ease, transform .25s ease';
+    tr.style.opacity = '0';
+    tr.style.transform = 'translateX(10px)';
+    setTimeout(function () {
+      if (tr.parentNode) tr.remove();
+      var hasData = false;
+      Array.prototype.forEach.call(body.querySelectorAll('tr'), function (r) {
+        if (r.cells && r.cells.length >= 6) hasData = true;   // 数据行固定 6 列，状态行仅 1 列
+      });
+      if (!hasData && emptyMsg) {
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:34px" class="ab-muted">' + emptyMsg + '</td></tr>';
+      }
+    }, 260);
+  }
   function confirmModal(title, bodyHtml, onOk, okText) {
     var mask = document.createElement('div');
     mask.className = 'ab-modal-mask';
@@ -92,7 +110,9 @@
   /* ----------------------- 数据访问（兼容云端 / 静态） ----------------------- */
   async function listPosts() {
     if (cloudOn()) {
-      var d = await api('api/posts');
+      // 时间戳穿透边缘缓存（api/posts 带 s-maxage=60）：删除/发布后管理端必须立即看到最新列表，
+      // 否则命中缓存会误以为「删除没生效，要刷新网页才删掉」。查询参数变化 = 边缘缓存 key 变化。
+      var d = await api('api/posts?_=' + Date.now());
       return (d && d.posts) || [];
     }
     // 静态模式：BLOG_POSTS 合并本地草稿
@@ -106,7 +126,7 @@
   }
   async function getPost(id) {
     if (cloudOn()) {
-      try { var d = await api('api/posts/' + encodeURIComponent(id)); return d && d.post; } catch (e) { return null; }
+      try { var d = await api('api/posts/' + encodeURIComponent(id) + '?_=' + Date.now()); return d && d.post; } catch (e) { return null; }
     }
     var all = await listPosts();
     for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
@@ -133,12 +153,18 @@
   }
   async function deletePost(id) {
     if (cloudOn()) return await api('api/posts/' + encodeURIComponent(id), { method: 'DELETE' });
-    // 静态：从 BLOG_POSTS 与草稿中移除
+    // 静态：从本地草稿与 BLOG_POSTS 内存中同时移除，列表立即生效（前台 SPA 无需刷新网页）
     var drafts = [];
     try { drafts = JSON.parse(localStorage.getItem('qingyu.drafts') || '[]'); } catch (e) {}
     drafts = drafts.filter(function (p) { return p.id !== id; });
     localStorage.setItem('qingyu.drafts', JSON.stringify(drafts));
-    return { ok: true };
+    var inBundle = false;
+    if (Array.isArray(window.BLOG_POSTS)) {
+      var before = window.BLOG_POSTS.length;
+      window.BLOG_POSTS = window.BLOG_POSTS.filter(function (p) { return p && p.id !== id; });
+      inBundle = window.BLOG_POSTS.length !== before;   // 命中 posts.js 内置文章：需导出覆盖后删除才发布到站点
+    }
+    return { ok: true, needExport: inBundle };
   }
   function downloadPostsJs() {
     if (!window.buildPostsJs) { toast(t('admin.toast.exportNotSupported'), 'err'); return; }
@@ -613,10 +639,11 @@
   }
   function debounce(fn, ms) { var t; return function () { clearTimeout(t); t = setTimeout(fn, ms); }; }
 
-  async function loadPosts(content, page) {
+  async function loadPosts(content, page, silent) {
     var body = content.querySelector('#abPostBody');
     var catSel = content.querySelector('#abPostCat');
-    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px"><span class="ab-spin"></span> ' + t('admin.postList.loading') + '</td></tr>';
+    // silent：删除/审核后的静默校准刷新，不打断当前视图（不闪加载行）
+    if (!silent) body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px"><span class="ab-spin"></span> ' + t('admin.postList.loading') + '</td></tr>';
     var posts = [];
     try { posts = await listPosts(); } catch (e) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px" class="ab-muted">' + t('admin.postList.loadFail') + esc(e.message || e) + '</td></tr>'; return; }
 
@@ -695,8 +722,22 @@
     }); });
     body.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () {
       var pid = dec(b.getAttribute('data-del'));
+      var tr = b.closest('tr');
       confirmModal(t('admin.postList.deleteTitle'), '<p class="ab-muted">' + t('admin.postList.deleteConfirm', { title: esc(pid) }) + '</p>', async function () {
-        try { await deletePost(pid); toast(t('admin.postList.deleted'), 'ok'); loadPosts(content, page); } catch (e) { toast(t('admin.postList.deleteFail') + (e.message || e), 'err'); }
+        // 无感删除：请求期间行半透明即时反馈，成功后行淡出移除并静默校准整表（不闪加载态）
+        if (tr) { tr.style.opacity = '0.45'; tr.style.pointerEvents = 'none'; }
+        try {
+          var r = await deletePost(pid);
+          // 同步前台 SPA 内存数据源：前台列表/详情立即反映删除，无需刷新网页
+          if (window.syncDeletedPost) window.syncDeletedPost(pid);
+          toast(t('admin.postList.deleted'), 'ok');
+          seamlessRemoveRow(body, tr, t('admin.postList.noMatch'));
+          if (r && r.needExport) toast(t('admin.postList.deleteNeedExport'), 'err');
+          loadPosts(content, page, true);
+        } catch (e) {
+          if (tr) { tr.style.opacity = ''; tr.style.pointerEvents = ''; }
+          toast(t('admin.postList.deleteFail') + (e.message || e), 'err');
+        }
       }, t('admin.comments.delete'));
     }); });
 
@@ -977,16 +1018,39 @@
         '<td class="col-actions">' + actions + '</td>' +
       '</tr>';
     }).join('');
-    body.querySelectorAll('[data-approve]').forEach(function (b) { b.addEventListener('click', function () { approveComment(content, dec(b.getAttribute('data-approve')), filter); }); });
+    body.querySelectorAll('[data-approve]').forEach(function (b) { b.addEventListener('click', function () { approveComment(content, dec(b.getAttribute('data-approve')), filter, b.closest('tr')); }); });
     body.querySelectorAll('[data-delcmt]').forEach(function (b) { b.addEventListener('click', function () {
       var cid = dec(b.getAttribute('data-delcmt'));
+      var tr = b.closest('tr');
       confirmModal(t('admin.comments.delete'), '<p class="ab-muted">' + t('admin.comments.deleteConfirm') + '</p>', async function () {
-        try { await api('api/comments/' + enc(cid), { method: 'DELETE' }); toast(t('admin.comments.deleted'), 'ok'); loadComments(content, filter); } catch (e) { toast(t('admin.postList.opFail') + (e.message || e), 'err'); }
+        // 无感刷新：请求期间先半透明即时反馈，成功后行淡出移除，不整表重拉
+        if (tr) { tr.style.opacity = '0.45'; tr.style.pointerEvents = 'none'; }
+        try {
+          await api('api/comments/' + enc(cid), { method: 'DELETE' });
+          toast(t('admin.comments.deleted'), 'ok');
+          seamlessRemoveRow(body, tr, t('admin.dashboard.noComments'));
+        } catch (e) {
+          if (tr) { tr.style.opacity = ''; tr.style.pointerEvents = ''; }
+          toast(t('admin.postList.opFail') + (e.message || e), 'err');
+        }
       }, t('admin.comments.delete'));
     }); });
   }
-  async function approveComment(content, cid, filter) {
-    try { await api('api/comments/' + enc(cid), { method: 'PUT', body: JSON.stringify({ status: 'approved' }) }); toast(t('admin.comments.approvedOk'), 'ok'); loadComments(content, filter); } catch (e) { toast(t('admin.postList.opFail') + (e.message || e), 'err'); }
+  async function approveComment(content, cid, filter, tr) {
+    // 无感刷新：审核通过后原行状态徽章就地更新为「已通过」，其余行与滚动位置不动
+    try {
+      await api('api/comments/' + enc(cid), { method: 'PUT', body: JSON.stringify({ status: 'approved' }) });
+      toast(t('admin.comments.approvedOk'), 'ok');
+      if (tr) {
+        var badge = tr.querySelector('.ab-status');
+        if (badge) {
+          badge.className = 'ab-status approved';
+          badge.textContent = t('admin.comments.approved');
+        }
+        var approveBtn = tr.querySelector('[data-approve]');
+        if (approveBtn) approveBtn.remove();
+      }
+    } catch (e) { toast(t('admin.postList.opFail') + (e.message || e), 'err'); }
   }
 
   /* ====================== 媒体库 ====================== */

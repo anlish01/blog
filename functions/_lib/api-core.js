@@ -416,6 +416,12 @@ export async function handleComments(request, env, postId) {
     }
     const count = await dbFirst(env.DB, 'SELECT COUNT(*) AS c FROM comments WHERE post_id = ?', postId);
     if ((count && count.c || 0) >= COMMENT_CAPS.perPost) return json({ error: '评论数已达上限' }, 400, request, env);
+    // 重复发送拦截：同一分区（文章/留言板）下，相同昵称 + 相同内容只允许出现一次。
+    // 防误触双击、脚本刷同文；不同分区互不影响。命中返回 409，前端透传该提示。
+    const dup = await dbFirst(env.DB,
+      'SELECT id FROM comments WHERE post_id = ? AND author = ? AND content = ? LIMIT 1',
+      postId, author, content);
+    if (dup) return json({ error: '请勿重复发送相同内容' }, 409, request, env);
     // 评论审核：若开启「新评论默认需审核」，则进入待审核；否则直接通过。
     // 默认关闭（moderate_comments 非 '1'），保持旧版「发表即公开」行为不变。
     let moderate = false;

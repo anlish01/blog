@@ -204,6 +204,8 @@
   "admin.postList.deleteConfirm": "「{title}」を削除しますか？この操作は取り消せません。",
   "admin.postList.deleted": "削除しました",
   "admin.postList.deleteFail": "削除に失敗しました：",
+  "admin.postList.deleteNeedExport": "この記事は組み込みデータです。「posts.js をエクスポート」してサイトファイルを上書きすると、削除が訪問者に反映されます。",
+  "comment.fail": "投稿に失敗しました。後でもう一度お試しください",
   "admin.editor.newPost": "新しい記事",
   "admin.editor.editPost": "記事を編集",
   "admin.editor.titlePlaceholder": "記事のタイトル",

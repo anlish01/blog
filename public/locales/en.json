@@ -204,6 +204,8 @@
   "admin.postList.deleteConfirm": "Delete \"{title}\"? This cannot be undone.",
   "admin.postList.deleted": "Deleted",
   "admin.postList.deleteFail": "Delete failed: ",
+  "admin.postList.deleteNeedExport": "This post comes from the built-in data. Export posts.js and overwrite the site file for the deletion to take effect for visitors.",
+  "comment.fail": "Post failed, try again later",
   "admin.editor.newPost": "New Post",
   "admin.editor.editPost": "Edit Post",
   "admin.editor.titlePlaceholder": "Post title",

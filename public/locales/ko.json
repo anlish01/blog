@@ -204,6 +204,8 @@
   "admin.postList.deleteConfirm": "\"{title}\"을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
   "admin.postList.deleted": "삭제됨",
   "admin.postList.deleteFail": "삭제 실패: ",
+  "admin.postList.deleteNeedExport": "이 글은 내장 데이터입니다. posts.js를 내보내 사이트 파일을 덮어써야 방문자에게 삭제가 적용됩니다.",
+  "comment.fail": "게시하지 못했습니다. 나중에 다시 시도하세요",
   "admin.editor.newPost": "새 글",
   "admin.editor.editPost": "글 편집",
   "admin.editor.titlePlaceholder": "글 제목",

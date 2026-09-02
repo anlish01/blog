@@ -204,6 +204,8 @@
   "admin.postList.deleteConfirm": "确定删除《{title}》？此操作不可恢复。",
   "admin.postList.deleted": "已删除",
   "admin.postList.deleteFail": "删除失败：",
+  "admin.postList.deleteNeedExport": "该文章来自内置数据：请「导出 posts.js」覆盖站点文件后，删除才对访客生效",
+  "comment.fail": "发表失败，请稍后再试",
   "admin.editor.newPost": "写新文章",
   "admin.editor.editPost": "编辑文章",
   "admin.editor.titlePlaceholder": "文章标题",

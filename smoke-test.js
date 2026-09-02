@@ -441,6 +441,13 @@ function makeD1() {
       const r = t.comments.get(params[1]);
       return (r && r.post_id === params[0]) ? { '1': 1 } : null;
     }
+    // 重复发送查重（api-core handleComments）：同分区 + 同昵称 + 同内容
+    if (/^SELECT id FROM comments WHERE post_id = \? AND author = \? AND content = \? LIMIT 1$/.test(s)) {
+      for (const r of t.comments.values()) {
+        if (r.post_id === params[0] && r.author === params[1] && r.content === params[2]) return { id: r.id };
+      }
+      return null;
+    }
     if (s === 'DELETE FROM comments WHERE post_id = ? AND id = ?') {
       const r = t.comments.get(params[1]);
       if (r && r.post_id === params[0]) t.comments.delete(params[1]);
@@ -840,6 +847,14 @@ tests.push(['留言板（云端）：合成 id gb-note/gb-idea 复用评论管�
   // 跨源 Origin 拒绝（防脚本灌水）
   r = await post('gb-note', { author: 'x', content: 'y' }, { Origin: 'https://evil.example' });
   assert.strictEqual(r.status, 403, '跨源 403');
+
+  // 重复发送拦截：同分区 + 同昵称 + 同内容 → 409；跨分区/不同内容不受影响
+  r = await post('gb-note', { author: '访客甲', content: '欢迎新朋友！' });
+  assert.strictEqual(r.status, 409, '同分区重复内容 409');
+  r = await post('gb-note', { author: '访客甲', content: '换个说法再说一次' });
+  assert.strictEqual(r.status, 201, '同昵称不同内容正常发表');
+  r = await post('gb-idea', { author: '访客甲', content: '欢迎新朋友！' });
+  assert.strictEqual(r.status, 201, '跨分区相同内容不受查重影响');
 }]);
 
 tests.push(['后端：评论安全加固（控制字符清洗 / 频率限制 / 来源校验）', async () => {
@@ -873,7 +888,7 @@ tests.push(['后端：评论安全加固（控制字符清洗 / 频率限制 / �
   assert.strictEqual(rbad.status, 403, '跨源 Origin 被拒绝');
   const rok2 = await post({ Origin: 'http://t' }, { author: 'x', content: 'y' });
   assert.strictEqual(rok2.status, 201, '同源 Origin 放行');
-  const rno = await post({}, { author: 'x', content: 'y' });
+  const rno = await post({}, { author: 'x', content: 'y2' });
   assert.strictEqual(rno.status, 201, '无 Origin（curl/服务端）放行');
 }]);
 

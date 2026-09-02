@@ -204,6 +204,8 @@
   "admin.postList.deleteConfirm": "\"{title}\" हटाएं? यह पूर्ववत नहीं किया जा सकता।",
   "admin.postList.deleted": "हटा दिया गया",
   "admin.postList.deleteFail": "हटाना विफल: ",
+  "admin.postList.deleteNeedExport": "यह लेख अंतर्निहित डेटा से है। विज़िटर्स के लिए हटाना लागू होने के लिए posts.js निर्यात करके साइट फ़ाइल अधिलेखित करें।",
+  "comment.fail": "पोस्ट विफल, बाद में पुनः प्रयास करें",
   "admin.editor.newPost": "नया लेख",
   "admin.editor.editPost": "लेख संपादित करें",
   "admin.editor.titlePlaceholder": "लेख शीर्षक",

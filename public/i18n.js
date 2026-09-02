@@ -88,6 +88,7 @@
     "comment.delete": "删除",
     "comment.fillBoth": "请填写昵称和内容",
     "comment.posted": "✓ 已发表",
+    "comment.fail": "发表失败，请稍后再试",
     "comment.deleteConfirm": "确定删除这条评论？",
     "comment.deleted": "已删除",
     "comment.reply": "回复",
