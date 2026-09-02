@@ -86,7 +86,7 @@ window.BLOG_CONFIG = {
   },
 
   ads: {
-    enabled: false,   // ← 填好下方真实广告代码后，改为 true 才会显示
+    enabled: true,   // ← 填好下方真实广告代码后，改为 true 才会显示
     // AdSense 发布商 ID（ca-pub-xxxx），启用广告时由前端自动加载 adsbygoogle.js 库。
     // 留空则即使 enabled=true 也不会加载广告脚本（无可用账号）。
     client: 'ca-pub-4096395942817870',
@@ -96,6 +96,6 @@ window.BLOG_CONFIG = {
     belowSearch: '<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4096395942817870" data-ad-slot="YOUR_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({})</script>',
     between: '<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4096395942817870" data-ad-slot="YOUR_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({})</script>',
     betweenEvery: 3,   // 首页列表每 3 篇插入一个 between 广告
-    content: '<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4096395942817870" data-ad-slot="YOUR_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({})</script>'
+    content: '<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4096395942817870" data-ad-slot="9532226266" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({})</script>'
   }
 };
