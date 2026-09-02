@@ -476,17 +476,56 @@ function searchSnippet(post, query) {
   if (!q) return '';
   var cacheKey = (post.id || '') + '|' + q.toLowerCase();
   if (_snipCache[cacheKey] !== undefined) return _snipCache[cacheKey];
-  var body = stripMd(post.content || '');
   var qLow = q.toLowerCase();
-  var idx = body.toLowerCase().indexOf(qLow);
-  if (idx < 0) idx = (post.excerpt || '').toLowerCase().indexOf(qLow);
-  if (idx < 0) idx = (post.title || '').toLowerCase().indexOf(qLow);
+  var src = stripMd(post.content || '');
+  var idx = src.toLowerCase().indexOf(qLow);
+  if (idx < 0) { src = post.excerpt || ''; idx = src.toLowerCase().indexOf(qLow); }
+  if (idx < 0) { src = post.title || ''; idx = src.toLowerCase().indexOf(qLow); }
   if (idx < 0) { _snipCache[cacheKey] = ''; return ''; }
-  var start = Math.max(0, idx - 30);
-  var end = Math.min(body.length, idx + q.length + 40);
-  var result = (start > 0 ? '…' : '') + body.slice(start, end) + (end < body.length ? '…' : '');
+  var result = sentenceContext(src, idx, q.length);
   _snipCache[cacheKey] = result;
   return result;
+}
+
+/* 以“关键字所在句子”为核心截取上下文：返回包含关键字的完整句子（过短则并入相邻句）。
+   句子过长时以关键字为中心裁剪，并在被截断的一侧加省略号。 */
+function sentenceContext(text, idx, qLen) {
+  if (!text) return '';
+  var END = '。！？!?；;';
+  var MAX = 90;
+  var s = idx;
+  while (s > 0 && END.indexOf(text.charAt(s - 1)) < 0) s--;
+  var e = idx + qLen;
+  while (e < text.length && END.indexOf(text.charAt(e)) < 0) e++;
+  if (e < text.length) e++;   // 包含句末标点
+  if (e - s < 30) {           // 句子过短，向前/后各并入一句提供更多上下文
+    if (s > 0) { var ps = s - 1; while (ps > 0 && END.indexOf(text.charAt(ps - 1)) < 0) ps--; s = ps; }
+    if (e < text.length) { var ne = e; while (ne < text.length && END.indexOf(text.charAt(ne)) < 0) ne++; if (ne < text.length) ne++; e = ne; }
+  }
+  while (s < e && /\s/.test(text.charAt(s))) s++;
+  while (e > s && /\s/.test(text.charAt(e - 1))) e--;
+  if (e - s <= MAX) {
+    return (s > 0 ? '…' : '') + text.slice(s, e) + (e < text.length ? '…' : '');
+  }
+  // 超长：以关键字为中心裁剪
+  var pad = Math.max(0, Math.floor((MAX - qLen) / 2));
+  var ns = Math.max(0, idx - pad);
+  var ne = Math.min(text.length, idx + qLen + pad);
+  var leftover = MAX - (ne - ns);
+  if (ns === 0 && leftover > 0) ne = Math.min(text.length, ne + leftover);
+  if (ne === text.length && leftover > 0) ns = Math.max(0, ns - leftover);
+  while (ns < idx && /\s/.test(text.charAt(ns))) ns++;
+  while (ne > idx + qLen && /\s/.test(text.charAt(ne - 1))) ne--;
+  return (ns > 0 ? '…' : '') + text.slice(ns, ne).trim() + (ne < text.length ? '…' : '');
+}
+
+/* 转义后用 <mark> 高亮查询词（用于搜索结果，先转义再替换，避免 XSS） */
+function highlightQuery(text, query) {
+  var q = String(query || '').trim();
+  var safe = esc(text);
+  if (!q) return safe;
+  var term = esc(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return safe.replace(new RegExp('(' + term + ')', 'gi'), '<mark class="sh-hl">$1</mark>');
 }
 
 
@@ -3024,8 +3063,8 @@ function renderSearchPanel(query) {
     panel.innerHTML = hits.map(function (p) {
       var snip = searchSnippet(p, q);
       return '<a class="search-hit" href="' + esc(href(postUrl(p.id))) + '">'
-        + '<div class="sh-title">' + esc(p.title || '') + '</div>'
-        + (snip ? '<div class="sh-snip">' + esc(snip) + '</div>' : '')
+        + '<div class="sh-title">' + highlightQuery(p.title || '', q) + '</div>'
+        + (snip ? '<div class="sh-snip">' + highlightQuery(snip, q) + '</div>' : '')
         + '</a>';
     }).join('');
   }

@@ -29,7 +29,7 @@ function makeCtx(extra) {
     querySelector: (sel) => (sel === '#app' ? appEl : stubEl()),
     querySelectorAll: () => [],
     createElement: () => Object.assign(stubEl(), { click() {}, set href(v) {} }),
-    body: { appendChild() {}, removeChild() {} },
+    body: { appendChild() {}, removeChild() {}, style: {} },
     addEventListener() {},
   };
   const win = {
