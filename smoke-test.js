@@ -192,6 +192,17 @@ tests.push(['首页（静态模式）：导航在、搜索框在标题右侧、�
   assert.ok(html.includes('href="/"') || html.includes('href="#">'), '首页链接指向根');
 }]);
 
+tests.push(['首页间距：不分页时列表带 list-nopager 补间距，分页时不带', async () => {
+  // 不分页（7 篇 < 默认 pageSize=8 → 单页，无翻页器）
+  const a = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } });
+  assert.ok(!a.html.includes('class="pager"'), '单页无翻页器');
+  assert.ok(a.html.includes('list-nopager'), '单页列表带 list-nopager（补齐与底部导航间距）');
+  // 分页（pageSize=2 → 4 页 → 有翻页器）
+  const b = await boot({ 'window.BLOG_CONFIG': { mode: 'static', pageSize: 2 } });
+  assert.ok(b.html.includes('class="pager"'), '分页有翻页器');
+  assert.ok(!b.html.includes('list-nopager'), '分页时无 list-nopager（间距由翻页器提供）');
+}]);
+
 tests.push(['干净路径：无 #/ 残留，导航用真实路径', async () => {
   const { ctx, html } = await boot({ 'window.BLOG_CONFIG': { mode: 'static' } });
   assert.ok(!html.includes('#/post/') && !html.includes('#/archive'), '不再输出 hash 路由链接');

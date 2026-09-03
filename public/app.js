@@ -1207,7 +1207,10 @@ function homeListHtml(filtered, ads, adsEnabled, page, pageSize, emptyMsg) {
   var pageItems = pageSize > 0 ? filtered.slice((page - 1) * pageSize, page * pageSize) : filtered;
   var list = renderCardList(pageItems, ads, adsEnabled);
   if (!pageItems.length) list = '<div class="empty"><div class="big">' + svgIcon('doc', 36) + '</div><p>' + (emptyMsg || t('home.noPosts')) + '</p></div>';
-  return { html: '<div id="listContainer">' + list + '</div>' + pagerHtml(page, totalPages), page: page, totalPages: totalPages };
+  var pager = pagerHtml(page, totalPages);
+  // 不分页时翻页器不渲染，其 32px 下边距随之消失，末尾文章会贴住底部导航 ——
+  // 此时给列表容器加 list-nopager 类，由 CSS 补齐同等间距
+  return { html: '<div id="listContainer"' + (pager ? '' : ' class="list-nopager"') + '>' + list + '</div>' + pager, page: page, totalPages: totalPages };
 }
 
 /* 翻页器：上一页 / 下一页，保留当前标签与页码（query 形式，链接可前进/后退）。

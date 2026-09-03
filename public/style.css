@@ -809,6 +809,8 @@ html[data-theme="dark"] .post-card .mini-tags span {
 
 /* ---------- 文章列表间距（首尾不变，仅卡片之间留空隙） ---------- */
 #listContainer { display: flex; flex-direction: column; gap: 18px; }
+/* 不分页时翻页器缺席，补齐它与底部导航之间的间距（与 .pager 的 margin-bottom 一致） */
+#listContainer.list-nopager { margin-bottom: 32px; }
 
 /* ---------- 翻页器（直角，与文章卡片风格一致） ---------- */
 .pager { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 26px; margin-bottom: 32px; }
