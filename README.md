@@ -18,27 +18,27 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kejiland/blog/stargazers">
-    <img src="https://img.shields.io/github/stars/kejiland/blog?style=social&logo=github" alt="GitHub Stars" />
+  <a href="https://github.com/kejiland/qingyu-blog/stargazers">
+    <img src="https://img.shields.io/github/stars/kejiland/qingyu-blog?style=social&logo=github" alt="GitHub Stars" />
   </a>
-  <a href="https://github.com/kejiland/blog/network/members">
-    <img src="https://img.shields.io/github/forks/kejiland/blog?style=social&logo=github" alt="GitHub Forks" />
+  <a href="https://github.com/kejiland/qingyu-blog/network/members">
+    <img src="https://img.shields.io/github/forks/kejiland/qingyu-blog?style=social&logo=github" alt="GitHub Forks" />
   </a>
-  <a href="https://github.com/kejiland/blog/issues">
-    <img src="https://img.shields.io/github/issues/kejiland/blog?style=social&logo=github" alt="GitHub Issues" />
+  <a href="https://github.com/kejiland/qingyu-blog/issues">
+    <img src="https://img.shields.io/github/issues/kejiland/qingyu-blog?style=social&logo=github" alt="GitHub Issues" />
   </a>
-  <a href="https://github.com/kejiland/blog/pulls">
-    <img src="https://img.shields.io/github/issues-pr/kejiland/blog?style=social&logo=github" alt="GitHub Pull Requests" />
+  <a href="https://github.com/kejiland/qingyu-blog/pulls">
+    <img src="https://img.shields.io/github/issues-pr/kejiland/qingyu-blog?style=social&logo=github" alt="GitHub Pull Requests" />
   </a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/last-commit/kejiland/blog?style=flat-square&logo=github" alt="Last Commit" />
-  <img src="https://img.shields.io/github/commit-activity/w/kejiland/blog?style=flat-square" alt="Commit Activity" />
+  <img src="https://img.shields.io/github/last-commit/kejiland/qingyu-blog?style=flat-square&logo=github" alt="Last Commit" />
+  <img src="https://img.shields.io/github/commit-activity/w/kejiland/qingyu-blog?style=flat-square" alt="Commit Activity" />
   <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen?style=flat-square&logo=git&logoColor=white" alt="PRs Welcome" />
   <img src="https://img.shields.io/badge/Issues-Welcome-brightgreen?style=flat-square&logo=github&logoColor=white" alt="Issues Welcome" />
-  <a href="https://github.com/kejiland/blog/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/kejiland/blog?style=flat-square" alt="License" />
+  <a href="https://github.com/kejiland/qingyu-blog/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/kejiland/qingyu-blog?style=flat-square" alt="License" />
   </a>
 </p>
 
@@ -97,7 +97,7 @@ Qingyu'Blog（轻语博客）是一个**纯原生 JavaScript** 编写的个人�
 │   ├── index.html                   # 页面入口（双击 / 部署起点）
 │   ├── config.js                    # 全站配置（页脚 / 广告 / 模式 / 语言）
 │   ├── style.css                    # 前台样式（深色模式 + 响应式 + 四级衬线字体）
-│   ├── app.js                       # 前台逻辑（路由 / 评论 / 加密 / 搜索 / 多语言 / 主题）
+│   ├── app.js                       # 前台逻辑（路由 / 评论 / 留言板 / 加密 / 搜索 / 多语言 / 主题）
 │   ├── admin.js                     # 后台管理 SPA（仪表盘 / 文章 / 评论 / 设置）
 │   ├── admin.css                    # 后台样式（响应式布局）
 │   ├── i18n.js                      # 国际化模块（中/英/日/韩/印地，内置中文兜底）
@@ -170,11 +170,12 @@ Qingyu'Blog（轻语博客）是一个**纯原生 JavaScript** 编写的个人�
 
 | 功能 | 说明 |
 | --- | --- |
-| 真实路径路由 | 无 hash：`/`、`/archive`、`/about`、`/tags`、`/posts/<别名>/`、`/admin`、`/write`，刷新不 404 |
+| 真实路径路由 | 无 hash：`/`、`/archive`、`/about`、`/tags`、`/guestbook`、`/posts/<别名>/`、`/admin`、`/write`，刷新不 404 |
 | Markdown 写作台 | 实时预览、工具栏一键插入、字数统计、草稿自动保存 |
 | 文章加密 | PBKDF2 + AES-GCM 端到端加密，正文只存密文 |
-| 评论系统 | 云端 D1 全局评论 + 审核模式；静态模式 localStorage；支持**嵌套回复** |
-| 站内搜索 | 实时匹配标题 / 标签 / 摘要 |
+| 评论系统 | 云端 D1 全局评论 + 审核模式；静态模式 localStorage；支持**嵌套回复**；**重复发送拦截**（同分区同昵称同内容返回 409） |
+| 留言板 | 导航直达 `/guestbook`，「留言 / 优化方案」双分区，云端存储，复用评论安全管道（限流 / Origin 校验 / 控制字符清洗 / 重复拦截） |
+| 站内搜索 | 实时匹配标题 / 标签 / 摘要；结果展示**关键字所在完整句子上下文**并**高亮关键字**，悬停无下划线 |
 | 正文目录 TOC | 自动生成、锚点跳转；代码高亮 |
 | 阅读统计 | 浏览数 / 点赞（云端全局 / 静态本机） |
 | 精选文章 | 评论区下方自动推荐（点赞×3 + 浏览 + 评论×5） |
@@ -190,9 +191,9 @@ Qingyu'Blog（轻语博客）是一个**纯原生 JavaScript** 编写的个人�
 | 功能 | 说明 |
 | --- | --- |
 | 仪表盘 | 7 项统计卡片 + 30 天访问 / 评论趋势图 |
-| 文章管理 | 搜索 / 分类筛选 / 分页 / 置顶切换 / 加密切换 |
+| 文章管理 | 搜索 / 分类筛选 / 分页 / 置顶切换 / 加密切换；**删除无感刷新**（行级淡出移除，列表与前台即时生效，无需刷新网页） |
 | 编辑器 | Markdown 实时预览 + 分类 / 标签 / 封面 / 置顶 / 加密 |
-| 评论管理 | 全局评论列表，审核 / 删除，回复链追踪 |
+| 评论管理 | 全局评论列表，审核 / 删除，回复链追踪；**删除 / 审核无感刷新**（行级淡出 + 就地更新状态徽章，不整表重载） |
 | 分类 / 标签管理 | 重命名 / 删除（批量更新所有相关文章） |
 | 媒体资源库 | 图片上传（base64 存 D1） |
 | 博客设置 | 站点信息 / 个人资料 / 导航菜单 |
@@ -206,8 +207,8 @@ Qingyu'Blog（轻语博客）是一个**纯原生 JavaScript** 编写的个人�
 ### 方式一：本地静态
 
 ```bash
-git clone https://github.com/kejiland/blog.git
-cd blog
+git clone https://github.com/kejiland/qingyu-blog.git
+cd qingyu-blog
 ```
 
 双击 `public/index.html`，或启动本地服务器：
@@ -413,7 +414,7 @@ window.BLOG_CONFIG = {
 | 会话管理 | 随机 Token（32 字节 hex），7 天有效，登出即销毁 |
 | 限流 | 同一 IP 连续失败 5 次锁定 15 分钟 |
 | 文章加密 | PBKDF2 + AES-GCM 端到端加密，密文只存服务端 |
-| 评论安全 | XSS 转义 + SQL 注入参数化 + 每 IP 频率限制 + Origin 校验 |
+| 评论安全 | XSS 转义 + SQL 注入参数化 + 每 IP 频率限制 + Origin 校验 + **重复发送拦截**（同分区同昵称同内容 409） |
 | 接口边界 | 未知 /api/* 返回 JSON 404，绝不回退到 index.html |
 | CORS | 配置 `SITE_URL` 后仅允许本站来源，未配置回退为回显来源 |
 
@@ -460,7 +461,7 @@ node seed.js https://your-blog.workers.dev [--token <会话或写入令牌>]
 ---
 
 <p align="center">
-  如果 Qingyu'Blog 对你有帮助，欢迎 ⭐ Star / Fork，或到 <a href="https://github.com/kejiland/blog/issues">Issues</a> 提建议。
+  如果 Qingyu'Blog 对你有帮助，欢迎 ⭐ Star / Fork，或到 <a href="https://github.com/kejiland/qingyu-blog/issues">Issues</a> 提建议。
 </p>
 
 <p align="center">

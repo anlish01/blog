@@ -18,27 +18,27 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kejiland/blog/stargazers">
-    <img src="https://img.shields.io/github/stars/kejiland/blog?style=social&logo=github" alt="GitHub Stars" />
+  <a href="https://github.com/kejiland/qingyu-blog/stargazers">
+    <img src="https://img.shields.io/github/stars/kejiland/qingyu-blog?style=social&logo=github" alt="GitHub Stars" />
   </a>
-  <a href="https://github.com/kejiland/blog/network/members">
-    <img src="https://img.shields.io/github/forks/kejiland/blog?style=social&logo=github" alt="GitHub Forks" />
+  <a href="https://github.com/kejiland/qingyu-blog/network/members">
+    <img src="https://img.shields.io/github/forks/kejiland/qingyu-blog?style=social&logo=github" alt="GitHub Forks" />
   </a>
-  <a href="https://github.com/kejiland/blog/issues">
-    <img src="https://img.shields.io/github/issues/kejiland/blog?style=social&logo=github" alt="GitHub Issues" />
+  <a href="https://github.com/kejiland/qingyu-blog/issues">
+    <img src="https://img.shields.io/github/issues/kejiland/qingyu-blog?style=social&logo=github" alt="GitHub Issues" />
   </a>
-  <a href="https://github.com/kejiland/blog/pulls">
-    <img src="https://img.shields.io/github/issues-pr/kejiland/blog?style=social&logo=github" alt="GitHub Pull Requests" />
+  <a href="https://github.com/kejiland/qingyu-blog/pulls">
+    <img src="https://img.shields.io/github/issues-pr/kejiland/qingyu-blog?style=social&logo=github" alt="GitHub Pull Requests" />
   </a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/last-commit/kejiland/blog?style=flat-square&logo=github" alt="Last Commit" />
-  <img src="https://img.shields.io/github/commit-activity/w/kejiland/blog?style=flat-square" alt="Commit Activity" />
+  <img src="https://img.shields.io/github/last-commit/kejiland/qingyu-blog?style=flat-square&logo=github" alt="Last Commit" />
+  <img src="https://img.shields.io/github/commit-activity/w/kejiland/qingyu-blog?style=flat-square" alt="Commit Activity" />
   <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen?style=flat-square&logo=git&logoColor=white" alt="PRs Welcome" />
   <img src="https://img.shields.io/badge/Issues-Welcome-brightgreen?style=flat-square&logo=github&logoColor=white" alt="Issues Welcome" />
-  <a href="https://github.com/kejiland/blog/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/kejiland/blog?style=flat-square" alt="License" />
+  <a href="https://github.com/kejiland/qingyu-blog/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/kejiland/qingyu-blog?style=flat-square" alt="License" />
   </a>
 </p>
 
@@ -170,11 +170,12 @@ The entire site lives in `public/`: frontend `index.html` + `style.css` + `app.j
 
 | Feature | Description |
 | --- | --- |
-| Real-path routing | No hash: `/`, `/archive`, `/about`, `/tags`, `/posts/<alias>/`, `/admin`, `/write` — no 404 on refresh |
+| Real-path routing | No hash: `/`, `/archive`, `/about`, `/tags`, `/guestbook`, `/posts/<alias>/`, `/admin`, `/write` — no 404 on refresh |
 | Markdown Editor | Live preview, one-click toolbar, word count, autosaved drafts |
 | Article Encryption | PBKDF2 + AES-GCM end-to-end, only ciphertext stored |
-| Comments | Cloud D1 global comments + moderation; static mode localStorage; **nested replies** |
-| Site Search | Real-time matching of title / tags / excerpt |
+| Comments | Cloud D1 global comments + moderation; static mode localStorage; **nested replies**; **duplicate-post blocking** (same section + same author + same content → 409) |
+| Guestbook | One click away at `/guestbook`, dual sections (messages / feature ideas), cloud-stored, reuses the comment security pipeline (rate limiting / Origin check / control-char sanitizing / duplicate blocking) |
+| Site Search | Real-time matching of title / tags / excerpt; results show the **full sentence around each keyword** with **keyword highlighting**, no underline on hover |
 | TOC | Auto-generated with anchor jumps; syntax highlighting |
 | Read Stats | Views / likes (cloud-global / local) |
 | Featured Articles | Auto-recommended below comments (likes×3 + views + comments×5) |
@@ -190,9 +191,9 @@ The entire site lives in `public/`: frontend `index.html` + `style.css` + `app.j
 | Feature | Description |
 | --- | --- |
 | Dashboard | 7 stat cards + 30-day visits / comments trend charts |
-| Post Management | Search / category filter / pagination / pin toggle / encrypt toggle |
+| Post Management | Search / category filter / pagination / pin toggle / encrypt toggle; **seamless delete** (row fades out in place, list and public site update instantly, no page reload) |
 | Editor | Markdown live preview + category / tags / cover / pin / encrypt |
-| Comment Management | Global comment list, approve / delete, reply-chain tracing |
+| Comment Management | Global comment list, approve / delete, reply-chain tracing; **seamless approve / delete** (row-level fade-out + in-place status badge update, no full-list reload) |
 | Category / Tag Management | Rename / delete (bulk update all related articles) |
 | Media Library | Image upload (base64 to D1) |
 | Blog Settings | Site info / profile / navigation menu |
@@ -206,8 +207,8 @@ The entire site lives in `public/`: frontend `index.html` + `style.css` + `app.j
 ### Option 1: Local Static
 
 ```bash
-git clone https://github.com/kejiland/blog.git
-cd blog
+git clone https://github.com/kejiland/qingyu-blog.git
+cd qingyu-blog
 ```
 
 Double-click `public/index.html`, or start a local server:
@@ -413,7 +414,7 @@ window.BLOG_CONFIG = {
 | Session management | Random Token (32-byte hex), 7-day expiry, destroyed on logout |
 | Rate limiting | 5 consecutive failures from same IP = 15-minute lockout |
 | Article encryption | PBKDF2 + AES-GCM end-to-end, ciphertext only on server |
-| Comment security | XSS escaping + parameterized queries + per-IP rate limit + Origin validation |
+| Comment security | XSS escaping + parameterized queries + per-IP rate limit + Origin validation + **duplicate-post blocking** (same section + same author + same content → 409) |
 | API boundary | Unknown /api/* returns JSON 404, never falls back to index.html |
 | CORS | With `SITE_URL` set, only same-origin allowed; else echoes request origin |
 
@@ -460,7 +461,7 @@ node seed.js https://your-blog.workers.dev [--token <session or write token>]
 ---
 
 <p align="center">
-  If Qingyu'Blog helps you, feel free to ⭐ Star / Fork, or open an <a href="https://github.com/kejiland/blog/issues">Issue</a>.
+  If Qingyu'Blog helps you, feel free to ⭐ Star / Fork, or open an <a href="https://github.com/kejiland/qingyu-blog/issues">Issue</a>.
 </p>
 
 <p align="center">
