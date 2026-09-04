@@ -296,13 +296,16 @@
 
 /* ---------- 媒体库 ---------- */
 .ab-media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
-.ab-media-card { background: var(--ab-card); border: 1px solid var(--ab-border); border-radius: var(--ab-radius); overflow: hidden; box-shadow: var(--ab-shadow); }
+.ab-media-card { background: var(--ab-card); border: 1px solid var(--ab-border); border-radius: var(--ab-radius); overflow: hidden; box-shadow: var(--ab-shadow); display: flex; flex-direction: column; }
 .ab-media-thumb { height: 120px; background: var(--ab-hover); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .ab-media-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.ab-media-meta { padding: 10px 12px; }
+.ab-media-meta { padding: 10px 12px 8px; }
 .ab-media-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ab-media-size { font-size: 11px; color: var(--ab-muted); margin-top: 2px; }
-.ab-media-actions { display: flex; gap: 6px; padding: 0 12px 12px; }
+/* 操作区：两个按钮在窄卡片上允许换行 + 弹性缩放，避免「删除」按钮溢出被 overflow:hidden 裁掉 */
+.ab-media-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 12px; margin-top: auto; }
+.ab-media-actions .ab-btn { flex: 1 1 auto; min-width: 0; justify-content: center; padding: 0 8px; }
+.ab-media-actions .ab-btn.sm { height: 30px; font-size: 12.5px; }
 
 /* ---------- 编辑器 ---------- */
 .ab-editor-head { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 14px; }
@@ -395,9 +398,21 @@
   .ab-table { min-width: 560px; }
   .ab-page-head { gap: 8px; }
   .ab-hide-xs { display: none !important; }
+  /* 媒体库：小屏缩略图压扁 + 每行 2 列（卡片更宽，按钮完整可见） */
+  .ab-media-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ab-media-thumb { height: 96px; }
+  .ab-media-actions { padding: 0 10px 10px; }
 }
 @media (max-width: 420px) {
   .ab-grid.cols-2, .ab-grid.cols-3, .ab-grid.cols-4, .ab-grid.cols-5 { grid-template-columns: 1fr; }
+  /* 媒体库：极窄屏保持 2 列但缩略图再矮一点，删除按钮改图标式仍可点 */
+  .ab-media-grid { gap: 8px; }
+  .ab-media-thumb { height: 84px; }
+  .ab-media-name { font-size: 12px; }
+  .ab-media-actions .ab-btn.sm { height: 28px; font-size: 12px; padding: 0 6px; }
+  /* 极窄屏按钮只留图标（title 提示语义），彻底避免文字溢出裁切 */
+  .ab-media-actions .ab-media-btn-text { display: none; }
+  .ab-media-actions .ab-btn { flex: 0 0 auto; }
 }
 
 /* ========== 可视化导航编辑器 ========== */

@@ -1072,9 +1072,9 @@
       var list = (d && d.media) || [];
       grid.innerHTML = list.length ? list.map(function (m) {
         return '<div class="ab-media-card">' +
-          '<div class="ab-media-thumb"><img src="' + esc(m.url) + '" alt="' + esc(m.name || '') + '"></div>' +
-          '<div class="ab-media-meta"><div class="ab-media-name">' + esc(m.name || t('admin.media.colImage')) + '</div><div class="ab-media-size">' + fmtSize(m.size) + '</div></div>' +
-          '<div class="ab-media-actions"><button class="ab-btn sm" data-copy="' + enc(m.url) + '">' + t('admin.media.copyLink') + '</button><button class="ab-btn sm danger" data-delmedia="' + enc(m.id) + '">' + icon('trash', 13) + ' ' + t('admin.media.delete') + '</button></div>' +
+          '<div class="ab-media-thumb"><img src="' + esc(m.url) + '" alt="' + esc(m.name || '') + '" loading="lazy"></div>' +
+          '<div class="ab-media-meta"><div class="ab-media-name" title="' + esc(m.name || '') + '">' + esc(m.name || t('admin.media.colImage')) + '</div><div class="ab-media-size">' + fmtSize(m.size) + '</div></div>' +
+          '<div class="ab-media-actions"><button class="ab-btn sm" data-copy="' + enc(m.url) + '" title="' + t('admin.media.copyLink') + '"><span class="ab-media-btn-text">' + t('admin.media.copyLink') + '</span></button><button class="ab-btn sm danger" data-delmedia="' + enc(m.id) + '" title="' + t('admin.media.delete') + '">' + icon('trash', 13) + '<span class="ab-media-btn-text">' + t('admin.media.delete') + '</span></button></div>' +
         '</div>';
       }).join('') : '<div class="ab-card ab-empty"><div class="ab-empty-ico">🖼</div><p>' + t('admin.media.empty') + '</p></div>';
       grid.querySelectorAll('[data-copy]').forEach(function (b) { b.addEventListener('click', function () { copyText(dec(b.getAttribute('data-copy'))); toast(t('admin.media.copied'), 'ok'); }); });
