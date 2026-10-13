@@ -6,7 +6,7 @@
  * ============================================================================ */
 'use strict';
 
-var BLOG_VERSION = '2.10.105';
+var BLOG_VERSION = '2.10.108';
 
 /* i18n 兜底：万一 i18n.js 没加载成功（网络抖动 / 缓存缺失 / 被拦截），
  * 也必须保证 t() 可用 —— 否则整页会在第一个 t(...) 处抛 “t is not defined” 而白屏。 */
@@ -20,6 +20,7 @@ var _searchOpen = false;   // 顶部导航搜索是否展开
 var _searchDocBound = false;   // document 级外部点击监听是否已绑定
 var _commentsCache = {};
 var _statsCache = {};
+var _magazineClockTimer = null;
 
 /* ---------- Smoji 表情库 ---------- */
 var _smojiPicker = null;
@@ -1143,6 +1144,7 @@ function getConfig() {
     friendLinks: parseArrSafe(s && s.friend_links),
     footer: footer,
     site: siteInfo,        // 站点信息（头像/名称/简介）供关于页等使用
+    homeTheme: siteInfo.homeTheme === 'magazine' ? 'magazine' : 'classic',
     profile: prof,         // 个人信息（头像/昵称/简介/邮箱）供关于页等使用
     features: features,    // 后台「功能开关」的原始配置（供错误上报等读取）
     ads: ads
@@ -2721,10 +2723,242 @@ function renderHome() {
       : '';
     body = homeListHtml(filtered, ads, adsEnabled, page, pageSize, emptyMsg, emptyExtra);
   }
-  html += '<div id="homeBody">' + body.html + '</div>';
-  html += '</main>';
+  if (cfg.homeTheme === 'magazine') {
+    var siteName = (cfg.site && cfg.site.name) || getSiteName();
+    var siteDesc = (cfg.site && cfg.site.desc) || '';
+    var featured = !tag && !cat && page === 1 && filtered.length ? filtered[0] : null;
+    var magazineBody = body.html;
+    // 精选卡与文章流不重复；分页仍按原始数据计数，翻页链接不变。
+    if (featured && !(cloudProbing && !filtered.length)) {
+      var start = 1;
+      var end = pageSize > 0 ? pageSize : filtered.length;
+      var rest = filtered.slice(start, end);
+      magazineBody = '<div id="listContainer"' + (body.totalPages <= 1 ? ' class="list-nopager"' : '') + '>'
+        + renderCardList(rest, ads, adsEnabled) + '</div>' + pagerHtml(body.page, body.totalPages);
+    }
+    html = renderNav(cur.path);
+    html += '<main class="container page-fade home-magazine">'
+      + '<section class="magazine-masthead"><div class="magazine-masthead-copy"><div class="magazine-kicker">' + esc(t('home.magazineKicker')) + '</div>'
+      + '<h1>' + esc(siteName) + '</h1><p>' + esc(siteDesc || t('home.magazineIntro')) + '</p></div>'
+      + '<div class="magazine-edition"><span>INDEPENDENT JOURNAL</span><strong>01</strong><span>NOTES & STORIES</span></div></section>'
+      + (featured ? renderMagazineFeature(featured) : '')
+      + '<div class="magazine-layout"><section class="magazine-feed"><div class="magazine-feed-head"><div><span class="magazine-kicker">' + esc(t('home.magazineLatest')) + '</span><h2>' + t('home.latest') + '</h2></div>'
+      + '<span class="magazine-count">' + filtered.length + ' ' + esc(t('home.magazineArticles')) + '</span></div>'
+      + (tag ? '<div class="current-tag"><span class="tag-chip">' + esc(tag) + ' <a class="tag-clear" href="' + esc(href('/')) + '">✕</a></span></div>' : '')
+      + (cat ? '<div class="current-tag"><span class="tag-chip">' + svgIcon('tag', 13) + ' ' + esc(cat) + ' <a class="tag-clear" href="' + esc(href('/')) + '">✕</a></span></div>' : '')
+      + (tag ? '<div class="magazine-filter-note">' + esc(t('home.magazineFiltering', { tag: tag })) + '</div>' : '')
+      + (adsEnabled && ads.belowSearch ? '<div class="ad-slot"><span class="ad-label">' + t('ad.label') + '</span>' + ads.belowSearch + '</div>' : '')
+      + '<div id="homeBody">' + magazineBody + '</div></section>'
+      + '<aside class="magazine-rail">'
+      + (cfg.profile && cfg.profile.name ? '<section class="magazine-card magazine-author"><div class="magazine-author-body">' + (cfg.profile.avatar ? '<img class="magazine-avatar" src="' + esc(cfg.profile.avatar) + '" alt="' + esc(cfg.profile.name) + '" referrerpolicy="no-referrer">' : '<span class="magazine-avatar magazine-avatar-fallback">' + esc(String(cfg.profile.name).slice(0, 1)) + '</span>') + '<div class="magazine-author-meta"><strong>' + esc(cfg.profile.name) + '</strong>' + (cfg.profile.bio ? '<p>' + esc(cfg.profile.bio) + '</p>' : '') + '</div></div></section>' : '')
+      + '<section class="magazine-card magazine-clock"><div class="clock-head"><span class="clock-dot"></span><span class="clock-zone" id="magazineClockZone">GMT+8</span></div><strong class="clock-time" id="magazineClockTime">--:--:--</strong><span class="clock-date" id="magazineClockDate">----</span><div class="clock-weather" id="magazineWeather"><span class="weather-ico">☁</span><span class="weather-text">' + esc(t('home.weatherLoading')) + '</span><button type="button" class="weather-locate" id="magazineWeatherLocate" title="' + esc(t('home.weatherLocate')) + '" aria-label="' + esc(t('home.weatherLocate')) + '">⌖</button></div></section>'
+      + '<section class="magazine-card magazine-rail-tags">' + renderMagazineTags(posts, tag) + '</section></aside></div></main>';
+  } else {
+    html += '<div id="homeBody">' + body.html + '</div></main>';
+  }
   html += renderFooter();
   return html;
+}
+
+function updateMagazineClock() {
+  var timeEl = document.getElementById('magazineClockTime');
+  var dateEl = document.getElementById('magazineClockDate');
+  var zoneEl = document.getElementById('magazineClockZone');
+  if (!timeEl || !dateEl) return;
+  var now = new Date();
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  timeEl.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+  dateEl.textContent = now.getFullYear() + ' / ' + pad(now.getMonth() + 1) + ' / ' + pad(now.getDate()) + ' · ' + ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][now.getDay()];
+  if (zoneEl) {
+    var offset = -now.getTimezoneOffset();
+    zoneEl.textContent = 'GMT' + (offset >= 0 ? '+' : '-') + pad(Math.floor(Math.abs(offset) / 60)) + (Math.abs(offset) % 60 ? ':' + pad(Math.abs(offset) % 60) : '');
+  }
+}
+
+function startMagazineClock() {
+  if (_magazineClockTimer) clearInterval(_magazineClockTimer);
+  updateMagazineClock();
+  _magazineClockTimer = setInterval(updateMagazineClock, 1000);
+  loadMagazineWeather();
+}
+
+/* ---------- 侧栏实时天气 ----------
+ * 位置来源优先级：本地缓存（30 分钟）→ IP 定位（静默、免授权）→ 用户点击 ⌖ 用浏览器精确定位。
+ * 天气数据来自 Open-Meteo 公共接口，无需 API Key；失败时静默降级，不影响页面其他功能。 */
+var WEATHER_CODES = {
+  0: ['晴', '☀️'], 1: ['晴间多云', '🌤️'], 2: ['多云', '⛅'], 3: ['阴', '☁️'],
+  45: ['雾', '🌫️'], 48: ['雾凇', '🌫️'],
+  51: ['毛毛雨', '🌦️'], 53: ['小雨', '🌦️'], 55: ['细雨', '🌧️'],
+  56: ['冻雨', '🌧️'], 57: ['冻雨', '🌧️'],
+  61: ['小雨', '🌧️'], 63: ['中雨', '🌧️'], 65: ['大雨', '🌧️'],
+  66: ['冻雨', '🌧️'], 67: ['冻雨', '🌧️'],
+  71: ['小雪', '🌨️'], 73: ['中雪', '❄️'], 75: ['大雪', '❄️'], 77: ['雪粒', '❄️'],
+  80: ['阵雨', '🌦️'], 81: ['强阵雨', '🌧️'], 82: ['暴雨', '⛈️'],
+  85: ['阵雪', '🌨️'], 86: ['强阵雪', '❄️'],
+  95: ['雷阵雨', '⛈️'], 96: ['雷阵雨伴冰雹', '⛈️'], 99: ['强雷暴冰雹', '⛈️']
+};
+var WEATHER_CACHE_KEY = 'qingyu.weather';
+var WEATHER_TTL = 1800000;   // 30 分钟
+
+function weatherLabel(code) {
+  return WEATHER_CODES[Number(code)] || ['天气', '🌡'];
+}
+function readWeatherCache() {
+  try {
+    var v = JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY) || 'null');
+    if (v && v.text && Date.now() - Number(v.ts || 0) < WEATHER_TTL) return v;
+  } catch (e) {}
+  return null;
+}
+function setMagazineWeather(text, icon, city, ok) {
+  var box = document.getElementById('magazineWeather');
+  if (!box) return;
+  var btn = box.querySelector('#magazineWeatherLocate');
+  box.classList.toggle('is-error', !ok);
+  box.innerHTML = '<span class="weather-ico">' + esc(icon) + '</span>'
+    + '<span class="weather-text">' + esc(text) + '</span>'
+    + (city ? '<span class="weather-city">' + esc(city) + '</span>' : '')
+    + (btn ? String(btn.outerHTML) : '');
+  bindMagazineWeather();   // innerHTML 会生成新的按钮节点，需重新绑定点击
+}
+/* fetch 超时保护：任何第三方接口挂起都不能让天气一直卡在「获取中」 */
+function fetchWithTimeout(url, ms) {
+  var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, ms || 7000);
+  return fetch(url, ctrl ? { signal: ctrl.signal } : undefined)
+    .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+    .then(function (d) { clearTimeout(timer); return d; }, function (e) { clearTimeout(timer); throw e; });
+}
+function num(v) { var n = Number(v); return isFinite(n) ? n : NaN; }
+/* IP 定位多源兜底：按国内网络可达性排序，任一家可用即返回。
+   均为公开、免 Key、Access-Control-Allow-Origin: * 的接口，
+   避免单家限流 / DNS 被拦导致天气拿不到。 */
+var IP_LOCATION_SOURCES = [
+  function () { return fetchWithTimeout('https://api.ip.sb/geoip', 6000).then(function (d) {
+    return { lat: num(d.latitude), lon: num(d.longitude), city: d.city || d.region || '' }; }); },
+  function () { return fetchWithTimeout('https://ipinfo.io/json', 6000).then(function (d) {
+    var loc = String(d.loc || '').split(',');
+    return { lat: num(loc[0]), lon: num(loc[1]), city: d.city || '' }; }); },
+  function () { return fetchWithTimeout('https://ipapi.co/json/', 6000).then(function (d) {
+    return { lat: num(d.latitude), lon: num(d.longitude), city: d.city || '' }; }); },
+  function () { return fetchWithTimeout('https://ipwho.is/', 6000).then(function (d) {
+    return { lat: num(d.latitude), lon: num(d.longitude), city: d.city || '' }; }); }
+];
+function fetchAutoLocation() {
+  var chain = Promise.reject(new Error('no source'));
+  IP_LOCATION_SOURCES.forEach(function (fn) { chain = chain.catch(fn); });
+  return chain.then(function (loc) {
+    if (!loc || isNaN(loc.lat) || isNaN(loc.lon)) throw new Error('bad location');
+    return loc;
+  });
+}
+function fetchWeatherByCoords(lat, lon, city) {
+  var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon
+    + '&current=temperature_2m,weather_code&timezone=auto';
+  return fetchWithTimeout(url, 8000).then(function (d) {
+    var cur = (d && d.current) || {};
+    if (cur.temperature_2m == null) throw new Error('bad weather payload');
+    var info = weatherLabel(cur.weather_code);
+    var data = { text: info[0] + ' ' + Math.round(Number(cur.temperature_2m)) + '°', icon: info[1], city: city || '' };
+    try { data.ts = Date.now(); localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(data)); } catch (e) {}
+    setMagazineWeather(data.text, data.icon, data.city, true);
+  });
+}
+/* 全自动加载，无需点击：
+   ①已授权过定位 → 直接静默用精确定位（最准）
+   ②否则 → IP 定位多源兜底（静默、免授权）
+   ③都不行 → 自动请求浏览器定位（仅此时浏览器会弹一次授权询问，之后永久静默）
+   结果缓存 30 分钟。 */
+function geoPermissionState() {
+  return new Promise(function (resolve) {
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'geolocation' }).then(function (s) { resolve(s.state); }, function () { resolve('unknown'); });
+        return;
+      }
+    } catch (e) {}
+    resolve('unknown');
+  });
+}
+function loadMagazineWeather(force) {
+  var cached = readWeatherCache();
+  if (cached && !force) setMagazineWeather(cached.text, cached.icon, cached.city, true);
+  else setMagazineWeather(t('home.weatherLoading'), '☁', '', true);
+  return geoPermissionState().then(function (state) {
+    if (state === 'granted') return requestPreciseWeather(true);
+    return fetchAutoLocation()
+      .then(function (loc) { return fetchWeatherByCoords(loc.lat, loc.lon, loc.city); })
+      .catch(function () { return requestPreciseWeather(true); });
+  }).catch(function () { setMagazineWeather(t('home.weatherFail'), '·', '', false); });
+}
+/* 浏览器精确定位取天气；auto=true 时用于 IP 失败后的自动兜底 */
+function requestPreciseWeather(auto) {
+  if (!navigator.geolocation) return Promise.reject(new Error('no geolocation'));
+  setMagazineWeather(auto ? t('home.weatherLoading') : t('home.weatherLocating'), '⌖', '', true);
+  return new Promise(function (resolve, reject) {
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      var lat = Number(pos.coords.latitude).toFixed(3);
+      var lon = Number(pos.coords.longitude).toFixed(3);
+      fetchWeatherByCoords(lat, lon, '').then(resolve, reject);
+    }, reject, { timeout: 8000, maximumAge: 600000 });
+  });
+}
+function locateByBrowser() {
+  requestPreciseWeather(false).catch(function () { loadMagazineWeather(true); });
+}
+
+function bindMagazineWeather() {
+  var btn = document.getElementById('magazineWeatherLocate');
+  if (!btn || btn.__bound) return;
+  btn.__bound = true;
+  btn.addEventListener('click', function (e) { e.preventDefault(); locateByBrowser(); });
+}
+
+/* 右栏首卡与左侧「第一篇文章卡片」顶端对齐：
+ * 列表标题（最新发布 + 分隔线）只占左栏，所以用实测高度把右栏整体下移，
+ * 比写死像素更稳——标题字号、换行、响应式变化时都能自动跟随。 */
+function alignMagazineRail() {
+  var rail = document.querySelector('.magazine-rail');
+  if (!rail) return;
+  // 单栏布局（平板 / 手机）下右栏在列表下方，不需要对齐偏移
+  var single = window.innerWidth <= 860;
+  var head = single ? null : document.querySelector('.magazine-feed-head');
+  var offset = 0;
+  if (head) {
+    var cs = window.getComputedStyle(head);
+    offset = Math.round(head.getBoundingClientRect().height) + (parseFloat(cs.marginBottom) || 0);
+  }
+  rail.style.marginTop = offset + 'px';
+}
+
+function renderMagazineFeature(post) {
+  if (!post) return '';
+  var cover = String(post.cover || '').trim() || firstImageFrom(post.content || '');
+  var summary = post.excerpt || stripMd(post.content || '').slice(0, 180);
+  var tags = normalizeTags(post).slice(0, 3).map(function (name) { return '<span>' + esc(name) + '</span>'; }).join('');
+  var visual = cover
+    ? '<img src="' + esc(cover) + '" alt="' + esc(post.title || '') + '" loading="eager" decoding="async" fetchpriority="high" referrerpolicy="no-referrer">'
+    : renderGeneratedCover(post, post.title || '');
+  return '<a class="magazine-feature" href="' + esc(href(postUrl(post.id))) + '"><div class="magazine-feature-image">' + visual + '<span class="magazine-feature-label">' + esc(t('home.magazineFeatured')) + '</span></div>'
+    + '<div class="magazine-feature-copy"><div class="magazine-feature-meta"><span>' + esc(post.date || '') + '</span>' + (post.category ? '<span>' + esc(post.category) + '</span>' : '') + '</div>'
+    + '<h2>' + esc(post.title || '') + '</h2><p>' + esc(summary) + '</p><div class="magazine-feature-bottom"><span class="magazine-feature-tags">' + tags + '</span><span class="magazine-read">' + esc(t('home.magazineRead')) + ' <b>↗</b></span></div></div></a>';
+}
+
+function getMagazineTagCount(posts) {
+  var seen = {};
+  (posts || []).forEach(function (p) { normalizeTags(p).forEach(function (name) { seen[name] = 1; }); });
+  return Object.keys(seen).length;
+}
+
+function renderMagazineTags(posts, activeTag) {
+  var seen = {};
+  var tags = [];
+  (posts || []).forEach(function (p) { normalizeTags(p).forEach(function (name) {
+    if (!seen[name]) { seen[name] = 1; tags.push(name); }
+  }); });
+  return tags.length ? '<div class="magazine-tag-list">' + tags.slice(0, 12).map(function (name) {
+    return '<a class="magazine-tag' + (name === activeTag ? ' active' : '') + '" href="' + esc(href('/', { tag: name })) + '">' + esc(name) + '</a>';
+  }).join('') + '</div>' : '<p class="magazine-muted">' + esc(t('home.magazineNoTags')) + '</p>';
 }
 
 /* 云端文章加载动画：与首页卡片同构的骨架屏（shimmer），顶部一行「正在拉取文章…」 */
@@ -2942,11 +3176,11 @@ function bindFitCardLineClamps() {
   var timer = null;
   window.addEventListener('resize', function () {
     clearTimeout(timer);
-    timer = setTimeout(fitCardLineClamps, 120);
+    timer = setTimeout(function () { fitCardLineClamps(); alignMagazineRail(); }, 120);
   });
   // 字体加载完成后再测一次（iOS 首屏字体 swapping 会使标题行数变化）
   if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(function () { fitCardLineClamps(); }).catch(function () {});
+    document.fonts.ready.then(function () { fitCardLineClamps(); alignMagazineRail(); }).catch(function () {});
   }
 }
 
@@ -5460,7 +5694,7 @@ async function route() {
   var path = r.path;
   var q = r.query;
 
-  if (path === '/') { app().innerHTML = renderHome(); fitCardLineClamps(); }
+  if (path === '/') { app().innerHTML = renderHome(); fitCardLineClamps(); if (getConfig().homeTheme === 'magazine') { startMagazineClock(); bindMagazineWeather(); alignMagazineRail(); } else if (_magazineClockTimer) { clearInterval(_magazineClockTimer); _magazineClockTimer = null; } }
   else if (path.indexOf('/preview/') === 0) {
     // 草稿预览分享链接：/preview/<签名 token>
     var pvToken = path.slice('/preview/'.length).replace(/\/.*$/, '');
@@ -6653,11 +6887,11 @@ function applyPostsSnapshot(data) {
     // GET /api/settings 为公开接口；已与 posts 并行拉取（sResp），失败时保持静态配置。
     try {
       if (sResp && sResp.settings) {
-        var firstLoad = !_siteSettings;
+        var settingsChanged = JSON.stringify(_siteSettings || {}) !== JSON.stringify(sResp.settings);
         _siteSettings = sResp.settings;
         notifyFeaturesReady();
         writeSnapshot(SETTINGS_SNAP_KEY, sResp);
-        if (firstLoad) route();   // 首次加载设置后重渲染：导航/页脚/关于页生效
+        if (settingsChanged) route();   // 缓存设置与服务端设置不同也要更新首页布局
       }
     } catch (e) { /* 设置获取失败 → 使用静态配置 */ }
     notifyFeaturesReady();   // 静态模式 / 接口失败：同样广播，播放器按默认（开启）处理

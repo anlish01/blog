@@ -19,7 +19,7 @@
 
   var DEFAULT_LANG = 'zh-CN';
   /* 语言 JSON 缓存版本：修改 locales/*.json 后递增，强制浏览器拉新文件 */
-  var I18N_VER = '10';
+  var I18N_VER = '11';
   var _locale = DEFAULT_LANG;
   var _translations = {};
 
@@ -86,6 +86,21 @@
     "search.placeholder": "搜索文章…",
     "search.close": "关闭搜索",
     "home.latest": "最新发布",
+    "home.magazineKicker": "独立博客 · 灵感与记录",
+    "home.magazineLatest": "LATEST STORIES",
+    "home.magazineFeatured": "本期精选 / EDITOR'S PICK",
+    "home.magazineRead": "阅读文章",
+    "home.magazineTime": "现在时间",
+    "home.magazineFiltering": "正在浏览「{tag}」标签下的文章",
+    "home.weatherLoading": "获取天气中…",
+    "home.weatherLocating": "定位中…",
+    "home.weatherFail": "天气暂不可用",
+    "home.weatherLocate": "按我的精确位置获取天气",
+    "home.magazineArticles": "篇文章",
+    "home.magazineAbout": "关于本站",
+    "home.magazineAuthor": "作者",
+    "home.magazineIntro": "记录值得分享的想法、发现与日常。",
+    "home.magazineNoTags": "还没有添加标签",
     "home.noPosts": "这里还没有文章。",
     "home.loadingCloud": "正在拉取文章…",
     "home.noPostsCloud": "你还未发布文章",
@@ -665,6 +680,12 @@
     "admin.settings.profile": "个人资料",
     "admin.settings.siteName": "站点名称",
     "admin.settings.siteDesc": "站点简介",
+    "admin.settings.homeTheme": "首页风格",
+    "admin.settings.homeThemeClassic": "经典首页（当前布局）",
+    "admin.settings.homeThemeMagazine": "编辑部杂志（新布局）",
+    "admin.settings.homeThemeHint": "可随时切换；文章、标签筛选与分页数据保持不变。",
+    "admin.settings.homeThemeClassicDesc": "紧凑列表布局，信息密度高",
+    "admin.settings.homeThemeMagazineDesc": "精选大图 + 双栏排版，视觉更强",
     "admin.settings.siteAvatar": "站点头像 / Logo URL",
     "admin.settings.footerCopyright": "页脚版权署名",
     "admin.settings.footerDecl": "页脚声明",

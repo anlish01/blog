@@ -4610,6 +4610,7 @@
       copyright: site.copyright || (cfg().footer && cfg().footer.copyrightName) || '',
       footerText: site.footerText || (cfg().footer && cfg().footer.decl) || '',
       about: site.about || '',
+      homeTheme: site.homeTheme === 'magazine' ? 'magazine' : 'classic',
       announceEnabled: !!site.announceEnabled,
       announceText: site.announceText || '',
       announceLink: site.announceLink || '',
@@ -4706,13 +4707,15 @@
       navExtras: !(feat && feat.navExtras === false),
       readingFont: !(feat && feat.readingFont === false),
       highlight: !(feat && feat.highlight === false),
-      bookmark: !(feat && feat.bookmark === false)
+      bookmark: !(feat && feat.bookmark === false),
+      musicPlayer: !(feat && feat.musicPlayer === false)
     };
   }
   function saveTabToDraft(content) {
     if (content.querySelector('#abSiteName') !== null) {
       settingsDraft.site = {
         name: val(content, '#abSiteName'), desc: val(content, '#abSiteDesc'), avatar: val(content, '#abSiteAvatar'),
+        homeTheme: content.querySelector('#abHomeTheme') ? val(content, '#abHomeTheme') : (settingsDraft.site.homeTheme || 'classic'),
         copyright: val(content, '#abFooterCopyright'), footerText: val(content, '#abFooterText'),
         about: val(content, '#abSiteAbout'),
         announceEnabled: content.querySelector('#abAnnounceEnabled') ? content.querySelector('#abAnnounceEnabled').checked : settingsDraft.site.announceEnabled,
@@ -4723,9 +4726,8 @@
         moderate: content.querySelector('#abModerate') ? content.querySelector('#abModerate').checked : settingsDraft.site.moderate
       };
     }
-    if (content.querySelector('#abProfileName') !== null) {
     if (content.querySelector('#abBlocklist') !== null) settingsDraft.blocklist = val(content, '#abBlocklist');
-
+    if (content.querySelector('#abProfileName') !== null) {
       settingsDraft.profile = {
         name: val(content, '#abProfileName'), bio: val(content, '#abProfileBio'),
         avatar: val(content, '#abProfileAvatar'), email: val(content, '#abProfileEmail')
@@ -4822,6 +4824,10 @@
     if (content.querySelector('#abFooterCopyright')) content.querySelector('#abFooterCopyright').value = site.copyright || '';
     if (content.querySelector('#abFooterText')) content.querySelector('#abFooterText').value = site.footerText || '';
     if (content.querySelector('#abSiteAbout')) content.querySelector('#abSiteAbout').value = site.about || '';
+    if (content.querySelector('#abHomeTheme')) {
+      content.querySelector('#abHomeTheme').value = site.homeTheme === 'magazine' ? 'magazine' : 'classic';
+      syncThemeCards(content);   // 隐藏输入回填后，同步可视化卡片的选中态
+    }
     if (content.querySelector('#abModerate')) content.querySelector('#abModerate').checked = !!site.moderate;
     if (content.querySelector('#abBlocklist')) content.querySelector('#abBlocklist').value = String(settingsDraft.blocklist || '');
 
@@ -4954,6 +4960,26 @@
       body.innerHTML = '<div class="ab-card" style="max-width:620px">' +
         '<div class="ab-field"><label class="ab-label">' + t('admin.settings.siteName') + '</label><input class="ab-input" id="abSiteName"></div>' +
         '<div class="ab-field"><label class="ab-label">' + t('admin.settings.siteDesc') + '</label><textarea class="ab-textarea" id="abSiteDesc" style="min-height:70px"></textarea></div>' +
+        '<div class="ab-field"><label class="ab-label">' + t('admin.settings.homeTheme') + '</label>' +
+        '<div class="ab-themes" id="abHomeThemePicker">' +
+          '<button type="button" class="ab-theme" data-theme="classic">' +
+            '<span class="ab-theme-shot shot-classic"><b class="s-head"></b><b class="s-line w80"></b><b class="s-line w55"></b>' +
+              '<b class="s-row"><i class="s-txt"><i class="s-line w90"></i><i class="s-line w60"></i></i><i class="s-thumb"></i></b>' +
+              '<b class="s-row"><i class="s-txt"><i class="s-line w85"></i><i class="s-line w50"></i></i><i class="s-thumb"></i></b>' +
+            '</span>' +
+            '<span class="ab-theme-name">' + t('admin.settings.homeThemeClassic') + '</span>' +
+            '<span class="ab-theme-desc">' + t('admin.settings.homeThemeClassicDesc') + '</span>' +
+          '</button>' +
+          '<button type="button" class="ab-theme" data-theme="magazine">' +
+            '<span class="ab-theme-shot shot-magazine"><b class="s-hero"><i class="s-hero-txt"><i class="s-line w70"></i><i class="s-line w45"></i></i></b>' +
+              '<b class="s-cols"><i class="s-main"><i class="s-line w95"></i><i class="s-line w80"></i><i class="s-line w88"></i></i><i class="s-side"><i class="s-blk"></i><i class="s-blk"></i><i class="s-blk"></i></i></b>' +
+            '</span>' +
+            '<span class="ab-theme-name">' + t('admin.settings.homeThemeMagazine') + '</span>' +
+            '<span class="ab-theme-desc">' + t('admin.settings.homeThemeMagazineDesc') + '</span>' +
+          '</button>' +
+        '</div>' +
+        '<input type="hidden" id="abHomeTheme" value="classic">' +
+        '<label class="ab-hint">' + t('admin.settings.homeThemeHint') + '</label></div>' +
         '<div class="ab-field"><label class="ab-label">' + t('admin.settings.siteAvatar') + '</label><input class="ab-input" id="abSiteAvatar"></div>' +
         '<div class="ab-field"><label class="ab-label">' + t('admin.settings.about') + '</label><label class="ab-hint" style="font-size:12px">' + t('admin.settings.aboutHint') + '</label><textarea class="ab-textarea" id="abSiteAbout" style="min-height:120px" placeholder="' + t('admin.settings.aboutPlaceholder') + '"></textarea></div>' +
         '<div class="ab-field"><label class="ab-label">' + t('admin.settings.footerCopyright') + '</label><input class="ab-input" id="abFooterCopyright"></div>' +
@@ -5037,6 +5063,32 @@
       renderLinkVisual(content, 'links', '#abFriendsVisual');
     }
     fillSettings(content);
+    bindThemeCards(content);
+  }
+  /* ---------- 首页风格：可视化卡片选择 ----------
+   * 真正的取值仍是隐藏的 #abHomeTheme，保存逻辑（草稿 / PUT / 回填）完全不用改，
+   * 这里只负责把值与卡片的选中态互相同步。 */
+  function syncThemeCards(content) {
+    var input = content.querySelector('#abHomeTheme');
+    var picker = content.querySelector('#abHomeThemePicker');
+    if (!input || !picker) return;
+    var cur = input.value === 'magazine' ? 'magazine' : 'classic';
+    picker.querySelectorAll('.ab-theme').forEach(function (card) {
+      card.classList.toggle('active', card.getAttribute('data-theme') === cur);
+    });
+  }
+  function bindThemeCards(content) {
+    var picker = content.querySelector('#abHomeThemePicker');
+    var input = content.querySelector('#abHomeTheme');
+    if (!picker || !input || picker.__bound) return;
+    picker.__bound = true;
+    picker.addEventListener('click', function (e) {
+      var card = e.target.closest ? e.target.closest('.ab-theme') : null;
+      if (!card) return;
+      input.value = card.getAttribute('data-theme') === 'magazine' ? 'magazine' : 'classic';
+      syncThemeCards(content);
+    });
+    syncThemeCards(content);
   }
   /** 通用链接可视化编辑器：底部导航 / 友情链接共用 */
   function renderLinkVisual(content, key, sel) {
@@ -5079,6 +5131,7 @@
     var payload = {
       site_info: {
         name: site.name || '', desc: site.desc || '', avatar: site.avatar || '',
+        homeTheme: site.homeTheme === 'magazine' ? 'magazine' : 'classic',
         copyright: site.copyright || '', footerText: site.footerText || '', about: site.about || '',
         announceEnabled: !!site.announceEnabled, announceText: site.announceText || '',
         announceLink: site.announceLink || '', announceLinkText: site.announceLinkText || '',
@@ -5103,7 +5156,8 @@
         navExtras: !(settingsDraft.features && settingsDraft.features.navExtras === false),
         readingFont: !(settingsDraft.features && settingsDraft.features.readingFont === false),
         highlight: !(settingsDraft.features && settingsDraft.features.highlight === false),
-        bookmark: !(settingsDraft.features && settingsDraft.features.bookmark === false)
+        bookmark: !(settingsDraft.features && settingsDraft.features.bookmark === false),
+        musicPlayer: !(settingsDraft.features && settingsDraft.features.musicPlayer === false)
       })
     };
     try {
@@ -5114,11 +5168,12 @@
         nav_menu: payload.nav_menu, footer_nav: payload.footer_nav, friend_links: payload.friend_links,
         nav_defaults_version: payload.nav_defaults_version,
         home_tags: payload.home_tags,
-        moderate_comments: payload.moderate_comments, features: payload.features
+        moderate_comments: payload.moderate_comments, comment_blocklist: payload.comment_blocklist, features: payload.features
       });
       // 同步到前台全局变量，使站点名称/导航/页脚/友链等设置立即生效（无需刷新整页）
       window._siteSettings = settingsCache;
       writeAdminProfile(payload.profile);
+      if (typeof currentRoute === 'function' && currentRoute().path === '/' && typeof route === 'function') route();
       toast(t('admin.settings.saved'), 'ok');
     } catch (e) { toast(t('admin.settings.saveFail') + (e.message || e), 'err'); }
   }

@@ -1219,6 +1219,123 @@ html[data-theme="dark"] .post-card:hover { border-color: var(--accent); }
   text-shadow: 0 1px 0 color-mix(in srgb, var(--card) 40%, transparent);
 }
 
+/* ---------- 编辑部杂志首页 ---------- */
+.home-magazine .magazine-masthead { display: flex; justify-content: space-between; gap: 28px; align-items: end; }
+.magazine-edition { align-self: stretch; min-width: 155px; padding: 7px 0; display: flex; flex-direction: column; justify-content: space-between; text-align: right; font: 10px/1.3 var(--font); letter-spacing: .13em; color: var(--muted); }
+.magazine-edition strong { color: var(--fg); font: 700 75px/.85 var(--font-display); letter-spacing: -.08em; }
+.magazine-feature { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr); min-height: 340px; margin-bottom: 54px; color: var(--fg); background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 18px 48px rgba(35,32,27,.06); transition: transform .25s ease, box-shadow .25s ease; }
+.magazine-feature:hover { text-decoration: none; color: var(--fg); transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+.magazine-feature-image { position: relative; min-height: 340px; overflow: hidden; background: var(--bg-soft); }
+.magazine-feature-image > img { display: block; width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; transition: transform .5s ease; }
+.magazine-feature:hover .magazine-feature-image > img { transform: scale(1.04); }
+.magazine-feature-image .post-thumb { width: 100%; height: 100%; position: absolute; inset: 0; border-radius: 0; }
+.magazine-feature-image .post-thumb > * { max-width: 100%; }
+.magazine-feature-label { position: absolute; z-index: 2; top: 20px; left: 20px; padding: 9px 13px; background: var(--card); color: var(--accent); font: 700 11px/1.2 var(--font); letter-spacing: .08em; border-radius: 3px; box-shadow: var(--shadow); }
+.magazine-feature-copy { display: flex; flex-direction: column; justify-content: center; padding: clamp(26px, 4vw, 58px); min-width: 0; }
+.magazine-feature-meta { display: flex; gap: 15px; flex-wrap: wrap; color: var(--accent); font: 700 12px var(--font); letter-spacing: .06em; }
+.magazine-feature-copy h2 { margin: 24px 0 15px; font: 700 clamp(26px, 3vw, 40px)/1.3 var(--font-display); letter-spacing: -.025em; }
+.magazine-feature-copy p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.9; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.magazine-feature-bottom { margin-top: 30px; display: flex; justify-content: space-between; align-items: end; gap: 12px; font: 12px var(--font); }
+.magazine-feature-tags { display: flex; gap: 6px; flex-wrap: wrap; color: var(--muted); }
+.magazine-feature-tags span { padding: 4px 8px; background: var(--bg-soft); border-radius: 4px; }
+.magazine-read { white-space: nowrap; color: var(--accent); font-weight: 700; }
+.magazine-read b { font-size: 18px; vertical-align: -1px; }
+.magazine-card { position: relative; padding: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
+/* 作者卡片保留卡片形态，但用最轻的描边与投影，视觉层级低于时间、标签模块 */
+.magazine-card.magazine-author { padding: 18px; background: var(--card); border-color: var(--border); box-shadow: 0 1px 2px color-mix(in srgb, var(--fg) 5%, transparent); }
+.magazine-author-body { display: flex; align-items: center; gap: 12px; }
+.magazine-author-meta { min-width: 0; }
+.magazine-avatar { flex: none; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--card); box-shadow: 0 0 0 1px var(--border); }
+.magazine-avatar-fallback { display: grid; place-items: center; color: var(--accent-fg); background: var(--accent); font: 700 17px var(--font-display); }
+.magazine-author-meta strong { display: block; font-size: 15px; line-height: 1.3; font-weight: 600; }
+.magazine-author-meta p { margin: 4px 0 0; max-width: 180px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.clock-head { display: flex; align-items: center; gap: 8px; }
+.clock-dot { width: 7px; height: 7px; border-radius: 50%; background: #4aa879; box-shadow: 0 0 0 4px color-mix(in srgb, #4aa879 16%, transparent); }
+.clock-zone { color: var(--muted); font: 10px var(--font); letter-spacing: .12em; }
+.clock-time { display: block; margin-top: 16px; color: var(--fg); font: 700 clamp(26px, 2.6vw, 32px)/1 var(--mono); letter-spacing: -.06em; }
+.clock-date { display: block; margin-top: 9px; color: var(--muted); font: 11px var(--font); letter-spacing: .1em; }
+.magazine-rail-tags .magazine-tag-list { gap: 8px; }
+.magazine-tag { display: inline-flex; align-items: center; min-height: 30px; color: var(--muted); font-size: 12px; padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); transition: transform .18s ease, border-color .18s ease, color .18s ease, background .18s ease; }
+.magazine-tag:hover, .magazine-tag.active { transform: translateY(-2px); color: var(--accent); border-color: var(--accent); background: var(--accent-soft); text-decoration: none; }
+.magazine-rail .magazine-muted { margin-bottom: 0; }
+.magazine-feed #listContainer { gap: 0; }
+.magazine-feed .post-card { grid-template-columns: minmax(0, 1fr) 190px; gap: 24px; padding: 24px 0; }
+.magazine-feed .post-card-main { min-width: 0; padding: 2px 0; }
+.magazine-feed .post-card .meta { margin-bottom: 12px; font-size: 11px; letter-spacing: .04em; }
+.magazine-feed .post-card h2 { margin-bottom: 9px; font-size: 21px; line-height: 1.38; }
+.magazine-feed .post-card .excerpt { font-size: 13.5px; line-height: 1.75; -webkit-line-clamp: 2; }
+.magazine-feed .post-card .mini-tags { padding-top: 13px; }
+.magazine-feed .post-thumb { width: 190px; height: 122px; border-radius: 10px; }
+.magazine-feed .post-thumb::after { opacity: .18; }
+.magazine-feed .post-card:hover { padding-left: 14px; padding-right: 8px; background: color-mix(in srgb, var(--accent-soft) 30%, transparent); }
+.magazine-feed .post-card:hover .post-thumb { transform: scale(1.025); }
+.magazine-feed .post-card .post-thumb { transition: transform .25s ease, border-color .2s ease; }
+.magazine-filter-note { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 4px; padding: 7px 13px; background: var(--accent-soft); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent); border-radius: 999px; font-size: 12.5px; }
+.clock-weather { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 15px; border-top: 1px dashed var(--border); font-size: 13px; }
+.clock-weather .weather-ico { font-size: 16px; line-height: 1; }
+.clock-weather .weather-text { color: var(--fg); font-weight: 600; }
+.clock-weather .weather-city { color: var(--muted); font-size: 12px; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clock-weather.is-error .weather-text { color: var(--muted); font-weight: 400; }
+.weather-locate { margin-left: auto; width: 26px; height: 26px; display: grid; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--bg); color: var(--muted); font-size: 13px; cursor: pointer; transition: color .18s ease, border-color .18s ease, transform .18s ease; }
+.weather-locate:hover { color: var(--accent); border-color: var(--accent); transform: scale(1.08); }
+@media (max-width: 860px) { .magazine-feature { min-height: 300px; } .magazine-feature-image { min-height: 300px; } }
+@media (max-width: 620px) { .magazine-edition { display: none; } .magazine-feature { display: block; margin-bottom: 34px; } .magazine-feature-image { min-height: 225px; height: 225px; } .magazine-feature-copy { padding: 24px; } .magazine-feature-copy h2 { margin: 16px 0 10px; } .magazine-feature-bottom { margin-top: 20px; } }
+.home-magazine { max-width: 1180px; }
+.magazine-masthead {
+  position: relative;
+  padding: 32px 0 30px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+}
+.magazine-masthead::after { content: ''; position: absolute; right: 0; bottom: -1px; width: 96px; height: 3px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); }
+.magazine-kicker { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.magazine-masthead h1 { margin: 8px 0 8px; font: 700 clamp(34px, 6vw, 68px)/1.02 var(--font-display); letter-spacing: -.04em; }
+.magazine-masthead p { max-width: 620px; margin: 0; color: var(--muted); font-size: 16px; line-height: 1.75; }
+.magazine-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 42px; align-items: start; }
+.magazine-feed-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 16px; padding-bottom: 11px; border-bottom: 2px solid color-mix(in srgb, var(--accent) 36%, var(--border)); }
+.magazine-feed-head h2 { margin: 5px 0 0; font: 700 25px/1.2 var(--font-display); }
+.magazine-count { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.magazine-feed .post-card { border: 0; border-top: 1px solid var(--border); border-radius: 0; box-shadow: none; padding: 22px 0; min-height: 0; background: transparent; }
+.magazine-feed .post-card:first-child { border-top: 0; padding-top: 5px; }
+.magazine-feed .post-card:hover { transform: none; box-shadow: none; background: color-mix(in srgb, var(--accent-soft) 45%, transparent); padding-left: 12px; padding-right: 12px; }
+.magazine-feed .post-card::after { left: 0; top: 22px; bottom: 22px; width: 2px; }
+.magazine-feed .post-card:first-child::after { top: 5px; }
+.magazine-feed .post-thumb { width: 220px; height: 138px; border-radius: 8px; }
+.magazine-feed .post-card h2 { font-size: 22px; line-height: 1.3; }
+.magazine-feed .post-card .excerpt { max-width: 620px; }
+/* 右栏不吸顶：始终与左侧文章列表顶端保持同一条水平线，
+   避免 sticky 在滚动（或浏览器恢复上次滚动位置）后脱离列表、看起来错位。 */
+.magazine-rail { display: flex; flex-direction: column; gap: 16px; }
+.magazine-tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 0; }
+.magazine-tag { color: var(--fg); font-size: 13px; padding: 5px 9px; border: 1px solid var(--border); border-radius: 999px; }
+.magazine-tag:hover, .magazine-tag.active { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); text-decoration: none; }
+.magazine-muted { color: var(--muted); font-size: 13px; }
+@media (max-width: 860px) {
+  .magazine-layout { grid-template-columns: 1fr; gap: 26px; }
+  .magazine-rail { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 0 !important; }
+  .magazine-rail-tags { grid-column: 1 / -1; }
+}
+@media (max-width: 620px) {
+  .home-magazine { padding-top: 20px; }
+  .magazine-masthead { padding: 24px 0; margin-bottom: 20px; }
+  .magazine-masthead p { font-size: 14px; }
+  .magazine-feed-head { align-items: start; flex-direction: column; gap: 6px; }
+  /* 手机端：杂志卡片改为单列堆叠，封面在上、文字在下（缩略图用 order 提到最前）。
+必须显式解除经典卡片的固定高度与裁切（height / overflow:hidden），
+     否则内容超出固定高度会被裁掉，封面图直接看不见。 */
+  .magazine-feed .post-card { display: flex; flex-direction: column; height: auto; min-height: 0; overflow: visible; padding: 18px 0; }
+  .magazine-feed .post-thumb { order: -1; width: 100%; height: 190px; margin: 0 0 14px; }
+  .magazine-feed .post-card h2 { font-size: 20px; }
+  /* 手机端隐藏右栏三张卡片（作者 / 时间天气 / 标签），只保留文章流 */
+  .magazine-rail { display: none; }
+  /* 卡片隐藏后文章列表成为最后一个块，补足与页脚之间的留白 */
+  .magazine-layout { gap: 0; }
+  .home-magazine { padding-bottom: 30px; }
+  .magazine-feed #listContainer { margin-bottom: 0; }
+  .magazine-feed .pager { margin-top: 24px; margin-bottom: 8px; }
+}
+
 .post-card .meta {
   display: flex;
   align-items: center;

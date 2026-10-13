@@ -209,11 +209,8 @@
     audio.src = tr.url;
     panelTitle.textContent = tr.title || tt('player.unknown');
     panelArtist.textContent = tr.artist || '—';
-    if (tr.cover) {
-      panelCover.innerHTML = '<img src="' + esc(tr.cover) + '" alt="" loading="lazy">';
-    } else {
-      panelCover.innerHTML = icon('music', 17);
-    }
+    // 「正在播放」封面固定用音乐符号：歌曲不套用文章缩略图样式
+    panelCover.innerHTML = icon('music', 17);
     curTimeEl.textContent = '0:00';
     durTimeEl.textContent = '0:00';
     seekInput.value = 0;
@@ -297,8 +294,9 @@
     }
     panelList.innerHTML = tracks.map(function (tr, i) {
       var active = i === currentIndex;
+      // 列表缩略图固定用音乐符号：歌曲没有封面图，套用文章缩略图样式会显得杂乱
       return '<button type="button" class="mp-item' + (active ? ' active' : '') + '" data-i="' + i + '">' +
-        '<span class="mp-item-cover">' + (tr.cover ? '<img src="' + esc(tr.cover) + '" alt="" loading="lazy">' : icon('music', 14)) + '</span>' +
+        '<span class="mp-item-cover">' + icon('music', 14) + '</span>' +
         '<span class="mp-item-meta"><span class="mp-item-title">' + esc(tr.title || tt('player.unknown')) + '</span>' +
         '<span class="mp-item-artist">' + esc(tr.artist || '—') + '</span></span>' +
         '<span class="mp-item-state">' + (active ? (playing ? '<span class="mp-eq"><i></i><i></i><i></i></span>' : icon('volume', 14)) : '') + '</span>' +

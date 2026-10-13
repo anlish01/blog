@@ -109,7 +109,7 @@
   color: var(--mp-accent);
   overflow: hidden;
 }
-.mp-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mp-cover svg { display: block; }
 .mp-meta { min-width: 0; flex: 1 1 auto; }
 .mp-title {
   font-size: 14px;
@@ -226,7 +226,8 @@
   color: var(--mp-accent);
   overflow: hidden;
 }
-.mp-item-cover img { width: 100%; height: 100%; object-fit: cover; }
+.mp-item.active .mp-item-cover { background: color-mix(in srgb, var(--mp-accent) 16%, var(--mp-soft)); color: var(--mp-accent); }
+.mp-item-cover svg { display: block; }
 .mp-item-meta { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; }
 .mp-item-title {
   font-size: 13px;

@@ -1034,3 +1034,42 @@ select.ab-select { cursor: pointer; padding-right: 30px; }
 .ab-tagchip.on{background:var(--ab-primary,#3b82f6);border-color:var(--ab-primary,#3b82f6);color:#fff}
 .ab-tagchip-n{font-size:11px;opacity:.7}
 @media (prefers-reduced-motion: reduce){.ab-tagchip{transition:none}}
+
+/* ---------- 首页风格：可视化主题卡片 ----------
+   每张卡片用纯 CSS 画一个首页缩略线框图（经典=紧凑列表，杂志=精选大图+双栏），
+   选中态用主题色描边 + 角标，选中前也能一眼看出两种布局的区别。 */
+.ab-themes{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:10px;max-width:520px}
+.ab-theme{position:relative;display:flex;flex-direction:column;gap:8px;padding:12px;text-align:left;
+  background:var(--ab-bg,#fff);border:1px solid var(--ab-border,#e2e5ea);border-radius:12px;cursor:pointer;
+  font:inherit;color:inherit;transition:border-color .15s,box-shadow .15s,transform .15s}
+.ab-theme:hover{border-color:var(--ab-primary,#3b82f6);transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.08)}
+.ab-theme.active{border-color:var(--ab-primary,#3b82f6);box-shadow:0 0 0 2px color-mix(in srgb,var(--ab-primary,#3b82f6) 26%,transparent)}
+.ab-theme.active::after{content:'✓';position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;
+  background:var(--ab-primary,#3b82f6);color:#fff;font-size:11px;line-height:18px;text-align:center}
+.ab-theme-name{font-size:13.5px;font-weight:600;line-height:1.4}
+.ab-theme-desc{font-size:12px;color:var(--ab-muted,#8a929c);line-height:1.5}
+.ab-theme-shot{display:block;position:relative;width:100%;height:104px;border-radius:8px;overflow:hidden;
+  background:var(--ab-bg-soft,#f7f8fa);border:1px solid var(--ab-border,#e2e5ea);padding:9px}
+.ab-theme-shot b,.ab-theme-shot i{display:block;font-style:normal}
+/* 缩略图里的“文字条”与“图片块”共用一套配色，跟随主题色 */
+.ab-theme-shot .s-line{height:4px;border-radius:2px;background:color-mix(in srgb,var(--ab-text,#333) 22%,transparent);margin-bottom:4px}
+.ab-theme-shot .s-head{height:8px;width:46%;border-radius:3px;background:color-mix(in srgb,var(--ab-text,#333) 55%,transparent);margin-bottom:8px}
+.ab-theme-shot .w95{width:95%}.ab-theme-shot .w90{width:90%}.ab-theme-shot .w88{width:88%}
+.ab-theme-shot .w85{width:85%}.ab-theme-shot .w80{width:80%}.ab-theme-shot .w70{width:70%}
+.ab-theme-shot .w60{width:60%}.ab-theme-shot .w55{width:55%}.ab-theme-shot .w50{width:50%}.ab-theme-shot .w45{width:45%}
+/* 经典：标题下三条文章行，左文右图 */
+.shot-classic .s-row{display:flex;align-items:center;gap:7px;margin-top:7px}
+.shot-classic .s-txt{flex:1 1 auto}
+.shot-classic .s-thumb{flex:none;width:26px;height:18px;border-radius:4px;background:color-mix(in srgb,var(--ab-primary,#3b82f6) 34%,transparent)}
+/* 杂志：上方精选大卡，下方左列表 + 右侧栏 */
+.shot-magazine .s-hero{display:flex;gap:7px;height:44px;border-radius:6px;overflow:hidden;
+  background:color-mix(in srgb,var(--ab-primary,#3b82f6) 16%,transparent);padding:7px;margin-bottom:8px}
+.shot-magazine .s-hero::before{content:'';display:block;flex:0 0 42%;border-radius:4px;background:color-mix(in srgb,var(--ab-primary,#3b82f6) 46%,transparent)}
+.shot-magazine .s-hero-txt{flex:1 1 auto;align-self:center}
+.shot-magazine .s-cols{display:flex;gap:7px;height:34px}
+.shot-magazine .s-main{flex:1 1 auto}
+.shot-magazine .s-main .s-line{margin-bottom:5px}
+.shot-magazine .s-side{flex:0 0 30%;display:flex;flex-direction:column;gap:4px}
+.shot-magazine .s-side .s-blk{flex:1 1 auto;border-radius:4px;background:color-mix(in srgb,var(--ab-text,#333) 12%,transparent)}
+@media (max-width: 520px){.ab-themes{grid-template-columns:1fr;max-width:none}}
+@media (prefers-reduced-motion: reduce){.ab-theme{transition:none}}

@@ -384,6 +384,7 @@ export const SETTINGS = {
     name: "Qingyu'Blog",
     desc: '零依赖轻量博客 · 原生 JS + Cloudflare Workers',
     avatar: '/demo/avatar.svg',
+    homeTheme: 'magazine',
     copyright: "Qingyu'Blog",
     footerText: '本站部分内容转载自网络，作品版权归原作者及来源网站所有，任何内容转载、商业用途等均须联系原作者并注明来源。',
     about: md(

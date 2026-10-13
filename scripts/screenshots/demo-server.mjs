@@ -263,7 +263,9 @@ function serveStatic(req, res, url) {
   }
   const buf = fs.readFileSync(file);
   const ext = path.extname(file).toLowerCase();
-  return send(res, buf, MIME[ext] || 'application/octet-stream');
+  // 预览服务器禁用缓存：改动 public/ 后刷新即可看到最新效果，
+  // 避免浏览器沿用上一次的 style.min.css / app.min.js
+  return send(res, buf, MIME[ext] || 'application/octet-stream', 200, { 'Cache-Control': 'no-store, must-revalidate' });
 }
 
 export function createDemoServer() {
