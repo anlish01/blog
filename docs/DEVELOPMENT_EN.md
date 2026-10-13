@@ -2,7 +2,7 @@
 
 # Development Guide
 
-> For secondary development, maintenance and deployment troubleshooting. Current version: **v2.10.100** (2026-10-10).
+> For secondary development, maintenance and deployment troubleshooting. Current version: **v2.10.101** (2026-10-10).
 >
 > This document lives in `docs/`; unless stated otherwise, run every command from the **repository root**.
 
@@ -99,7 +99,7 @@ Use `wrangler.toml` when validating Pages Functions. Use `wrangler.workers.toml`
 ### 4.3 Required tests
 
 ```bash
-node smoke-test.js      # 178 cases
+node smoke-test.js      # 179 cases
 node gb-verify.js       # 18 cases
 node search-verify.js   # 25 cases
 ```
@@ -238,8 +238,10 @@ See the [README runtime environment variable table](README_EN.md#full-table-of-r
 | 2026-10-10 | v2.10.97 | Cloud snapshot fallback so first paint shows content immediately; attempted to make long-lived static asset caching actually take effect (run_worker_first) |
 | 2026-10-10 | v2.10.98 | Fixed the version string stuck at v2.10.83 on the About page and in the admin; now synced to the current version, with a guard test keeping the three copies in sync |
 | 2026-10-10 | v2.10.99 | Filled in the missing feature switches: "Highlight tools" (summary / clear / export / import) and "Bookmark (read later)". Turning them off only hides the UI — saved records are kept |
-| 2026-10-10 | v2.10.100 | AI summary "Regenerate" now verifies the session server-side (new GET /api/admin/session), so a stale local token no longer shows visitors an admin button; added breathing room between the comments section and the footer nav |
-| 2026-10-10 | v2.10.100 | Docs synced to the current version: filled in the v2.10.84-v2.10.100 changelog, updated the feature-switch and test-count listings, documented the new session self-check endpoint; plus a "docs dont go stale" guard test that blocks the deploy when the documented version or test count drifts from the code |
+| 2026-10-13 | v2.10.101 | Fixed raw HTML in early WordPress-imported posts showing up as literal text: entities such as `&nbsp;` are decoded before escaping, `<!--more-->`-style comments are dropped, Flash `<embed>` / `<object>` players are removed entirely, and legacy presentational tags (`font`/`span`/`div`/`p`/`a`/`img`…) become normal paragraphs or lose just the tag. HTML inside fenced code blocks is untouched, and non-whitelisted tags such as `<script>` are still escaped as before (neither executed nor lost) |
+| 2026-10-10 | v2.10.101 | AI summary "Regenerate" now verifies the session server-side (new GET /api/admin/session), so a stale local token no longer shows visitors an admin button; added breathing room between the comments section and the footer nav |
+| 2026-10-13 | v2.10.101 | Fixed raw HTML in early WordPress-imported posts showing up as literal text: entities such as `&nbsp;` are decoded before escaping, `<!--more-->`-style comments are dropped, Flash `<embed>` / `<object>` players are removed entirely, and legacy presentational tags (`font`/`span`/`div`/`p`/`a`/`img`…) become normal paragraphs or lose just the tag. HTML inside fenced code blocks is untouched, and non-whitelisted tags such as `<script>` are still escaped as before (neither executed nor lost) |
+| 2026-10-10 | v2.10.101 | Docs synced to the current version: filled in the v2.10.84-v2.10.101 changelog, updated the feature-switch and test-count listings, documented the new session self-check endpoint; plus a "docs dont go stale" guard test that blocks the deploy when the documented version or test count drifts from the code |
 
 ---
 

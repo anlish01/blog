@@ -75,7 +75,7 @@ It runs in two modes:
 
 The entire site lives in `public/`: frontend `index.html` + `style.css` + `app.js` + `posts.js` + `music-player.js` + `bg-anim.js`, admin `admin.js` + `admin.css`, i18n `i18n.js` + `locales/`.
 
-> 🆕 **Current version `v2.10.100`.** Beyond writing / comments / stats, it also ships: **post encryption** (AES-GCM, client-side), **per-post SEO** (title / description / canonical / noindex), **draft preview links** (HMAC-signed), **one-click static site export (asks where to save first, then exports)**, **print / PDF**, **Webmention**, **multi-author + author pages**, **Mermaid diagrams + KaTeX math** (vendored, on-demand), **subscriber groups & broadcast**, **front-end error log**, **comment anti-bot**, **country / device detection**, and an admin "**Feature switches**" page.
+> 🆕 **Current version `v2.10.101`.** Beyond writing / comments / stats, it also ships: **post encryption** (AES-GCM, client-side), **per-post SEO** (title / description / canonical / noindex), **draft preview links** (HMAC-signed), **one-click static site export (asks where to save first, then exports)**, **print / PDF**, **Webmention**, **multi-author + author pages**, **Mermaid diagrams + KaTeX math** (vendored, on-demand), **subscriber groups & broadcast**, **front-end error log**, **comment anti-bot**, **country / device detection**, and an admin "**Feature switches**" page.
 
 > 💡 The root `index.html` is just a redirect that opens `public/index.html` (the Workers / Pages deploy directory). Opening `public/index.html` locally works the same.
 
@@ -239,7 +239,7 @@ Everything the code reads; entries marked *auto* are written to the Worker from 
 Push to `main` (or run the workflow manually) and GitHub Actions will:
 
 1. ✅ Install the Wrangler CLI
-2. ✅ Run three test suites (`smoke-test.js` 178 cases / `gb-verify.js` 18 / `search-verify.js` 25 — a failure aborts the deploy)
+2. ✅ Run three test suites (`smoke-test.js` 179 cases / `gb-verify.js` 18 / `search-verify.js` 25 — a failure aborts the deploy)
 3. ✅ Validate the required secrets and ID formats
 4. ✅ Apply D1 migrations (three-layer idempotency: `schema_migrations` ledger + column pre-check + tolerant error matching)
 5. ✅ Deploy the Worker
@@ -301,6 +301,7 @@ Or trigger the `Migrate KV to D1` workflow manually from the Actions tab (`dry-r
 | **AI post summary** | One-click summary on any post page (30-day per-post cache); the entry hides itself when AI is unavailable |
 | **Music player** | Floating note button at the bottom right that stays **tucked outside the window with just an arc showing**, sliding out on hover or click. The panel has track info, a draggable seek bar, prev / play-pause / next, volume and a playlist (active item highlighted with an equaliser animation). Auto-advance, **remembers the last track and position**, volume persisted, restores after refresh but **never plays automatically**; hides entirely when there are no tracks and collapses on admin routes; its CSS and JS stay off the critical path |
 | Serif typography | Body / headings / display all use the system Songti stack, quote ornaments use Fangsong; iOS uses native Songti / Fangsong; **no webfont is ever downloaded** |
+| **Legacy post compatibility** | Early posts imported from WordPress carry raw HTML in the body: entities such as `&nbsp;` are turned back into real characters (instead of the literal text "&nbsp;"), `<!--more-->`-style comments are dropped, Flash `<embed>` / `<object>` players are removed, and legacy presentational tags (`font`/`span`/`div`/`p`/`a`/`img`…) become normal paragraphs. HTML inside fenced code blocks is untouched, and tags such as `<script>` are still escaped (never executed, never silently dropped) |
 | **First-paint fallback on slow networks** | Key resources (config / posts / i18n / app / style) are explicitly `preload`ed instead of being guessed by a probe; cloud API calls now use an **8-second deadline** (no more waiting forever), with an extra **10-second guard** for article bodies; on failure a retryable failure page is rendered instead of looping fetches forever |
 | **Cloud snapshot fallback** | Every successful fetch of cloud posts / settings also writes a local snapshot (usable for up to 12 hours); the next visit renders that snapshot immediately and refreshes the real data in the background (re-rendering once it arrives). Slow or lossy connections no longer mean endless spinners, and the snapshot never affects data accuracy |
 | A11y details | Popovers carry `role` / `aria-*`; icon buttons have `title` / `aria-label`; images use `loading="lazy"` with a fade-in; CSP and other security headers |
@@ -516,7 +517,7 @@ The admin panel is a separate bundle (`admin.js` + `admin.css`) lazy-loaded only
 ├── index.html                         # Root redirect (opens public/index.html)
 ├── wrangler.toml                      # Cloudflare Pages config
 ├── wrangler.workers.toml              # Cloudflare Workers config (used for deploys)
-├── smoke-test.js                      # Smoke tests (178 cases)
+├── smoke-test.js                      # Smoke tests (179 cases)
 ├── gb-verify.js                       # Guestbook verification (18 cases)
 ├── search-verify.js                   # Search verification (25 cases)
 ├── docs/                              # Project documentation (bilingual)
@@ -773,7 +774,7 @@ The step-by-step dashboard walkthrough is in section 9 of the **[Cloudflare setu
 ## 🧪 Tests
 
 ```bash
-node smoke-test.js      # Smoke tests: 178 cases
+node smoke-test.js      # Smoke tests: 179 cases
 node gb-verify.js       # Guestbook verification: 18 cases
 node search-verify.js   # Search verification: 25 cases
 ```

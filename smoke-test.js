@@ -4583,6 +4583,72 @@ tests.push(['i18n 缺失兜底：app.js 仍能启动（不再 t is not defined�
   assert.strictEqual(typeof win.t, 'function', 't 仍可用');
 }]);
 
+tests.push(['老文章（WordPress 导入）：HTML 残留不再显示为字面文字', async () => {
+  const appSrc = fs.readFileSync(path.join(PUB, 'app.js'), 'utf8');
+  assert.ok(appSrc.includes('function preprocessLegacyHtml(md)'), 'app.js 有老 HTML 预处理');
+  assert.ok(appSrc.includes('function decodeHtmlEntities(t)'), 'app.js 有实体解码');
+  assert.ok(appSrc.includes('var src = preprocessLegacyMarkdown(md);'), 'renderMarkdown 在转义之前先做预处理');
+  assert.ok(appSrc.indexOf('function preprocessLegacyHtml') < appSrc.indexOf('function renderMarkdown(md) {'), '预处理函数定义在渲染器之前（函数提升可用）');
+
+  // 真实执行一遍被测函数
+  function grabFn(name) {
+    const i = appSrc.indexOf('function ' + name);
+    let d = 0;
+    for (let j = i; j < appSrc.length; j++) {
+      if (appSrc[j] === '{') d++;
+      else if (appSrc[j] === '}') { d--; if (d === 0) return appSrc.slice(i, j + 1); }
+    }
+    throw new Error('找不到函数 ' + name);
+  }
+  const start = appSrc.indexOf('var LEGACY_ENTITIES');
+  const end = appSrc.indexOf('\nfunction ', appSrc.indexOf('function inlineMd') + 10);
+  const code = grabFn('esc') + '\n' + grabFn('tokenizeCode') + '\n' + appSrc.slice(start, end) +
+    '\nmodule.exports = { preprocessLegacyHtml, preprocessLegacyMarkdown, decodeHtmlEntities, renderMarkdown };';
+  const f = path.join(dir, '.tmp-legacy-md.cjs');
+  fs.writeFileSync(f, code);
+  try {
+    const m = require(f);
+    const wp = '&nbsp;&nbsp; ZVP教科书,进入观看:<!--more-->' +
+      '<embed src=\'http://player.youku.com/player.php/sid/x=/v.swf\' quality="high" width="480" type="application/x-shockwave-flash"></embed>';
+    const out = m.renderMarkdown(wp);
+    assert.ok(!out.includes('&nbsp;'), '&nbsp; 不再显示为字面文字');
+    assert.ok(!out.includes('&amp;nbsp;'), '实体未被二次转义');
+    assert.ok(!out.includes('&lt;'), '尖括号未被转义成可见文字');
+    assert.ok(!out.includes('more--'), '<!--more--> 注释被清掉');
+    assert.ok(out.toLowerCase().indexOf('embed') < 0, 'Flash <embed> 播放器被移除');
+    assert.ok(out.indexOf('shockwave') < 0, 'Flash 相关属性不残留');
+    assert.ok(out.includes('ZVP教科书'), '正文文字保留');
+
+    // 实体解码：具名 / 十进制 / 十六进制 / 不带分号
+    assert.strictEqual(m.decodeHtmlEntities('a&amp;b'), 'a&b', '具名实体 &amp; 解码');
+    assert.strictEqual(m.decodeHtmlEntities('&#8212;'), '\u2014', '十进制实体解码');
+    assert.strictEqual(m.decodeHtmlEntities('&#x2014;'), '\u2014', '十六进制实体解码');
+    assert.strictEqual(m.decodeHtmlEntities('&nbsp;x'), '\u00a0x', '&nbsp; 解码为不换行空格');
+    assert.strictEqual(m.decodeHtmlEntities('&notarealentity;'), '&notarealentity;', '未知实体原样保留');
+    assert.strictEqual(m.decodeHtmlEntities('&lt;script&gt;'), '<script>', '&lt;/&gt; 解码（之后再统一转义，不会执行）');
+
+    // 块级标签 -> 段落
+    const h = m.renderMarkdown('<p>第一段</p><p>第二段</p>');
+    assert.strictEqual((h.match(/<p>/g) || []).length, 2, 'HTML 段落标签转成 Markdown 段落');
+
+    // 危险标签仍走转义，不放行
+    const danger = m.renderMarkdown('<script>alert(1)</'+'script>');
+    assert.ok(danger.includes('&lt;script&gt;'), '<script> 仍被转义，不会执行');
+
+    // 回归：正常 Markdown 不能被破坏
+    const md = m.renderMarkdown('# 标题\n\n**粗体** 与 `代码`\n\n- 列表项\n\n> 引用');
+    assert.ok(md.includes('<h1') && md.includes('标题'), '标题正常');
+    assert.ok(md.includes('<strong>粗体</strong>'), '加粗正常');
+    assert.ok(md.includes('<code class="inline-code">代码</code>'), '行内代码正常');
+    assert.ok(md.includes('<li>列表项</li>'), '列表正常');
+    assert.ok(md.includes('<blockquote>'), '引用正常');
+    assert.ok(m.renderMarkdown('![图](https://e.com/a.png)').includes('<img'), '图片正常');
+    assert.ok(m.renderMarkdown('[链接](https://e.com)').includes('<a href='), '链接正常');
+    const cb = m.renderMarkdown('```html\n<div>x</div>\n```');
+    assert.ok(cb.includes('&lt;div&gt;x&lt;/div&gt;'), '代码块内的示例 HTML 不被老文章清理改写（按代码块规则转义）');
+  } finally { try { fs.unlinkSync(f); } catch (e) {} }
+}]);
+
 /* ---------- 运行 ---------- */
 (async () => {
   let passed = 0, failed = 0;

@@ -6,7 +6,7 @@
  * ============================================================================ */
 'use strict';
 
-var BLOG_VERSION = '2.10.100';
+var BLOG_VERSION = '2.10.101';
 
 /* i18n 兜底：万一 i18n.js 没加载成功（网络抖动 / 缓存缺失 / 被拦截），
  * 也必须保证 t() 可用 —— 否则整页会在第一个 t(...) 处抛 “t is not defined” 而白屏。 */
@@ -489,8 +489,97 @@ function tokenizeCode(lang, code) {
   return out;
 }
 
+/** 老文章（WordPress 导入）正文预处理：把原始 HTML 残留清理成正常的 Markdown。
+ *  背景：服务端 SSR 用 marked 会原样输出 &nbsp; / <!--more--> / <embed>，但前端接管后用自己的
+ *  渲染器重绘并对文本先做转义，这些标记就变成了字面文字。这里在转义之前把它们还原掉。
+ *  1) 删除 HTML 注释（<!--more--> 等）
+ *  2) 删除 Flash / embed / object 等已无法播放的老插件
+ *  3) 常见块级标签转成换行，老排版标签（font/span/div/p/a/img…）去掉标签本身
+ *  4) 解码 HTML 实体（&nbsp; &amp; &mdash; &#8212; …），让它们成为真正的字符而不是字面量
+ *  注意：只清白名单里的排版类标签；<script> 等其它标签仍按原样转义显示（不执行、不丢失）。 */
+var LEGACY_ENTITIES = {
+  nbsp: '\u00a0', ensp: '\u2002', emsp: '\u2003', thinsp: '\u2009',
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
+  hellip: '\u2026', mdash: '\u2014', ndash: '\u2013', minus: '\u2212',
+  lsquo: '\u2018', rsquo: '\u2019', ldquo: '\u201c', rdquo: '\u201d',
+  laquo: '\u00ab', raquo: '\u00bb', middot: '\u00b7', bull: '\u2022',
+  copy: '\u00a9', reg: '\u00ae', trade: '\u2122', sect: '\u00a7', para: '\u00b6',
+  deg: '\u00b0', plusmn: '\u00b1', times: '\u00d7', divide: '\u00f7',
+  euro: '\u20ac', pound: '\u00a3', yen: '\u00a5', cent: '\u00a2',
+  dagger: '\u2020', Dagger: '\u2021', permil: '\u2030',
+  larr: '\u2190', rarr: '\u2192', harr: '\u2194',
+  ne: '\u2260', le: '\u2264', ge: '\u2265',
+  frac12: '\u00bd', frac14: '\u00bc', frac34: '\u00be',
+  sup2: '\u00b2', sup3: '\u00b3', micro: '\u00b5', shy: '\u00ad',
+  lrm: '\u200e', rlm: '\u200f', zwnj: '\u200c', zwj: '\u200d',
+  Agrave: '\u00c0', Aacute: '\u00c1', Acirc: '\u00c2', Atilde: '\u00c3',
+  Egrave: '\u00c8', Eacute: '\u00c9', Ecirc: '\u00ca', Ccedil: '\u00c7',
+  Oslash: '\u00d8', Uuml: '\u00dc', szlig: '\u00df',
+  aacute: '\u00e0', eacute: '\u00e9', egrave: '\u00e8', ccedil: '\u00e7',
+  igrave: '\u00ec', ocirc: '\u00f2', uuml: '\u00fc', agrave: '\u00e0',
+  alpha: '\u03b1', beta: '\u03b2', gamma: '\u03b3', delta: '\u03b4',
+  lambda: '\u03bb', mu: '\u03bc', pi: '\u03c0', sigma: '\u03c3',
+  theta: '\u03b8', omega: '\u03c9', infin: '\u221e',
+  star: '\u2605', check: '\u2713', cross: '\u2717'
+};
+
+function decodeHtmlEntities(t) {
+  var out = String(t == null ? '' : t);
+  out = out.replace(/&#x([0-9a-fA-F]+);/g, function (m, h) {
+    var n = parseInt(h, 16);
+    return (n > 0 && n <= 0x10ffff && !(n >= 0xd800 && n <= 0xdfff)) ? String.fromCodePoint(n) : m;
+  });
+  out = out.replace(/&#(\d+);/g, function (m, d) {
+    var n = parseInt(d, 10);
+    return (n > 0 && n <= 0x10ffff && !(n >= 0xd800 && n <= 0xdfff)) ? String.fromCodePoint(n) : m;
+  });
+  out = out.replace(/&([a-zA-Z][a-zA-Z0-9]{1,31});/g, function (m, name) {
+    var v = LEGACY_ENTITIES[name];
+    return v === undefined ? m : v;
+  });
+  // 少数不带分号的写法（WordPress 导出常见）
+  out = out.replace(/&nbsp(?![a-zA-Z0-9])/g, '\u00a0')
+           .replace(/&amp(?![a-zA-Z0-9])/g, '&')
+           .replace(/&lt(?![a-zA-Z0-9])/g, '<')
+           .replace(/&gt(?![a-zA-Z0-9])/g, '>')
+           .replace(/&quot(?![a-zA-Z0-9])/g, '"');
+  return out;
+}
+
+function preprocessLegacyHtml(md) {
+  var t = String(md == null ? '' : md);
+  // 1) HTML 注释：<!--more--> 等
+  t = t.replace(/<!--[\s\S]*?-->/g, '');
+  t = t.replace(/<!--[\s\S]*$/, '');
+  // 2) Flash / embed / object / applet：早已无法播放，直接移除整块
+  t = t.replace(/<(embed|object|applet)\b[\s\S]*?<\/\1\s*>/gi, '');
+  t = t.replace(/<(embed|object|applet)\b[^>]*\/?>/gi, '');
+  // 3) 块级标签 -> 空行；<br> -> 硬换行
+  t = t.replace(/<\s*br\s*\/?>/gi, '  \n');
+  t = t.replace(/<\s*\/?\s*(p|div|section|article|h[1-6]|ul|ol|li|tr|table|blockquote|pre)\b[^>]*>/gi, '\n\n');
+  // 4) 老文章里常见的排版标签（font/span/div/p/a/img…）：渲染器本来一律转义，直接去掉标签本身；
+  //    只清白名单里的排版类标签，<script> 等其它标签仍按原样转义显示（不执行、不丢失）
+  t = t.replace(/<\/?\s*(?:font|span|div|p|br|hr|center|small|big|u|s|strike|del|sup|sub|i|b|em|strong|code|pre|blockquote|ul|ol|li|dl|dt|dd|table|thead|tbody|tfoot|tr|td|th|caption|h1|h2|h3|h4|h5|h6|section|article|aside|header|footer|nav|figure|figcaption|a|img|map|area|embed|object|applet|param|iframe|audio|video|source|track|marquee|blink|basefont|xml|form|input|button|select|textarea|label|noscript)\b[^<>]*>/gi, '');
+  // 5) 实体解码（必须在 esc 之前，否则 &nbsp; 会变成可见的“&nbsp;”文字）
+  t = decodeHtmlEntities(t);
+  // 6) 收拾空白
+  t = t.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+  return t;
+}
+
+/** 同上，但先摘出围栏代码块：示例代码里的 HTML 不能被"老文章清理"改写 */
+function preprocessLegacyMarkdown(md) {
+  var src = String(md == null ? '' : md);
+  var parts = src.split(/(```[\s\S]*?```)/g);
+  for (var i = 0; i < parts.length; i++) {
+    if (i % 2 === 1) continue;          // 奇数段是代码块本身
+    parts[i] = preprocessLegacyHtml(parts[i]);
+  }
+  return parts.join('');
+}
+
 function renderMarkdown(md) {
-  var src = String(md || '');
+  var src = preprocessLegacyMarkdown(md);
   var tocCount = 0;
   var lines = src.split(/\r?\n/);
   var html = '';

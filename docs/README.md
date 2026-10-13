@@ -59,7 +59,7 @@ Qingyu'Blog（轻语博客）是一个**纯原生 JavaScript** 编写的个人�
 
 整个博客本体就在 `public/` 目录：前台 `index.html` + `style.css` + `app.js` + `posts.js` + `music-player.js` + `bg-anim.js`，后台 `admin.js` + `admin.css`，国际化 `i18n.js` + `locales/`。
 
-> 🆕 **当前版本 `v2.10.100`**。除写作 / 评论 / 统计等基础能力外，还内置：**文章加密**（AES-GCM 纯前端）、**文章级 SEO**（标题 / 描述 / canonical / noindex）、**草稿预览分享链接**（HMAC 签名）、**一键导出静态站**、**打印 / 导出 PDF**、**Webmention**、**多作者与作者页**、**Mermaid 图表 + KaTeX 公式**（本地化按需加载）、**订阅分组群发**、**前端错误日志**、**评论反机器人**、**访问国家 / 设备识别**，以及后台「**功能开关**」等。
+> 🆕 **当前版本 `v2.10.101`**。除写作 / 评论 / 统计等基础能力外，还内置：**文章加密**（AES-GCM 纯前端）、**文章级 SEO**（标题 / 描述 / canonical / noindex）、**草稿预览分享链接**（HMAC 签名）、**一键导出静态站**、**打印 / 导出 PDF**、**Webmention**、**多作者与作者页**、**Mermaid 图表 + KaTeX 公式**（本地化按需加载）、**订阅分组群发**、**前端错误日志**、**评论反机器人**、**访问国家 / 设备识别**，以及后台「**功能开关**」等。
 
 > 完整变更历史见仓库 [提交记录](https://github.com/kejiland/qingyu-blog/commits/main)。
 
@@ -225,7 +225,7 @@ npx wrangler kv namespace create BLOG
 推送代码或手动运行 Actions，工作流会自动：
 
 1. ✅ 安装 Wrangler CLI
-2. ✅ 运行三套测试（`smoke-test.js` 178 例 / `gb-verify.js` 18 例 / `search-verify.js` 25 例，失败即中止不部署）
+2. ✅ 运行三套测试（`smoke-test.js` 179 例 / `gb-verify.js` 18 例 / `search-verify.js` 25 例，失败即中止不部署）
 3. ✅ 校验必要 Secrets 与 ID 格式
 4. ✅ 执行 D1 迁移（`schema_migrations` 记账表 + 列预检 + 报错兜底，三层幂等）
 5. ✅ 部署 Worker 到 Cloudflare
@@ -288,6 +288,7 @@ node scripts/migrate-kv-to-d1.mjs             # 正式写入 D1
 | **AI 文章摘要** | 文章页一键生成内容摘要（单篇缓存 30 天）；AI 不可用时入口自动隐藏 |
 | **全站音乐播放器** | 右下角悬浮音符按钮，平时**缩进窗口外只露出一点圆弧**、悬停 / 点击滑出；面板含曲目信息 · 可拖动进度条 · 上一首 / 播放暂停 / 下一首 · 音量 · 播放列表（当前项高亮 + 均衡动画）。自动连播、**记忆上次曲目与进度**、音量持久化，刷新后恢复但**不自动出声**；无音乐时完全隐藏，后台路由自动收起；样式与脚本不在首屏关键路径上 |
 | 书卷风衬线排版 | 正文 / 标题 / 大标题统一走系统宋体栈，引用装饰走系统仿宋；iOS 走原生宋体 / 仿宋；**不加载任何 webfont**，无首屏字体下载 |
+| **老文章兼容** | 早期从 WordPress 导入的文章正文里混着原始 HTML：`&nbsp;` 等实体会被还原成真实字符（不再是"字面的 &nbsp;"）、`<!--more-->` 等注释自动清除、`<embed>`/`<object>` 等 Flash 播放器整块移除、`font`/`span`/`div`/`p`/`a`/`img` 等老排版标签转成正常段落。围栏代码块里的示例 HTML 不受影响，`<script>` 等标签仍按原样转义（不会执行，也不会丢内容） |
 | **首屏弱网兜底** | 关键资源（config / posts / i18n / app / style）显式 `preload`，不再靠探测器猜；云端接口超时改为 **8 秒截止**（不再无限等待），文章正文另设 **10 秒超时保护**；失败时渲染可手动重试的失败页，不再自动循环拉取 |
 | **云端快照兜底** | 每次成功拉到云端文章 / 设置后写一份快照到本地（最长用于 12 小时的首屏）；下次打开先用快照立即出内容，后台并行刷新真实数据（拿到后覆盖重渲染）。接口慢或丢包时不再一直转圈，快照不影响数据准确性 |
 | 无障碍与细节 | 弹层带 `role` / `aria-*`；图标按钮有 `title` / `aria-label`；图片 `loading="lazy"` + 加载淡入；CSP 等安全响应头 |
@@ -505,7 +506,7 @@ node scripts/migrate-kv-to-d1.mjs             # 正式写入 D1
 ├── index.html                         # 根跳转页（自动跳 public/index.html）
 ├── wrangler.toml                      # Cloudflare Pages 配置
 ├── wrangler.workers.toml              # Cloudflare Workers 配置（部署使用）
-├── smoke-test.js                      # 冒烟测试（178 例）
+├── smoke-test.js                      # 冒烟测试（179 例）
 ├── gb-verify.js                       # 留言板专项验证（18 例）
 ├── search-verify.js                   # 搜索专项验证（25 例）
 ├── docs/                              # 项目说明文档（中英双语）
@@ -761,7 +762,7 @@ window.BLOG_CONFIG = {
 ## 🧪 测试
 
 ```bash
-node smoke-test.js      # 冒烟测试 178 例
+node smoke-test.js      # 冒烟测试 179 例
 node gb-verify.js       # 留言板专项验证 18 例
 node search-verify.js   # 搜索专项验证 25 例
 ```
