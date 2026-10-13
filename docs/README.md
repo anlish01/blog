@@ -59,7 +59,7 @@ Qingyu'Blog（轻语博客）是一个**纯原生 JavaScript** 编写的个人�
 
 整个博客本体就在 `public/` 目录：前台 `index.html` + `style.css` + `app.js` + `posts.js` + `music-player.js` + `bg-anim.js`，后台 `admin.js` + `admin.css`，国际化 `i18n.js` + `locales/`。
 
-> 🆕 **当前版本 `v2.10.103`**。除写作 / 评论 / 统计等基础能力外，还内置：**文章加密**（AES-GCM 纯前端）、**文章级 SEO**（标题 / 描述 / canonical / noindex）、**草稿预览分享链接**（HMAC 签名）、**一键导出静态站**、**打印 / 导出 PDF**、**Webmention**、**多作者与作者页**、**Mermaid 图表 + KaTeX 公式**（本地化按需加载）、**订阅分组群发**、**前端错误日志**、**评论反机器人**、**访问国家 / 设备识别**，以及后台「**功能开关**」等。
+> 🆕 **当前版本 `v2.10.104`**。除写作 / 评论 / 统计等基础能力外，还内置：**文章加密**（AES-GCM 纯前端）、**文章级 SEO**（标题 / 描述 / canonical / noindex）、**草稿预览分享链接**（HMAC 签名）、**一键导出静态站**、**打印 / 导出 PDF**、**Webmention**、**多作者与作者页**、**Mermaid 图表 + KaTeX 公式**（本地化按需加载）、**订阅分组群发**、**前端错误日志**、**评论反机器人**、**访问国家 / 设备识别**，以及后台「**功能开关**」等。
 
 > 完整变更历史见仓库 [提交记录](https://github.com/kejiland/qingyu-blog/commits/main)。
 
@@ -225,7 +225,7 @@ npx wrangler kv namespace create BLOG
 推送代码或手动运行 Actions，工作流会自动：
 
 1. ✅ 安装 Wrangler CLI
-2. ✅ 运行三套测试（`smoke-test.js` 181 例 / `gb-verify.js` 18 例 / `search-verify.js` 25 例，失败即中止不部署）
+2. ✅ 运行三套测试（`smoke-test.js` 182 例 / `gb-verify.js` 18 例 / `search-verify.js` 25 例，失败即中止不部署）
 3. ✅ 校验必要 Secrets 与 ID 格式
 4. ✅ 执行 D1 迁移（`schema_migrations` 记账表 + 列预检 + 报错兜底，三层幂等）
 5. ✅ 部署 Worker 到 Cloudflare
@@ -506,7 +506,7 @@ node scripts/migrate-kv-to-d1.mjs             # 正式写入 D1
 ├── index.html                         # 根跳转页（自动跳 public/index.html）
 ├── wrangler.toml                      # Cloudflare Pages 配置
 ├── wrangler.workers.toml              # Cloudflare Workers 配置（部署使用）
-├── smoke-test.js                      # 冒烟测试（181 例）
+├── smoke-test.js                      # 冒烟测试（182 例）
 ├── gb-verify.js                       # 留言板专项验证（18 例）
 ├── search-verify.js                   # 搜索专项验证（25 例）
 ├── docs/                              # 项目说明文档（中英双语）
@@ -762,7 +762,7 @@ window.BLOG_CONFIG = {
 ## 🧪 测试
 
 ```bash
-node smoke-test.js      # 冒烟测试 181 例
+node smoke-test.js      # 冒烟测试 182 例
 node gb-verify.js       # 留言板专项验证 18 例
 node search-verify.js   # 搜索专项验证 25 例
 ```

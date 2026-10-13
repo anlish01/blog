@@ -150,6 +150,8 @@ export async function unauthorized(request, env) {
   return json({ error: '未授权：请先登录获取会话 token，并在请求头携带 Authorization: Bearer <token>' }, 401, request, env);
 }
 
+const MAX_POSTS_PAGE = 200;
+
 function normalizePostStatus(v) {
   return v === 'draft' || v === 'scheduled' ? v : 'published';
 }
@@ -391,7 +393,9 @@ export async function handlePosts(request, env) {
 
     const q = String(url.searchParams.get('q') || '').trim().toLowerCase();
     const stFilter = String(url.searchParams.get('status') || '');
-    const pageNum = Math.max(1, Math.floor(Number(url.searchParams.get('page')) || 0));
+    // 上限 200 页：翻到这里已经要 2 万篇文章，深翻页会持续付出 OFFSET 代价，
+    // 没有实际意义，只会变成攻击者打 D1 配额的入口（v2.10.104）。
+    const pageNum = Math.min(MAX_POSTS_PAGE, Math.max(1, Math.floor(Number(url.searchParams.get('page')) || 0)));
     const perNum = Math.min(100, Math.floor(Number(url.searchParams.get('per')) || 0));
     const paged = pageNum > 0 && perNum > 0;
     // all=1 / full=1 是后台接口：必须登录，可返回草稿（full=1 还返回正文）。

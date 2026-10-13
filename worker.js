@@ -21,6 +21,73 @@ import { handleSubscribe, handleSubscribeConfirm, handleUnsubscribe, handleSubsc
 import { handleOgUploadUrl } from './functions/_lib/og.js';
 import { handleMediaUploadUrl, deleteMediaObject } from './functions/_lib/media.js';
 
+/* ============================================================
+ * 公开接口全局频控（v2.10.104）
+ * ------------------------------------------------------------
+ * 背景：登录爆破 / AI 额度 / 评论灌水 / 错误日志 / Webmention 这些「会花钱、
+ *   会改数据」的攻击此前都有各自的限流，但**只读接口完全没有限流**——
+ *   /api/posts、/api/search、/api/popular、/api/comments、/api/stats 等
+ *   可以被任意脚本以任意速度狂刷。风险不是数据泄露，而是打自己的配额：
+ *   Workers 免费版 10 万次/天、D1 500 万行读取/天，刷满了当天全站打不开。
+ *
+ * 定位：**兜底**，不是主力。主力是 Cloudflare 平台层（WAF Rate Limiting Rules
+ *   + Bot Fight Mode）——那层在 Worker 之前拦截，连 Workers 配额都不消耗。
+ *
+ * 设计要点：
+ *   ① 只拦「读」，不拦「写」：写接口各自的限流更严格（按业务语义），
+ *      在这里再叠一层只会误伤正常用户。
+ *   ② fail-open：KV 未绑定或抖动时一律放行，绝不让计数器故障挡住正常访客。
+ *      （AI 摘要那条每日额度是反过来的 fail-closed，因为它防的是烧钱。）
+ *   ③ 只信任 CF-Connecting-IP（CDN 注入，不可伪造），不看 X-Forwarded-For，
+ *      否则攻击者改一个头就能绕过所有按 IP 的限流。
+ *   ④ 阈值刻意放宽：真人最快也就每秒几个请求，这里只抓「脚本式」洪水。
+ * ============================================================ */
+const GUARD = {
+  // 昂贵查询单独更严：搜索走 D1 FTS5，深翻页还要付 OFFSET 成本
+  search: { limit: 60,  window: 60 },
+  read:   { limit: 240, window: 60 },
+  // 全部 /api/* 的总闸（含写），阈值很高，只挡「什么都不选、全速狂刷」的脚本
+  all:    { limit: 600, window: 60 }
+};
+function guardIp(request) {
+  return String((request && request.headers && request.headers.get('CF-Connecting-IP')) || '')
+    .replace(/[^A-Za-z0-9:._-]/g, '') || 'unknown';
+}
+/** 计数并在超限时返回 429；任何异常都返回 null（放行）。 */
+async function bumpGuard(env, bucket, ip, cfg) {
+  if (!env || !env.BLOG) return null;
+  const win = Math.floor(Date.now() / (cfg.window * 1000));
+  const key = 'guard:' + bucket + ':' + ip + ':' + win;
+  let cnt = 0;
+  try { cnt = Number(await env.BLOG.get(key)) || 0; } catch (e) { return null; }
+  if (cnt >= cfg.limit) return { retryAfter: cfg.window };
+  try { await env.BLOG.put(key, String(cnt + 1), { expirationTtl: cfg.window * 2 }); }
+  catch (e) { /* fail-open：写不进去也放行 */ }
+  return null;
+}
+/** /api/* 入口频控；命中返回 429 Response，否则返回 null */
+async function apiGuard(request, env, pathname) {
+  const ip = guardIp(request);
+  const m = request.method;
+  const isRead = m === 'GET' || m === 'HEAD';
+  const hit = await bumpGuard(env, 'all', ip, GUARD.all);
+  if (hit) return guardTooMany(request, env, hit.retryAfter);
+  if (!isRead) return null;
+  const cfg = pathname.indexOf('/api/search') === 0 ? GUARD.search : GUARD.read;
+  const bucket = cfg === GUARD.search ? 'srch' : 'read';
+  const hit2 = await bumpGuard(env, bucket, ip, cfg);
+  return hit2 ? guardTooMany(request, env, hit2.retryAfter) : null;
+}
+function guardTooMany(request, env, retryAfter) {
+  return new Response(JSON.stringify({ ok: false, error: '请求过于频繁，请稍后再试' }), {
+    status: 429,
+    headers: Object.assign(
+      { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': String(retryAfter || 60), 'Cache-Control': 'no-store' },
+      getCorsHeaders(request, env),
+      securityHeaders()
+    )
+  });
+}
 /** 已知的前端路由：只有这些路径才用 200 返回 SPA 外壳，其余无扩展名路径按 404 返回 */
 function isKnownSpaRoute(pathname) {
   return pathname === '/' ||
@@ -78,6 +145,12 @@ export default {
     const url = new URL(request.url);
 
     // API 路由
+    // 公开接口全局频控（v2.10.104）：读接口无业务级限流，这里统一兜底；fail-open 不误伤正常访客
+    if (url.pathname === '/api' || url.pathname.indexOf('/api/') === 0) {
+      const blocked = await apiGuard(request, env, url.pathname);
+      if (blocked) return blocked;
+    }
+
     if (url.pathname === '/api/popular') {
       return handlePopular(request, env);
     }

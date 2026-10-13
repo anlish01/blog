@@ -75,7 +75,7 @@ It runs in two modes:
 
 The entire site lives in `public/`: frontend `index.html` + `style.css` + `app.js` + `posts.js` + `music-player.js` + `bg-anim.js`, admin `admin.js` + `admin.css`, i18n `i18n.js` + `locales/`.
 
-> 🆕 **Current version `v2.10.103`.** Beyond writing / comments / stats, it also ships: **post encryption** (AES-GCM, client-side), **per-post SEO** (title / description / canonical / noindex), **draft preview links** (HMAC-signed), **one-click static site export (asks where to save first, then exports)**, **print / PDF**, **Webmention**, **multi-author + author pages**, **Mermaid diagrams + KaTeX math** (vendored, on-demand), **subscriber groups & broadcast**, **front-end error log**, **comment anti-bot**, **country / device detection**, and an admin "**Feature switches**" page.
+> 🆕 **Current version `v2.10.104`.** Beyond writing / comments / stats, it also ships: **post encryption** (AES-GCM, client-side), **per-post SEO** (title / description / canonical / noindex), **draft preview links** (HMAC-signed), **one-click static site export (asks where to save first, then exports)**, **print / PDF**, **Webmention**, **multi-author + author pages**, **Mermaid diagrams + KaTeX math** (vendored, on-demand), **subscriber groups & broadcast**, **front-end error log**, **comment anti-bot**, **country / device detection**, and an admin "**Feature switches**" page.
 
 > 💡 The root `index.html` is just a redirect that opens `public/index.html` (the Workers / Pages deploy directory). Opening `public/index.html` locally works the same.
 
@@ -239,7 +239,7 @@ Everything the code reads; entries marked *auto* are written to the Worker from 
 Push to `main` (or run the workflow manually) and GitHub Actions will:
 
 1. ✅ Install the Wrangler CLI
-2. ✅ Run three test suites (`smoke-test.js` 181 cases / `gb-verify.js` 18 / `search-verify.js` 25 — a failure aborts the deploy)
+2. ✅ Run three test suites (`smoke-test.js` 182 cases / `gb-verify.js` 18 / `search-verify.js` 25 — a failure aborts the deploy)
 3. ✅ Validate the required secrets and ID formats
 4. ✅ Apply D1 migrations (three-layer idempotency: `schema_migrations` ledger + column pre-check + tolerant error matching)
 5. ✅ Deploy the Worker
@@ -517,7 +517,7 @@ The admin panel is a separate bundle (`admin.js` + `admin.css`) lazy-loaded only
 ├── index.html                         # Root redirect (opens public/index.html)
 ├── wrangler.toml                      # Cloudflare Pages config
 ├── wrangler.workers.toml              # Cloudflare Workers config (used for deploys)
-├── smoke-test.js                      # Smoke tests (181 cases)
+├── smoke-test.js                      # Smoke tests (182 cases)
 ├── gb-verify.js                       # Guestbook verification (18 cases)
 ├── search-verify.js                   # Search verification (25 cases)
 ├── docs/                              # Project documentation (bilingual)
@@ -774,7 +774,7 @@ The step-by-step dashboard walkthrough is in section 9 of the **[Cloudflare setu
 ## 🧪 Tests
 
 ```bash
-node smoke-test.js      # Smoke tests: 181 cases
+node smoke-test.js      # Smoke tests: 182 cases
 node gb-verify.js       # Guestbook verification: 18 cases
 node search-verify.js   # Search verification: 25 cases
 ```

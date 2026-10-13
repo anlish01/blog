@@ -4783,6 +4783,67 @@ tests.push(['背景动画：默认关闭（可顶栏一键开启，选过一次�
   assert.strictEqual(run({ 'qingyu.bgAnim': '0' }, '?bg=1'), true, '?bg=1 仍能覆盖本地选择（调试用）');
 }]);
 
+/* ---------- v2.10.104 公开接口全局频控 ---------- */
+tests.push(['安全：公开只读接口全局频控（429 / Retry-After / fail-open / 不信任 XFF / 分档阈值 / page 上限）', async () => {
+  const p2f = require('node:url').pathToFileURL;
+  const w = fs.readFileSync(path.join(dir, 'worker.js'), 'utf8');
+  assert.ok(w.includes('if (url.pathname === \'/api\' || url.pathname.indexOf(\'/api/\') === 0) {'),
+    'worker.js 未在 /api/* 入口挂频控');
+  const guardAt = w.indexOf('await apiGuard(request, env, url.pathname)');
+  const popularAt = w.indexOf("if (url.pathname === '/api/popular')");
+  assert.ok(guardAt > -1 && guardAt < popularAt, '频控必须在业务路由之前生效');
+  assert.ok(/search:\s*\{\s*limit:\s*60/.test(w), '搜索应有独立且更严的阈值');
+  assert.ok(/read:\s*\{\s*limit:\s*240/.test(w), '普通读接口阈值缺失');
+  assert.ok(/all:\s*\{\s*limit:\s*600/.test(w), '全量总闸缺失');
+  assert.ok(w.includes("'Retry-After': String(retryAfter || 60)"), '429 缺少 Retry-After');
+  assert.ok(w.includes("'Cache-Control': 'no-store'"), '429 响应不应被缓存');
+  assert.ok(w.includes('请求过于频繁'), '429 缺少可读提示');
+  assert.ok(w.includes('if (!env || !env.BLOG) return null;'), 'KV 未绑定时必须放行');
+  assert.ok(/catch \(e\) \{ return null; \}/.test(w), 'KV 读取异常时必须放行');
+  const ipFn = w.slice(w.indexOf('function guardIp('), w.indexOf('function guardIp(') + 400);
+  assert.ok(ipFn.includes('CF-Connecting-IP'), '频控必须用 CF-Connecting-IP 取 IP');
+  assert.ok(!ipFn.includes('X-Forwarded-For'), '频控绝不能信任 X-Forwarded-For（可伪造绕过）');
+  assert.ok(w.includes("const isRead = m === 'GET' || m === 'HEAD';"), '应只对读接口限流');
+  assert.ok(w.includes('if (!isRead) return null;'), '写接口必须豁免「读」这一档限流');
+  const mod = await import(p2f(path.join(dir, 'worker.js')).href);
+  const store = new Map();
+  const env = { BLOG: {
+    get: async (k) => (store.has(k) ? store.get(k) : null),
+    put: async (k, v) => { store.set(k, v); }
+  } };
+  const mk = (ip) => new Request('https://x.test/api/__guard_probe__', { headers: { 'CF-Connecting-IP': ip } });
+  const first = await mod.default.fetch(mk('1.2.3.4'), env);
+  assert.strictEqual(first.status, 404, '未超限时不应被频控拦下（应走业务路由返回 404（不触库））');
+  let saw429 = false;
+  for (let i = 0; i < 700; i++) {
+    const r = await mod.default.fetch(mk('1.2.3.4'), env);
+    if (r.status === 429) {
+      saw429 = true;
+      assert.strictEqual(r.headers.get('Retry-After'), '60', 'Retry-After 应为窗口秒数');
+      assert.ok(/请求过于频繁/.test(await r.text()), '429 响应体应给出可读提示');
+      break;
+    }
+  }
+  assert.ok(saw429, '连续刷请求必须被总闸拦下（返回 429）');
+  // 写接口豁免「读」这一档：连打 300 次 POST 不应被只读限流误伤（写各有业务级限流）
+  let writeBlocked = 0;
+  for (let i = 0; i < 300; i++) {
+    const r = await mod.default.fetch(new Request('https://x.test/api/__guard_probe__', {
+      method: 'POST', headers: { 'CF-Connecting-IP': '7.7.7.7', 'Content-Type': 'application/json' }, body: '{}'
+    }), env);
+    if (r.status === 429) writeBlocked++;
+  }
+  assert.strictEqual(writeBlocked, 0, '写接口不应被只读档位限流误伤');
+
+  const other = await mod.default.fetch(mk('5.6.7.8'), env);
+  assert.strictEqual(other.status, 404, '限流应按 IP 隔离，不能波及其它访客');
+  const noKv = await mod.default.fetch(mk('9.9.9.9'), {});
+  assert.strictEqual(noKv.status, 404, 'KV 缺失时必须放行，不能挡正常访客');
+  const core = fs.readFileSync(path.join(dir, 'functions/_lib/api-core.js'), 'utf8');
+  assert.ok(core.includes('const MAX_POSTS_PAGE = 200;'), '缺少 page 上限常量');
+  assert.ok(core.includes("Math.min(MAX_POSTS_PAGE, Math.max(1, Math.floor(Number(url.searchParams.get('page'))"),
+    'handlePosts 未对 page 封顶');
+}]);
 /* ---------- 运行 ---------- */
 (async () => {
   let passed = 0, failed = 0;
