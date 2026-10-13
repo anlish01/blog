@@ -4844,6 +4844,31 @@ tests.push(['安全：公开只读接口全局频控（429 / Retry-After / fail-
   assert.ok(core.includes("Math.min(MAX_POSTS_PAGE, Math.max(1, Math.floor(Number(url.searchParams.get('page'))"),
     'handlePosts 未对 page 封顶');
 }]);
+/* ---------- v2.10.105 无图文章：自动生成渐变封面 ---------- */
+tests.push(['封面：无图文章自动生成渐变封面（稳定色板 / 标题转义 / 副标题回退 / 窄屏样式）', async () => {
+  const app = fs.readFileSync(path.join(dir, 'public/app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(dir, 'public/style.css'), 'utf8');
+  assert.ok(app.includes('const GENERATED_COVERS = ['), '缺少渐变封面色板');
+  assert.ok(app.includes('function hashString('), '缺少稳定哈希函数');
+  assert.ok(app.includes('function renderGeneratedCover('), '缺少渐变封面渲染函数');
+  const fbAt = app.indexOf('return renderGeneratedCover(p, title);');
+  const phAt = app.indexOf('post-thumb-ph');
+  assert.ok(fbAt > -1, '缩略图 fallback 未走渐变封面');
+  // 色板：至少 8 组，每组两个 hex
+  const covers = app.slice(app.indexOf('const GENERATED_COVERS = ['), app.indexOf('function hashString('));
+  const hexes = covers.match(/#[0-9a-fA-F]{6}/g) || [];
+  assert.ok(hexes.length >= 16, '色板配色组过少');
+  // 输出结构包含标题 / 副标题 / 短横线，且全部转义
+  assert.ok(app.includes("'<span class=\"ptg-title\">' + esc(t) + '</span>'"), '封面标题未转义');
+  assert.ok(app.includes('<span class="ptg-line"></span>'), '封面缺短横线装饰');
+  // 副标题回退：category -> tags[0] -> date
+  assert.ok(/p && p.category/.test(app) && /normalizeTags\(p\)/.test(app) && /tg\[0\]/.test(app) && /p\.date/.test(app),
+    '副标题回退链不完整');
+  // CSS：渐变背景 + 两个半透明白圆 + 窄屏收窄
+  assert.ok(css.includes('.post-thumb.gen'), '缺渐变封面样式');
+  assert.ok(/\.post-thumb\.gen::before/.test(css) && /\.post-thumb\.gen::after/.test(css), '缺装饰圆');
+  assert.ok(/@media \(max-width: 768px\)/.test(css), '缺窄屏适配');
+}]);
 /* ---------- 运行 ---------- */
 (async () => {
   let passed = 0, failed = 0;

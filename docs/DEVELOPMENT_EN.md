@@ -2,7 +2,7 @@
 
 # Development Guide
 
-> For secondary development, maintenance and deployment troubleshooting. Current version: **v2.10.104** (2026-10-13).
+> For secondary development, maintenance and deployment troubleshooting. Current version: **v2.10.105** (2026-10-13).
 >
 > This document lives in `docs/`; unless stated otherwise, run every command from the **repository root**.
 
@@ -99,7 +99,7 @@ Use `wrangler.toml` when validating Pages Functions. Use `wrangler.workers.toml`
 ### 4.3 Required tests
 
 ```bash
-node smoke-test.js      # 182 cases
+node smoke-test.js      # 183 cases
 node gb-verify.js       # 18 cases
 node search-verify.js   # 25 cases
 ```
@@ -244,6 +244,7 @@ See the [README runtime environment variable table](README_EN.md#full-table-of-r
 | 2026-10-13 | v2.10.102 | Added a "Music player" switch to Admin → Feature switches: with it off the floating player in the bottom-right corner is gone entirely (no DOM built, no `/api/music` request, no click/keyboard listeners), while the saved volume and playback history are kept. The player waits up to 3 seconds for settings to land so a first visit without a cached snapshot is not misjudged |
 | 2026-10-13 | v2.10.103 | The background animation is now **off by default** (it used to start on desktop): visitors no longer get the four-season particles automatically and turn it on from the top bar; once chosen, the preference is remembered on that device. The `?bg=1` preview parameter still forces it on, and the iOS / small-screen particle halving plus `prefers-reduced-motion` handling are unchanged |
 | 2026-10-13 | v2.10.104 | **Global rate limiting for public read endpoints (fallback layer)**: `/api/posts`, `/api/search`, `/api/popular`, `/api/comments`, `/api/stats` and friends had **no rate limiting at all**, so any script could hammer them at full speed. The risk is not data leakage but exhausting your own quota (Workers Free 100k requests/day, D1 5M rows read/day — once drained the whole site is down for the day). Every `/api/*` request now passes a single counter before business logic: 60/min for search, 240/min for other reads, and a 600/min catch-all; over the limit returns 429 with `Retry-After`. Key trade-offs: (1) reads only — writes keep their own stricter business-level limits, so real users are never caught out; (2) **fail-open** — if KV is unbound or hiccups, requests are let through, because a flaky counter must never take the site down (the AI summary daily quota stays fail-closed: that one guards against burning money); (3) only the CDN-injected `CF-Connecting-IP` is trusted, never the client-controlled `X-Forwarded-For` (which would let anyone bypass every IP-based limit with one header). The `page` parameter of `GET /api/posts` is now capped at 200 pages: deep paging keeps paying the OFFSET cost with no real benefit and is just another way to burn D1 quota. Added the smoke test "security: global rate limiting on public read endpoints", which actually fires 700 requests to verify the 429, per-IP isolation and fail-open behaviour |
+| 2026-10-13 | v2.10.105 | Auto-generated gradient cover for image-less posts: when an article has no uploaded thumbnail, the card no longer shows a neutral placeholder — it **generates a gradient cover based on the article** — a stable hash of the post id/slug/title picks one of10 color schemes (indigo, terracotta, pine green, mauve…) and a 100–180° diagonal gradient angle, so the same post always renders the same color. A white title (clamped to two lines) is overlaid with the category / first tag / date as a subtitle (falling back in order), plus a large top-right and small bottom-left translucent white circle decoration and a short underline, matching the look in the reference screenshot. Color and angle derive from the seed rather than randomness, so refreshing the list never reshuffles colors; title and subtitle are fully escaped. On narrow screens (≤768px) the type scales down and the subtitle hides below 420px so titles stay legible on small cards. Added smoke case "封面：无图文章自动生成渐变封面" |
 
 ---
 

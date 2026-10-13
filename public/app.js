@@ -6,7 +6,7 @@
  * ============================================================================ */
 'use strict';
 
-var BLOG_VERSION = '2.10.104';
+var BLOG_VERSION = '2.10.105';
 
 /* i18n 兜底：万一 i18n.js 没加载成功（网络抖动 / 缓存缺失 / 被拦截），
  * 也必须保证 t() 可用 —— 否则整页会在第一个 t(...) 处抛 “t is not defined” 而白屏。 */
@@ -2830,7 +2830,57 @@ function renderPostThumb(p, idx) {
     var lazy = (idx !== undefined && idx < 2) ? 'eager' : 'lazy';
     return '<span class="post-thumb has-img"><img src="' + esc(url) + '" alt="' + esc(title || t('post.thumbnailAlt')) + '" loading="' + lazy + '" decoding="async" fetchpriority="' + pri + '" referrerpolicy="no-referrer" onload="this.classList.add(\'thumb-in\')" onerror="this.remove()"></span>';
   }
-  return '<span class="post-thumb ph"><span class="post-thumb-ph">' + svgIcon('image', 26) + '</span></span>';
+  return renderGeneratedCover(p, title);
+}
+
+/* ---------- 无图文章的默认封面（v2.10.105）----------
+ * 用户没上传缩略图时，不再显示中性图片图标占位，而是**按文章自动生成一张渐变封面**：
+ *   · 配色从固定色板里按标题哈希挑——保证任何文章都不会出现刺眼 / 脏配色，
+ *     不用随机 HSL（随机 HSL 迟早会蹦出荧光绿那种配色）；
+ *   · 渐变角度同样由哈希决定，同一篇文章每次刷新颜色一致（不会闪烁变色）；
+ *   · 叠加两个半透明圆形做装饰，模拟截图里的构图；
+ *   · 文字用标题 + 副标题（分类 → 首个标签 → 日期，逐级回退），全部转义。
+ * 全部走内联样式 / 纯 CSS，无额外网络请求，不影响首屏。 */
+const GENERATED_COVERS = [
+  ['#2b4a7a', '#4a80c2'],   // 靛蓝
+  ['#7a3b2e', '#c2705a'],   // 陶土
+  ['#2f5c46', '#5f9e7d'],   // 松绿
+  ['#5b3568', '#9a68a8'],   // 藕紫
+  ['#1f4c5c', '#4d8f9e'],   // 湖蓝
+  ['#6b4226', '#a9713f'],   // 赭石
+  ['#3d4a6b', '#7382ab'],   // 雾蓝
+  ['#63324a', '#a4607e'],   // 梅红
+  ['#2d5240', '#6a9b62'],   // 苔绿
+  ['#4a4520', '#9a8f4a']    // 秋金
+];
+/** 字符串 → 32 位无符号哈希（FNV-1a），用于稳定地挑选配色 / 角度 */
+function hashString(str) {
+  var h = 2166136261;
+  var s = String(str || '');
+  for (var i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = (h * 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+function renderGeneratedCover(p, title) {
+  var seed = String((p && (p.id || p.slug)) || title || 'post');
+  var h = hashString(seed);
+  var pair = GENERATED_COVERS[h % GENERATED_COVERS.length];
+  var angle = 100 + (h >>> 8) % 80;   // 100~180°，斜向渐变，与截图观感一致
+  var t = String(title || (p && p.title) || '').trim();
+  var sub = String((p && p.category) || '').trim();
+  if (!sub) {
+    var tg = normalizeTags(p);
+    if (tg && tg.length) sub = String(tg[0] || '').trim();
+  }
+  if (!sub) sub = String((p && p.date) || '').trim();
+  return '<span class="post-thumb ph gen" style="--gc1:' + pair[0] + ';--gc2:' + pair[1] + ';--ga:' + angle + 'deg">'
+    + '<span class="ptg-tex">'
+    + '<span class="ptg-title">' + esc(t) + '</span>'
+    + (sub ? '<span class="ptg-sub">' + esc(sub) + '</span>' : '')
+    + '<span class="ptg-line"></span>'
+    + '</span></span>';
 }
 
 /** 从正文 Markdown 提取第一张图片 URL（![alt](url) 或 <img src="url">） */

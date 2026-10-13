@@ -1125,6 +1125,89 @@ html[data-theme="dark"] .post-card:hover { border-color: var(--accent); }
   transition: opacity 0.3s ease;
 }
 .post-thumb img.thumb-in { opacity: 1; }
+/* ---------- 无图文章的默认封面（v2.10.105）----------
+ * 用户没上传缩略图时不再显示中性图片图标，而是按文章哈希生成一张渐变封面：
+ * 配色取自固定色板（不会出现随机 HSL 的刺眼配色），同一篇文章每次刷新完全一致。 */
+.post-thumb.gen {
+  display: block;
+  padding: 0;
+  align-items: stretch;
+  justify-content: stretch;
+  background: linear-gradient(var(--ga, 140deg), var(--gc1, #2b4a7a), var(--gc2, #4a80c2));
+  color: #fff;
+}
+/* 两个半透明圆形做装饰，对应截图里的构图层次（右上大圆 + 左下小圆） */
+.post-thumb.gen::before,
+.post-thumb.gen::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.13);
+  pointer-events: none;
+}
+.post-thumb.gen::before {
+  width: 62%;
+  height: 62%;
+  right: -14%;
+  top: -22%;
+}
+.post-thumb.gen::after {
+  width: 44%;
+  height: 44%;
+  left: -12%;
+  bottom: -18%;
+  background: rgba(255, 255, 255, 0.09);
+}
+.ptg-tex {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  padding: 14px 16px;
+  min-width: 0;
+}
+.ptg-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.2px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ptg-sub {
+  margin-top: 5px;
+  font-size: 11.5px;
+  line-height: 1.3;
+  opacity: 0.92;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ptg-line {
+  display: block;
+  width: 26px;
+  height: 2px;
+  margin-top: 7px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.85);
+}
+/* 手机端缩略图更小，字号同步收窄，否则标题会占满整块封面 */
+@media (max-width: 768px) {
+  .ptg-tex { padding: 10px 11px; }
+  .ptg-title { font-size: 13px; }
+  .ptg-sub { font-size: 10.5px; margin-top: 3px; }
+  .ptg-line { width: 20px; margin-top: 5px; }
+}
+@media (max-width: 420px) {
+  .ptg-title { font-size: 12px; }
+  .ptg-sub { display: none; }   /* 极窄屏优先保标题可读，副标题让位 */
+}
 .post-thumb-ph {
   font-size: 30px;
   font-weight: 600;
