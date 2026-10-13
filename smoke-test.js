@@ -4738,6 +4738,51 @@ tests.push(['音乐播放器：后台开关（保存 / 回填 / 前台生效 / 5
   assert.strictEqual(await runGate({ ready: false, later: true, enabled: true }), true, '设置晚到且开启 → 正常加载');
 }]);
 
+/* ---------- 背景动画默认关闭 ---------- */
+tests.push(['背景动画：默认关闭（可顶栏一键开启，选过一次后记住）', async () => {
+  const bg = fs.readFileSync(path.join(PUB, 'bg-anim.js'), 'utf8');
+  const app = fs.readFileSync(path.join(PUB, 'app.js'), 'utf8');
+
+  /* --- 默认值：没有用户选择时一律关闭（不再区分桌面 / 触屏） --- */
+  assert.ok(bg.includes('return false;          // 默认关闭'), 'bg-anim.js 默认值不是关闭');
+  assert.ok(!bg.includes('return !isTouchDevice();'), 'bg-anim.js 仍按设备类型决定默认值');
+  assert.ok(!bg.includes('function isTouchDevice()'), 'isTouchDevice 已失效却还留着');
+  // 头部说明不能还写着「桌面默认开启」
+  assert.ok(!bg.includes('桌面默认开启'), '头部说明仍写着「桌面默认开启」');
+  // iOS 减半粒子仍要保留（用到 maxTouchPoints），别被误删
+  assert.ok(bg.includes('navigator.maxTouchPoints'), 'iOS 粒子减半逻辑被误删');
+
+  /* --- 顶栏开关按钮仍在，访客仍能自己打开 --- */
+  assert.ok(app.includes("id=\"bgAnimToggle\""), '顶栏背景动画开关按钮不见了');
+  assert.ok(app.includes('window.bgAnim.toggle()'), '顶栏按钮没有调用 bgAnim.toggle()');
+
+  /* --- 行为验证：真跑一遍 readSetting --- */
+  const src = bg.slice(bg.indexOf('function readSetting()'));
+  const end = /\r?\n {2}\}\r?\n/.exec(src);
+  assert.ok(end, 'readSetting 函数体不完整');
+  const fn = src.slice(0, end.index + end[0].length);
+
+  const run = (store, search) => {
+    const ctx = {
+      KEY: 'qingyu.bgAnim',
+      URLSearchParams: URLSearchParams,
+      location: { search: search || '' },
+      localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem() {} },
+      navigator: undefined,   // 默认值不再依赖设备判断
+      window: undefined
+    };
+    vm.createContext(ctx);
+    vm.runInContext(fn + '\nthis.r = readSetting();', ctx);
+    return ctx.r;
+  };
+
+  assert.strictEqual(run({}), false, '没有用户选择时默认关闭');
+  assert.strictEqual(run({}, '?bg=1'), true, '?bg=1 预览参数仍能强制打开');
+  assert.strictEqual(run({ 'qingyu.bgAnim': '1' }), true, '用户自己开过 → 保持开启');
+  assert.strictEqual(run({ 'qingyu.bgAnim': '0' }), false, '用户自己关过 → 保持关闭');
+  assert.strictEqual(run({ 'qingyu.bgAnim': '0' }, '?bg=1'), true, '?bg=1 仍能覆盖本地选择（调试用）');
+}]);
+
 /* ---------- 运行 ---------- */
 (async () => {
   let passed = 0, failed = 0;

@@ -6,7 +6,7 @@
  *   秋  落叶     冬  飘雪
  * 特性：
  *   · 季节按月自动切换（3-5春 / 6-8夏 / 9-11秋 / 12-2冬），平滑换季
- *   · 桌面默认开启；触屏/手机默认关闭（省电、提升 PageSpeed）；localStorage(qingyu.bgAnim) 持久化用户开关
+ *   · 默认关闭（访客可在顶栏一键开启，省电 + 提升 PageSpeed）；localStorage(qingyu.bgAnim) 持久化用户开关
  *   · 尊重 prefers-reduced-motion（系统"减少动态"自动关闭）
  *   · 标签页隐藏自动暂停（省电）；只首页运行；iOS/小屏自动减半粒子数
  *   · 暴露 window.bgAnim：{ on, off, toggle, isOn, sync, seasonName, setSeason, clearSeason }
@@ -21,7 +21,7 @@
   var W = 0, H = 0, dpr = 1;
   var particles = [];
   var running = false;   // rAF 循环是否在跑（首页可见 + 开关开 + 无 reduced-motion）
-  var enabled = true;    // 用户开关状态（默认开）
+  var enabled = false;   // 用户开关状态（默认关，实际取值由 readSetting 决定）
   var season = -1;       // 0春 1夏 2秋 3冬
   var seasonNames = ['spring', 'summer', 'autumn', 'winter'];
   var seasonMap = { spring: 0, summer: 1, autumn: 2, winter: 3 };
@@ -31,12 +31,6 @@
   var MAX = 48;
 
   // ---------- 开关持久化 ----------
-  function isTouchDevice() {
-    try {
-      if (typeof window !== 'undefined' && 'ontouchstart' in window) return true;
-      return (typeof navigator !== 'undefined' && (navigator.maxTouchPoints || 0) > 0);
-    } catch (e) { return false; }
-  }
   function readSetting() {
     try {
       if (new URLSearchParams(location.search).get('bg') === '1') return true;
@@ -46,7 +40,7 @@
       if (v === '0') return false;
       if (v === '1') return true;
     } catch (e) {}
-    return !isTouchDevice(); // 桌面默认开；触屏/手机默认关（省电 + 提升 PageSpeed）
+    return false;          // 默认关闭：访客可在顶栏一键开启，选过一次后记到本机不再打扰
   }
   function persist() { try { localStorage.setItem(KEY, enabled ? '1' : '0'); } catch (e) {} }
   function notify() {

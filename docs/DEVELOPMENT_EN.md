@@ -2,7 +2,7 @@
 
 # Development Guide
 
-> For secondary development, maintenance and deployment troubleshooting. Current version: **v2.10.102** (2026-10-13).
+> For secondary development, maintenance and deployment troubleshooting. Current version: **v2.10.103** (2026-10-13).
 >
 > This document lives in `docs/`; unless stated otherwise, run every command from the **repository root**.
 
@@ -99,7 +99,7 @@ Use `wrangler.toml` when validating Pages Functions. Use `wrangler.workers.toml`
 ### 4.3 Required tests
 
 ```bash
-node smoke-test.js      # 180 cases
+node smoke-test.js      # 181 cases
 node gb-verify.js       # 18 cases
 node search-verify.js   # 25 cases
 ```
@@ -242,6 +242,7 @@ See the [README runtime environment variable table](README_EN.md#full-table-of-r
 | 2026-10-10 | v2.10.101 | AI summary "Regenerate" now verifies the session server-side (new GET /api/admin/session), so a stale local token no longer shows visitors an admin button; added breathing room between the comments section and the footer nav |
 | 2026-10-10 | v2.10.101 | Docs synced to the current version: filled in the v2.10.84-v2.10.101 changelog, updated the feature-switch and test-count listings, documented the new session self-check endpoint; plus a "docs dont go stale" guard test that blocks the deploy when the documented version or test count drifts from the code |
 | 2026-10-13 | v2.10.102 | Added a "Music player" switch to Admin → Feature switches: with it off the floating player in the bottom-right corner is gone entirely (no DOM built, no `/api/music` request, no click/keyboard listeners), while the saved volume and playback history are kept. The player waits up to 3 seconds for settings to land so a first visit without a cached snapshot is not misjudged |
+| 2026-10-13 | v2.10.103 | The background animation is now **off by default** (it used to start on desktop): visitors no longer get the four-season particles automatically and turn it on from the top bar; once chosen, the preference is remembered on that device. The `?bg=1` preview parameter still forces it on, and the iOS / small-screen particle halving plus `prefers-reduced-motion` handling are unchanged |
 
 ---
 

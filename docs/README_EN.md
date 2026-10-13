@@ -75,7 +75,7 @@ It runs in two modes:
 
 The entire site lives in `public/`: frontend `index.html` + `style.css` + `app.js` + `posts.js` + `music-player.js` + `bg-anim.js`, admin `admin.js` + `admin.css`, i18n `i18n.js` + `locales/`.
 
-> 🆕 **Current version `v2.10.102`.** Beyond writing / comments / stats, it also ships: **post encryption** (AES-GCM, client-side), **per-post SEO** (title / description / canonical / noindex), **draft preview links** (HMAC-signed), **one-click static site export (asks where to save first, then exports)**, **print / PDF**, **Webmention**, **multi-author + author pages**, **Mermaid diagrams + KaTeX math** (vendored, on-demand), **subscriber groups & broadcast**, **front-end error log**, **comment anti-bot**, **country / device detection**, and an admin "**Feature switches**" page.
+> 🆕 **Current version `v2.10.103`.** Beyond writing / comments / stats, it also ships: **post encryption** (AES-GCM, client-side), **per-post SEO** (title / description / canonical / noindex), **draft preview links** (HMAC-signed), **one-click static site export (asks where to save first, then exports)**, **print / PDF**, **Webmention**, **multi-author + author pages**, **Mermaid diagrams + KaTeX math** (vendored, on-demand), **subscriber groups & broadcast**, **front-end error log**, **comment anti-bot**, **country / device detection**, and an admin "**Feature switches**" page.
 
 > 💡 The root `index.html` is just a redirect that opens `public/index.html` (the Workers / Pages deploy directory). Opening `public/index.html` locally works the same.
 
@@ -239,7 +239,7 @@ Everything the code reads; entries marked *auto* are written to the Worker from 
 Push to `main` (or run the workflow manually) and GitHub Actions will:
 
 1. ✅ Install the Wrangler CLI
-2. ✅ Run three test suites (`smoke-test.js` 180 cases / `gb-verify.js` 18 / `search-verify.js` 25 — a failure aborts the deploy)
+2. ✅ Run three test suites (`smoke-test.js` 181 cases / `gb-verify.js` 18 / `search-verify.js` 25 — a failure aborts the deploy)
 3. ✅ Validate the required secrets and ID formats
 4. ✅ Apply D1 migrations (three-layer idempotency: `schema_migrations` ledger + column pre-check + tolerant error matching)
 5. ✅ Deploy the Worker
@@ -295,7 +295,7 @@ Or trigger the `Migrate KV to D1` workflow manually from the Actions tab (`dry-r
 | **Accent colours** | **4 accents**: Terra (赭橙) / Indigo (黛蓝) / Bamboo (竹青) / Dusk (凝夜紫). Icon button with a swatch popover on desktop, native select on mobile; each accent also retints backgrounds and borders |
 | **Multilingual UI** | Chinese / English / 日本語 / 한국어 / हिन्दी (993 keys each), auto-detect + manual switch (🌐 popover with SVG flags on desktop, native select on mobile) |
 | **PWA offline reading & writing** | Installable on desktop or mobile; the shell, core assets and previously visited articles work offline. Cloud editor changes are queued locally and synced automatically when the connection returns |
-| **Background animation** | Hand-drawn canvas particles for the four seasons (spring petals / summer green leaves / autumn leaves / six-armed branched snowflakes); home page only, pauses when the tab is hidden; on by default on desktop, off on touch devices, toggleable from the top bar, respects `prefers-reduced-motion`. Preview: `/?season=spring`, `/?season=summer`, `/?season=autumn` or `/?season=winter` (add `&bg=1` to force it on) |
+| **Background animation** | Hand-drawn canvas particles for the four seasons (spring petals / summer green leaves / autumn leaves / six-armed branched snowflakes); home page only, pauses when the tab is hidden; off by default (turn it on from the top bar; the choice is remembered on that device), respects `prefers-reduced-motion`. Preview: `/?season=spring`, `/?season=summer`, `/?season=autumn` or `/?season=winter` (add `&bg=1` to force it on) |
 | **Diagrams / math** | Bodies support **Mermaid diagrams** (```mermaid fenced blocks) and **KaTeX math** (`$…$` / `$$…$$`). Both libraries are **vendored** under `public/libs/` (offline-friendly, no CDN in the CSP) and load **only when a page actually uses them** — normal pages make zero extra requests. Can be disabled globally under Feature switches. |
 | **Smoji picker** | Emoji picker in the comment box, guestbook and editor, lazily loaded, with inline rendering in content |
 | **AI post summary** | One-click summary on any post page (30-day per-post cache); the entry hides itself when AI is unavailable |
@@ -517,7 +517,7 @@ The admin panel is a separate bundle (`admin.js` + `admin.css`) lazy-loaded only
 ├── index.html                         # Root redirect (opens public/index.html)
 ├── wrangler.toml                      # Cloudflare Pages config
 ├── wrangler.workers.toml              # Cloudflare Workers config (used for deploys)
-├── smoke-test.js                      # Smoke tests (180 cases)
+├── smoke-test.js                      # Smoke tests (181 cases)
 ├── gb-verify.js                       # Guestbook verification (18 cases)
 ├── search-verify.js                   # Search verification (25 cases)
 ├── docs/                              # Project documentation (bilingual)
@@ -774,7 +774,7 @@ The step-by-step dashboard walkthrough is in section 9 of the **[Cloudflare setu
 ## 🧪 Tests
 
 ```bash
-node smoke-test.js      # Smoke tests: 180 cases
+node smoke-test.js      # Smoke tests: 181 cases
 node gb-verify.js       # Guestbook verification: 18 cases
 node search-verify.js   # Search verification: 25 cases
 ```

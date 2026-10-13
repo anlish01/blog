@@ -59,7 +59,7 @@ Qingyu'Blog（轻语博客）是一个**纯原生 JavaScript** 编写的个人�
 
 整个博客本体就在 `public/` 目录：前台 `index.html` + `style.css` + `app.js` + `posts.js` + `music-player.js` + `bg-anim.js`，后台 `admin.js` + `admin.css`，国际化 `i18n.js` + `locales/`。
 
-> 🆕 **当前版本 `v2.10.102`**。除写作 / 评论 / 统计等基础能力外，还内置：**文章加密**（AES-GCM 纯前端）、**文章级 SEO**（标题 / 描述 / canonical / noindex）、**草稿预览分享链接**（HMAC 签名）、**一键导出静态站**、**打印 / 导出 PDF**、**Webmention**、**多作者与作者页**、**Mermaid 图表 + KaTeX 公式**（本地化按需加载）、**订阅分组群发**、**前端错误日志**、**评论反机器人**、**访问国家 / 设备识别**，以及后台「**功能开关**」等。
+> 🆕 **当前版本 `v2.10.103`**。除写作 / 评论 / 统计等基础能力外，还内置：**文章加密**（AES-GCM 纯前端）、**文章级 SEO**（标题 / 描述 / canonical / noindex）、**草稿预览分享链接**（HMAC 签名）、**一键导出静态站**、**打印 / 导出 PDF**、**Webmention**、**多作者与作者页**、**Mermaid 图表 + KaTeX 公式**（本地化按需加载）、**订阅分组群发**、**前端错误日志**、**评论反机器人**、**访问国家 / 设备识别**，以及后台「**功能开关**」等。
 
 > 完整变更历史见仓库 [提交记录](https://github.com/kejiland/qingyu-blog/commits/main)。
 
@@ -225,7 +225,7 @@ npx wrangler kv namespace create BLOG
 推送代码或手动运行 Actions，工作流会自动：
 
 1. ✅ 安装 Wrangler CLI
-2. ✅ 运行三套测试（`smoke-test.js` 180 例 / `gb-verify.js` 18 例 / `search-verify.js` 25 例，失败即中止不部署）
+2. ✅ 运行三套测试（`smoke-test.js` 181 例 / `gb-verify.js` 18 例 / `search-verify.js` 25 例，失败即中止不部署）
 3. ✅ 校验必要 Secrets 与 ID 格式
 4. ✅ 执行 D1 迁移（`schema_migrations` 记账表 + 列预检 + 报错兜底，三层幂等）
 5. ✅ 部署 Worker 到 Cloudflare
@@ -282,7 +282,7 @@ node scripts/migrate-kv-to-d1.mjs             # 正式写入 D1
 | **主题色切换** | **4 种强调色**：赭橙（terra）/ 黛蓝（indigo）/ 竹青（bamboo）/ 凝夜紫（dusk）。桌面为图标按钮 + 色板弹层，手机端为原生下拉；每种配色会连带调整背景与边框色 |
 | **多语言界面** | 中文 / English / 日本語 / 한국어 / हिन्दी（各 993 个语言键），自动识别 + 手动切换，桌面为 🌐 弹层 + SVG 国旗，手机端为原生下拉 |
 | **PWA 离线阅读与写作** | 可安装到桌面或手机；首页、核心资源与已访问文章离线可打开；云端编辑断网时先保存到本地队列，网络恢复后自动同步 |
-| **背景动画** | canvas 手绘四季粒子（春日樱花瓣 / 夏日嫩绿叶片 / 秋叶 / 六向分叉雪花），仅首页运行、页面隐藏时暂停；桌面默认开、触屏默认关，顶栏可一键开关，尊重 `prefers-reduced-motion`。预览：`/?season=spring\|summer\|autumn\|winter&bg=1` |
+| **背景动画** | canvas 手绘四季粒子（春日樱花瓣 / 夏日嫩绿叶片 / 秋叶 / 六向分叉雪花），仅首页运行、页面隐藏时暂停；默认关闭（顶栏一键开启，选过一次后记到本机），尊重 `prefers-reduced-motion`。预览：`/?season=spring\|summer\|autumn\|winter&bg=1` |
 | **图表 / 公式** | 正文支持 **Mermaid 图表**（```mermaid 代码块）与 **KaTeX 数学公式**（`$…$` / `$$…$$`）；两个库都**本地化**在 `public/libs/`（离线可用、无需放开 CDN），且**只在页面真的用到时才加载**，普通页面零额外请求；可在「功能开关」整体关闭 |
 | **Smoji 表情** | 评论、留言板、编辑器三处都内置表情选择器，按需懒加载，支持正文内联渲染 |
 | **AI 文章摘要** | 文章页一键生成内容摘要（单篇缓存 30 天）；AI 不可用时入口自动隐藏 |
@@ -506,7 +506,7 @@ node scripts/migrate-kv-to-d1.mjs             # 正式写入 D1
 ├── index.html                         # 根跳转页（自动跳 public/index.html）
 ├── wrangler.toml                      # Cloudflare Pages 配置
 ├── wrangler.workers.toml              # Cloudflare Workers 配置（部署使用）
-├── smoke-test.js                      # 冒烟测试（180 例）
+├── smoke-test.js                      # 冒烟测试（181 例）
 ├── gb-verify.js                       # 留言板专项验证（18 例）
 ├── search-verify.js                   # 搜索专项验证（25 例）
 ├── docs/                              # 项目说明文档（中英双语）
@@ -762,7 +762,7 @@ window.BLOG_CONFIG = {
 ## 🧪 测试
 
 ```bash
-node smoke-test.js      # 冒烟测试 180 例
+node smoke-test.js      # 冒烟测试 181 例
 node gb-verify.js       # 留言板专项验证 18 例
 node search-verify.js   # 搜索专项验证 25 例
 ```
