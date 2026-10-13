@@ -954,6 +954,8 @@
   "admin.settings.featHighlightHint": "オン：「ハイライトまとめ / 解除 / エクスポート / インポート」を表示。オフ：ボタンと本文ハイライトを非表示（保存済みのハイライトは保持されます）。",
   "admin.settings.featBookmark": "ブックマーク（後で見る）を表示",
   "admin.settings.featBookmarkHint": "オン：「ブックマーク」ボタンを表示。オフ：非表示（保存済みのブックマークは保持されます）。",
+  "admin.settings.featMusicPlayer": "音楽プレーヤーを表示",
+  "admin.settings.featMusicPlayerHint": "オン：画面右下にフローティング音楽プレーヤーを表示。オフ：完全に非表示（保存済みの音量・再生履歴は保持されます）。",
   "admin.settings.featReadingFont": "本文の文字サイズ調整（A− / A / A+）を表示",
   "admin.settings.featReadingFontHint": "オン：記事タイトル下部に文字サイズボタンを表示します。オフ：非表示にし、読者が本文サイズを変更できないようにします。",
   "admin.settings.featRich": "コンテンツ描画",

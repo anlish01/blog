@@ -2,7 +2,7 @@
 
 # Development Guide
 
-> For secondary development, maintenance and deployment troubleshooting. Current version: **v2.10.101** (2026-10-10).
+> For secondary development, maintenance and deployment troubleshooting. Current version: **v2.10.102** (2026-10-13).
 >
 > This document lives in `docs/`; unless stated otherwise, run every command from the **repository root**.
 
@@ -99,7 +99,7 @@ Use `wrangler.toml` when validating Pages Functions. Use `wrangler.workers.toml`
 ### 4.3 Required tests
 
 ```bash
-node smoke-test.js      # 179 cases
+node smoke-test.js      # 180 cases
 node gb-verify.js       # 18 cases
 node search-verify.js   # 25 cases
 ```
@@ -180,7 +180,7 @@ Migrations currently run from `0001_init.sql` through `0032_post_author.sql`. Wh
 | Location | Purpose |
 | --- | --- |
 | `public/config.js` | Static defaults: `mode`, `siteUrl`, `pageSize`, footer and ads |
-| D1 `site_settings.features` | Admin → Feature switches: pagination, ads, error reporting, comment anti-bot, Mermaid / KaTeX |
+| D1 `site_settings.features` | Admin → Feature switches: pagination, home tags, nav extras, ads, reading font, highlight tools, bookmark, music player, error reporting, comment anti-bot, Mermaid / KaTeX |
 | D1 `site_settings.nav_menu` | Admin navigation, preferred over the code fallback |
 | `wrangler.workers.toml` | Workers bindings, Cron and non-sensitive runtime variables |
 | GitHub Secrets | D1 / KV / R2 / Resend / AI / cache purge / setup key and other deploy settings |
@@ -240,8 +240,8 @@ See the [README runtime environment variable table](README_EN.md#full-table-of-r
 | 2026-10-10 | v2.10.99 | Filled in the missing feature switches: "Highlight tools" (summary / clear / export / import) and "Bookmark (read later)". Turning them off only hides the UI — saved records are kept |
 | 2026-10-13 | v2.10.101 | Fixed raw HTML in early WordPress-imported posts showing up as literal text: entities such as `&nbsp;` are decoded before escaping, `<!--more-->`-style comments are dropped, Flash `<embed>` / `<object>` players are removed entirely, and legacy presentational tags (`font`/`span`/`div`/`p`/`a`/`img`…) become normal paragraphs or lose just the tag. HTML inside fenced code blocks is untouched, and non-whitelisted tags such as `<script>` are still escaped as before (neither executed nor lost) |
 | 2026-10-10 | v2.10.101 | AI summary "Regenerate" now verifies the session server-side (new GET /api/admin/session), so a stale local token no longer shows visitors an admin button; added breathing room between the comments section and the footer nav |
-| 2026-10-13 | v2.10.101 | Fixed raw HTML in early WordPress-imported posts showing up as literal text: entities such as `&nbsp;` are decoded before escaping, `<!--more-->`-style comments are dropped, Flash `<embed>` / `<object>` players are removed entirely, and legacy presentational tags (`font`/`span`/`div`/`p`/`a`/`img`…) become normal paragraphs or lose just the tag. HTML inside fenced code blocks is untouched, and non-whitelisted tags such as `<script>` are still escaped as before (neither executed nor lost) |
 | 2026-10-10 | v2.10.101 | Docs synced to the current version: filled in the v2.10.84-v2.10.101 changelog, updated the feature-switch and test-count listings, documented the new session self-check endpoint; plus a "docs dont go stale" guard test that blocks the deploy when the documented version or test count drifts from the code |
+| 2026-10-13 | v2.10.102 | Added a "Music player" switch to Admin → Feature switches: with it off the floating player in the bottom-right corner is gone entirely (no DOM built, no `/api/music` request, no click/keyboard listeners), while the saved volume and playback history are kept. The player waits up to 3 seconds for settings to land so a first visit without a cached snapshot is not misjudged |
 
 ---
 

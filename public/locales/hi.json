@@ -954,6 +954,8 @@
   "admin.settings.featHighlightHint": "चालू होने पर「हाइलाइट सारांश / साफ़ करें / निर्यात / आयात」दिखते हैं; बंद होने पर बटन व टेक्स्ट हाइलाइट छिप जाते हैं (सहेजे गए बने रहते हैं)।",
   "admin.settings.featBookmark": "बुकमार्क (बाद में पढ़ें) दिखाएँ",
   "admin.settings.featBookmarkHint": "चालू होने पर「बुकमार्क」बटन दिखता है; बंद होने पर छिप जाता है।",
+  "admin.settings.featMusicPlayer": "संगीत प्लेयर दिखाएँ",
+  "admin.settings.featMusicPlayerHint": "चालू होने पर नीचे-दाएँ कोने में तैरता संगीत प्लेयर दिखता है; बंद होने पर पूरी तरह छिप जाता है (सहेजा गया वॉल्यूम व प्लेबैक इतिहास बना रहता है)।",
   "admin.settings.featReadingFont": "टेक्स्ट आकार नियंत्रण दिखाएँ (A− / A / A+)",
   "admin.settings.featReadingFontHint": "चालू होने पर शीर्षक के नीचे आकार बटन दिखते हैं; बंद होने पर छिप जाते हैं।",
   "admin.settings.featRich": "सामग्री रेंडरिंग",

@@ -953,6 +953,8 @@
   "admin.settings.featHighlightHint": "开启后显示「高亮汇总 / 清除高亮 / 导出高亮 / 导入高亮」；关闭后隐藏按钮与划线高亮，已保存的高亮记录不会被删除。",
   "admin.settings.featBookmark": "显示收藏（稍后读）",
   "admin.settings.featBookmarkHint": "开启后显示「收藏」按钮；关闭后隐藏按钮，已收藏内容不受影响。",
+  "admin.settings.featMusicPlayer": "显示音乐播放器",
+  "admin.settings.featMusicPlayerHint": "开启后右下角显示悬浮音乐播放器；关闭后播放器完全隐藏，已保存的音量与播放记录不受影响。",
   "admin.settings.featReadingFont": "显示正文字号调节（A− / A / A+）",
   "admin.settings.featReadingFontHint": "开启后，文章标题下方显示字号调节按钮；关闭后隐藏，读者不能再调整正文字号。",
   "admin.settings.featRich": "内容渲染",

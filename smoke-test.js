@@ -4649,6 +4649,95 @@ tests.push(['老文章（WordPress 导入）：HTML 残留不再显示为字面�
   } finally { try { fs.unlinkSync(f); } catch (e) {} }
 }]);
 
+/* ---------- 音乐播放器后台开关 ---------- */
+tests.push(['音乐播放器：后台开关（保存 / 回填 / 前台生效 / 5 语言文案）', async () => {
+  const app = fs.readFileSync(path.join(PUB, 'app.js'), 'utf8');
+  const admin = fs.readFileSync(path.join(PUB, 'admin.js'), 'utf8');
+  const mp = fs.readFileSync(path.join(PUB, 'music-player.js'), 'utf8');
+
+  /* --- app.js：开关判定 + 就绪广播 --- */
+  assert.ok(app.includes('function musicPlayerEnabled()'), 'app.js 缺少 musicPlayerEnabled()');
+  assert.ok(app.includes('return f.musicPlayer !== false;'), 'app.js 未按 features.musicPlayer 判定');
+  assert.ok(app.includes('function notifyFeaturesReady()'), 'app.js 缺少 notifyFeaturesReady()');
+  assert.ok(app.includes("new CustomEvent('qy:features')"), 'app.js 未广播 qy:features 事件');
+  assert.ok(app.includes('window.__qyFeaturesReady = true;'), 'app.js 未置位 __qyFeaturesReady');
+  assert.ok(app.includes('snapHit = true; notifyFeaturesReady();'), 'app.js 快照路径未广播 qy:features');
+  const apiAt = app.indexOf('_siteSettings = sResp.settings;');
+  assert.ok(apiAt !== -1, 'app.js 云端设置落地处不见了');
+  const apiNotify = app.indexOf('notifyFeaturesReady();', apiAt);
+  const apiSnap = app.indexOf('writeSnapshot(SETTINGS_SNAP_KEY, sResp);', apiAt);
+  assert.ok(apiNotify > apiAt && apiNotify < apiSnap, 'app.js 云端设置落地后未广播 qy:features');
+
+  /* --- music-player.js：真正被开关拦住 --- */
+  assert.ok(mp.includes('async function playerEnabled()'), 'music-player.js 缺少 playerEnabled()');
+  assert.ok(mp.includes('if (!(await playerEnabled())) return;'), 'music-player.js init 未在 buildDOM 前拦截');
+  assert.ok(mp.includes("window.addEventListener('qy:features', done)"), 'music-player.js 未监听 qy:features');
+  const gateAt = mp.indexOf('if (!(await playerEnabled())) return;');
+  const buildAt = mp.indexOf('buildDOM();', mp.indexOf('async function init()'));
+  const fetchAt = mp.indexOf("fetch('/api/music");
+  assert.ok(gateAt !== -1 && buildAt !== -1 && gateAt < buildAt, '开关判定必须早于 buildDOM（否则会闪现）');
+  assert.ok(gateAt < fetchAt, '开关判定必须早于 /api/music 请求（关闭时零请求）');
+  assert.ok(mp.includes('setTimeout(done, 3000)'), 'music-player.js 缺少超时兜底（设置接口异常会卡住）');
+
+  /* --- admin.js：开关 UI + 保存 + 回填 --- */
+  assert.ok(admin.includes('id="abFeatMusicPlayer"'), 'admin.js 缺少 abFeatMusicPlayer 开关');
+  assert.ok(admin.includes("t('admin.settings.featMusicPlayer')"), 'admin.js 未使用文案 featMusicPlayer');
+  assert.ok(admin.includes("t('admin.settings.featMusicPlayerHint')"), 'admin.js 未使用文案 featMusicPlayerHint');
+  assert.ok(admin.includes('musicPlayer: content.querySelector'), 'admin.js 保存时未收集 musicPlayer');
+  assert.ok(admin.includes('.checked = (feat.musicPlayer !== false);'), 'admin.js 回填时未按 feat.musicPlayer 还原勾选');
+
+  /* --- 5 种语言都要有文案，缺键会白屏 --- */
+  ['zh-CN', 'en', 'ja', 'ko', 'hi'].forEach((lang) => {
+    const j = JSON.parse(fs.readFileSync(path.join(PUB, 'locales', lang + '.json'), 'utf8'));
+    assert.ok(j['admin.settings.featMusicPlayer'], lang + ' 缺少 admin.settings.featMusicPlayer');
+    assert.ok(j['admin.settings.featMusicPlayerHint'], lang + ' 缺少 admin.settings.featMusicPlayerHint');
+  });
+
+  /* --- 行为验证：真跑一遍 app.js 的判定逻辑 --- */
+  const fnSrc = app.slice(app.indexOf('function musicPlayerEnabled()'));
+  // app.js 是 CRLF：按 \r?\n 收尾，避免截出半个函数体
+  const endAt = /\r?\n\}\r?\n/.exec(fnSrc);
+  assert.ok(endAt, 'musicPlayerEnabled() 函数体不完整');
+  const body = fnSrc.slice(0, endAt.index + endAt[0].length);
+  const run = (features) => {
+    const ctx = { getConfig: () => ({ features: features }) };
+    vm.createContext(ctx);
+    vm.runInContext(body + '\nthis.r = musicPlayerEnabled();', ctx);
+    return ctx.r;
+  };
+  assert.strictEqual(run({}), true, '未设置时默认开启（向后兼容）');
+  assert.strictEqual(run({ musicPlayer: true }), true, '显式开启');
+  assert.strictEqual(run({ musicPlayer: false }), false, '显式关闭');
+  assert.strictEqual(run({ bookmark: false }), true, '其他开关不影响播放器');
+
+  /* --- 行为验证：真跑一遍播放器的等待 / 拦截逻辑 --- */
+  const gateSrc = mp.slice(mp.indexOf('function featuresSettled()'));
+  const gateBody = gateSrc.slice(0, gateSrc.indexOf('\n\n  /* ---------- 初始化 ---------- */'));
+  const runGate = async (opts) => {
+    const listeners = {};
+    const ctx = {
+      setTimeout: setTimeout, clearTimeout: clearTimeout, Promise: Promise,
+      window: {
+        __qyFeaturesReady: !!opts.ready,
+        musicPlayerEnabled: opts.enabled === undefined ? (() => true) : (() => opts.enabled),
+        addEventListener: (t, f) => { (listeners[t] = listeners[t] || []).push(f); },
+        removeEventListener: (t, f) => { listeners[t] = (listeners[t] || []).filter((x) => x !== f); }
+      }
+    };
+    vm.createContext(ctx);
+    vm.runInContext(gateBody + '\nthis.p = playerEnabled();', ctx);
+    if (opts.later) {
+      (listeners['qy:features'] || []).slice().forEach((f) => f());
+      ctx.window.__qyFeaturesReady = true;
+    }
+    return await ctx.p;
+  };
+  assert.strictEqual(await runGate({ ready: true, enabled: false }), false, '开关关闭 → 播放器不加载');
+  assert.strictEqual(await runGate({ ready: true, enabled: true }), true, '开关开启 → 播放器加载');
+  assert.strictEqual(await runGate({ ready: false, later: true, enabled: false }), false, '设置晚到时也能拦住（首次访问无快照）');
+  assert.strictEqual(await runGate({ ready: false, later: true, enabled: true }), true, '设置晚到且开启 → 正常加载');
+}]);
+
 /* ---------- 运行 ---------- */
 (async () => {
   let passed = 0, failed = 0;

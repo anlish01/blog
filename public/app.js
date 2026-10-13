@@ -6,7 +6,7 @@
  * ============================================================================ */
 'use strict';
 
-var BLOG_VERSION = '2.10.101';
+var BLOG_VERSION = '2.10.102';
 
 /* i18n 兜底：万一 i18n.js 没加载成功（网络抖动 / 缓存缺失 / 被拦截），
  * 也必须保证 t() 可用 —— 否则整页会在第一个 t(...) 处抛 “t is not defined” 而白屏。 */
@@ -1162,6 +1162,18 @@ function highlightToolsEnabled() {
 function bookmarkEnabled() {
   var f = getConfig().features || {};
   return f.bookmark !== false;
+}
+// 音乐播放器开关：后台「功能开关 → 音乐播放器」关闭后，右下角悬浮播放器不再出现
+// （不构建 DOM、不发 /api/music 请求、不注册任何事件）。未设置时默认开启（向后兼容）。
+function musicPlayerEnabled() {
+  var f = getConfig().features || {};
+  return f.musicPlayer !== false;
+}
+// 「功能开关」就绪广播：music-player.js 是独立模块，拿不到 getConfig 内部的 _siteSettings，
+// 因此设置落地后广播一次，播放器据此决定是否加载（配合 window.__qyFeaturesReady 供晚到者查询）。
+function notifyFeaturesReady() {
+  try { window.__qyFeaturesReady = true; } catch (e) {}
+  try { window.dispatchEvent(new CustomEvent('qy:features')); } catch (e) {}
 }
 // 站点名称：优先使用云端「站点基础信息 → 站点名称」，其次页脚版权署名，
 // 最后回退到 i18n 默认（site.title）。改完站点名称后，左上角品牌、
@@ -6549,7 +6561,7 @@ function applyPostsSnapshot(data) {
     var snapPosts = readSnapshot(POSTS_SNAP_KEY);
     if (snapPosts) snapHit = applyPostsSnapshot(snapPosts) || snapHit;
     var snapSettings = readSnapshot(SETTINGS_SNAP_KEY);
-    if (snapSettings && snapSettings.settings) { _siteSettings = snapSettings.settings; snapHit = true; }
+    if (snapSettings && snapSettings.settings) { _siteSettings = snapSettings.settings; snapHit = true; notifyFeaturesReady(); }
     // 只补内容、不提前宣告「云端已就绪」：探测完成前仍走原有懒加载路径，
     // 避免文章详情在拿到正文前就误判为「不存在」。
     if (snapHit) { try { route(); } catch (e) {} }
@@ -6593,9 +6605,12 @@ function applyPostsSnapshot(data) {
       if (sResp && sResp.settings) {
         var firstLoad = !_siteSettings;
         _siteSettings = sResp.settings;
+        notifyFeaturesReady();
         writeSnapshot(SETTINGS_SNAP_KEY, sResp);
         if (firstLoad) route();   // 首次加载设置后重渲染：导航/页脚/关于页生效
       }
     } catch (e) { /* 设置获取失败 → 使用静态配置 */ }
+    notifyFeaturesReady();   // 静态模式 / 接口失败：同样广播，播放器按默认（开启）处理
   }
+  notifyFeaturesReady();
 })();

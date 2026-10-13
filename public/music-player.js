@@ -8,6 +8,7 @@
  *   · 点击按钮弹出播放面板：曲目信息 · 进度条 · 上一首/播放暂停/下一首 · 音量 · 播放列表
  *   · 记忆上次播放（曲目 + 进度 + 音量），刷新后恢复但不自动播放
  *   · 后台路由（/admin、/write、编辑页）自动隐藏；无音乐或接口失败时完全隐藏
+ *   · 后台「功能开关 → 音乐播放器」关闭时整体不加载（不建 DOM、不请求接口、不注册事件）
  * ============================================================ */
 (function () {
   'use strict';
@@ -341,9 +342,44 @@
     if (hide) { closePanel(); retractFab(); }
   }
 
+  /* ---------- 后台功能开关 ---------- */
+  // 后台「功能开关 → 音乐播放器」关闭时，整个播放器直接不出现：
+  // 不构建 DOM、不请求 /api/music、不注册任何点击/键盘事件。
+  // app.js 拿到站点设置后会广播 qy:features（并置 window.__qyFeaturesReady），
+  // 这里等它落地再判断；最多等 3 秒，超时按默认开启处理，
+  // 避免设置接口异常时误关掉播放器。
+  function featuresSettled() {
+    return new Promise(function (resolve) {
+      if (window.__qyFeaturesReady) { resolve(); return; }
+      var settled = false;
+      var timer = setTimeout(done, 3000);
+      function done() {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try { window.removeEventListener('qy:features', done); } catch (e) {}
+        resolve();
+      }
+      try { window.addEventListener('qy:features', done); } catch (e) { done(); }
+    });
+  }
+  async function playerEnabled() {
+    await featuresSettled();
+    try {
+      if (typeof window.musicPlayerEnabled === 'function') return window.musicPlayerEnabled() !== false;
+      if (typeof window.getConfig === 'function') {
+        var f = (window.getConfig().features) || {};
+        return f.musicPlayer !== false;
+      }
+    } catch (e) { /* 取不到配置 → 按默认开启 */ }
+    return true;
+  }
+
   /* ---------- 初始化 ---------- */
   async function init() {
     if (!document.body) { document.addEventListener('DOMContentLoaded', init); return; }
+    
+    if (!(await playerEnabled())) return;   // 后台已关闭：整个播放器不加载
     buildDOM();
     bindAudio();
     var vol = 80;

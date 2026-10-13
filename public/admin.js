@@ -4751,7 +4751,8 @@
         navExtras: content.querySelector('#abFeatNavExtras') ? content.querySelector('#abFeatNavExtras').checked : true,
         readingFont: content.querySelector('#abFeatReadingFont') ? content.querySelector('#abFeatReadingFont').checked : true,
         highlight: content.querySelector('#abFeatHighlight') ? content.querySelector('#abFeatHighlight').checked : true,
-        bookmark: content.querySelector('#abFeatBookmark') ? content.querySelector('#abFeatBookmark').checked : true
+        bookmark: content.querySelector('#abFeatBookmark') ? content.querySelector('#abFeatBookmark').checked : true,
+        musicPlayer: content.querySelector('#abFeatMusicPlayer') ? content.querySelector('#abFeatMusicPlayer').checked : true
       };
     }
     if (content.querySelector('#abHomeTags')) collectHomeTagsFromDom(content);
@@ -4845,6 +4846,7 @@
     if (content.querySelector('#abFeatReadingFont')) content.querySelector('#abFeatReadingFont').checked = (feat.readingFont !== false);
     if (content.querySelector('#abFeatHighlight')) content.querySelector('#abFeatHighlight').checked = (feat.highlight !== false);
     if (content.querySelector('#abFeatBookmark')) content.querySelector('#abFeatBookmark').checked = (feat.bookmark !== false);
+    if (content.querySelector('#abFeatMusicPlayer')) content.querySelector('#abFeatMusicPlayer').checked = (feat.musicPlayer !== false);
     if (content.querySelector('#abProfileName')) content.querySelector('#abProfileName').value = prof.name || '';
     if (content.querySelector('#abProfileBio')) content.querySelector('#abProfileBio').value = prof.bio || '';
     if (content.querySelector('#abProfileAvatar')) content.querySelector('#abProfileAvatar').value = prof.avatar || '';
@@ -4976,6 +4978,7 @@
         '<div class="ab-field"><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="abFeatReadingFont"> ' + t('admin.settings.featReadingFont') + '</label><label class="ab-hint">' + t('admin.settings.featReadingFontHint') + '</label></div>' +
         '<div class="ab-field"><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="abFeatHighlight"> ' + t('admin.settings.featHighlight') + '</label><label class="ab-hint">' + t('admin.settings.featHighlightHint') + '</label></div>' +
         '<div class="ab-field"><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="abFeatBookmark"> ' + t('admin.settings.featBookmark') + '</label><label class="ab-hint">' + t('admin.settings.featBookmarkHint') + '</label></div>' +
+        '<div class="ab-field"><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="abFeatMusicPlayer"> ' + t('admin.settings.featMusicPlayer') + '</label><label class="ab-hint">' + t('admin.settings.featMusicPlayerHint') + '</label></div>' +
         '<div class="ab-section-title" style="margin-top:16px">' + icon('image', 15) + ' ' + t('admin.settings.featRich') + '</div>' +
         '<div class="ab-field"><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="abFeatRichContent"> ' + t('admin.settings.featRichContent') + '</label><label class="ab-hint">' + t('admin.settings.featRichContentHint') + '</label></div>' +
         '<div class="ab-section-title" style="margin-top:16px">' + icon('bug', 15) + ' ' + t('admin.settings.featDiag') + '</div>' +

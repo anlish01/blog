@@ -75,7 +75,7 @@ It runs in two modes:
 
 The entire site lives in `public/`: frontend `index.html` + `style.css` + `app.js` + `posts.js` + `music-player.js` + `bg-anim.js`, admin `admin.js` + `admin.css`, i18n `i18n.js` + `locales/`.
 
-> 🆕 **Current version `v2.10.101`.** Beyond writing / comments / stats, it also ships: **post encryption** (AES-GCM, client-side), **per-post SEO** (title / description / canonical / noindex), **draft preview links** (HMAC-signed), **one-click static site export (asks where to save first, then exports)**, **print / PDF**, **Webmention**, **multi-author + author pages**, **Mermaid diagrams + KaTeX math** (vendored, on-demand), **subscriber groups & broadcast**, **front-end error log**, **comment anti-bot**, **country / device detection**, and an admin "**Feature switches**" page.
+> 🆕 **Current version `v2.10.102`.** Beyond writing / comments / stats, it also ships: **post encryption** (AES-GCM, client-side), **per-post SEO** (title / description / canonical / noindex), **draft preview links** (HMAC-signed), **one-click static site export (asks where to save first, then exports)**, **print / PDF**, **Webmention**, **multi-author + author pages**, **Mermaid diagrams + KaTeX math** (vendored, on-demand), **subscriber groups & broadcast**, **front-end error log**, **comment anti-bot**, **country / device detection**, and an admin "**Feature switches**" page.
 
 > 💡 The root `index.html` is just a redirect that opens `public/index.html` (the Workers / Pages deploy directory). Opening `public/index.html` locally works the same.
 
@@ -239,7 +239,7 @@ Everything the code reads; entries marked *auto* are written to the Worker from 
 Push to `main` (or run the workflow manually) and GitHub Actions will:
 
 1. ✅ Install the Wrangler CLI
-2. ✅ Run three test suites (`smoke-test.js` 179 cases / `gb-verify.js` 18 / `search-verify.js` 25 — a failure aborts the deploy)
+2. ✅ Run three test suites (`smoke-test.js` 180 cases / `gb-verify.js` 18 / `search-verify.js` 25 — a failure aborts the deploy)
 3. ✅ Validate the required secrets and ID formats
 4. ✅ Apply D1 migrations (three-layer idempotency: `schema_migrations` ledger + column pre-check + tolerant error matching)
 5. ✅ Deploy the Worker
@@ -343,8 +343,8 @@ The admin panel is a separate bundle (`admin.js` + `admin.css`) lazy-loaded only
 | Media library | Image upload (browser **direct-to-R2** presigned URLs, metadata in D1), grid preview, **click a thumbnail for a full preview (arrow keys / Esc to close)**, **file-name search + pagination (24 per page)**, **multi-select bulk delete**, copy URL or **copy Markdown image syntax**, delete (R2 object first, then the D1 row); static / non-cloud mode shows a hint |
 | **Music management** | Audio upload (direct to R2 with a percentage progress bar, drag-and-drop supported); **filename parsing fills in "song - artist"**; **title / artist search + pagination (15 per page)**; inline per-row preview (play / pause / seek / elapsed and total time), rename, delete (synced with the R2 object); inner-scrolling list card with a sticky table header |
 | **Prev / next reading flow** | Prev / next links fade into each other (cross-fade, no page-flip motion); opening the other post always starts **from the top** — the previous scroll position is only restored on a manual refresh. **Related posts** always sit **below** the prev / next block |
-| **Feature switches** | Admin → Settings → Feature switches moves code-only toggles into the UI: **posts per page** (0 = no paging), **which tags appear on the home page**, a **new-navigation-items switch**, the **ads master switch** + AdSense client ID + three ad slots (above list / between list items + interval / below post), **reading font size** (hide the A− / A / A+ buttons), **highlight tools** (covers summary / clear / export / import), the **bookmark (read later) button**, **content rendering** (diagrams & math), **comment anti-bot**, **front-end error reporting**, and **site diagnostics**. Turning one off only hides the UI — **saved highlights and bookmarks are never deleted**. Saved settings take effect immediately — no code change or redeploy |
-| Blog settings | remembers the **last tab you were on** across refreshes instead of always snapping back to Site basics. 6 tabs: **Site basics** (name / description / avatar logo / about-page content / footer copyright / footer notice / moderate new comments), **Feature switches** (home paging / home tags / new navigation items / ads / reading font size / highlights / bookmarks / content rendering / front-end error reporting / comment anti-bot / diagrams & math / site diagnostics), **Profile** (name / bio / avatar / email), **Navigation menu** (visual editor with add / remove / sub-items / reset; second-level items and custom entries added earlier are restored and shown), **Footer navigation**, **Friend links** |
+| **Feature switches** | Admin → Settings → Feature switches moves code-only toggles into the UI: **posts per page** (0 = no paging), **which tags appear on the home page**, a **new-navigation-items switch**, the **ads master switch** + AdSense client ID + three ad slots (above list / between list items + interval / below post), **reading font size** (hide the A− / A / A+ buttons), **highlight tools** (covers summary / clear / export / import), the **bookmark (read later) button**, the **music player** (with it off the floating bottom-right player is never loaded), **content rendering** (diagrams & math), **comment anti-bot**, **front-end error reporting**, and **site diagnostics**. Turning one off only hides the UI — **saved highlights and bookmarks are never deleted**. Saved settings take effect immediately — no code change or redeploy |
+| Blog settings | remembers the **last tab you were on** across refreshes instead of always snapping back to Site basics. 6 tabs: **Site basics** (name / description / avatar logo / about-page content / footer copyright / footer notice / moderate new comments), **Feature switches** (home paging / home tags / new navigation items / ads / reading font size / highlights / bookmarks / music player / content rendering / front-end error reporting / comment anti-bot / diagrams & math / site diagnostics), **Profile** (name / bio / avatar / email), **Navigation menu** (visual editor with add / remove / sub-items / reset; second-level items and custom entries added earlier are restored and shown), **Footer navigation**, **Friend links** |
 | **Front-end error log** | Captures unhandled exceptions and promise rejections in visitors' browsers and reports them anonymously to `/admin/errors`; identical errors are grouped with a hit count (plus source, page and UA), searchable and clearable. On by default, can be disabled under Feature switches |
 | **Site health check** | `/admin/health` verifies D1 table readability (with row counts), KV read/write, R2 media & backup buckets, and AI / mail (Resend) bindings |
 | **Traffic sources / devices** | Records the referrer host, **country/region** (Cloudflare edge IP geolocation — only the 2-letter code is stored, never the raw IP), **device type** (desktop / mobile / tablet / bot), **OS** (iOS / Android / HarmonyOS / Windows / macOS / Linux) and **device brand** (Apple / Samsung / Xiaomi / Huawei / OPPO / vivo …) for every view, aggregated per day; the dashboard shows a 30-day card with top referrers and device share |
@@ -517,7 +517,7 @@ The admin panel is a separate bundle (`admin.js` + `admin.css`) lazy-loaded only
 ├── index.html                         # Root redirect (opens public/index.html)
 ├── wrangler.toml                      # Cloudflare Pages config
 ├── wrangler.workers.toml              # Cloudflare Workers config (used for deploys)
-├── smoke-test.js                      # Smoke tests (179 cases)
+├── smoke-test.js                      # Smoke tests (180 cases)
 ├── gb-verify.js                       # Guestbook verification (18 cases)
 ├── search-verify.js                   # Search verification (25 cases)
 ├── docs/                              # Project documentation (bilingual)
@@ -774,7 +774,7 @@ The step-by-step dashboard walkthrough is in section 9 of the **[Cloudflare setu
 ## 🧪 Tests
 
 ```bash
-node smoke-test.js      # Smoke tests: 179 cases
+node smoke-test.js      # Smoke tests: 180 cases
 node gb-verify.js       # Guestbook verification: 18 cases
 node search-verify.js   # Search verification: 25 cases
 ```
