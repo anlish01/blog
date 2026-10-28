@@ -73,5 +73,5 @@ BLOG_AI_ENABLED = "{env.BLOG_AI_ENABLED}"
 # 可选：设为 0 / false / off 后，匿名访客不能触发生成（只读缓存与 ping 不受影响）
 BLOG_AI_PUBLIC = "{env.BLOG_AI_PUBLIC}"
 # Cron：每 5 分钟检查定时文章；每天 19:00 UTC（北京时间 03:00）自动备份
-[triggers]
-crons = ["*/5 * * * *", "0 19 * * *"]
+# [triggers]
+# crons = ["*/5 * * * *", "0 19 * * *"]
